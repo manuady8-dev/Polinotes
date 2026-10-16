@@ -1,52 +1,75 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Our Creative Notes 🚀</title>
+    <title>Poli-Notes 📝</title>
     <style>
-        /* STILE GENERALE (DARK MODE DI BASE) */
+        /* STILE SFONDO A RIGHE TIPO QUADERNO */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
+            background-color: #fcfcfc;
+            /* Crea l'effetto delle linee del quaderno */
+            background-image: linear-gradient(#e0e0e0 1px, transparent 1px);
+            background-size: 100% 30px;
+            color: #333333;
             margin: 0;
             padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* TITOLO "POLI-NOTES" CON CORNICE ROSSA */
+        .title-container {
+            border: 4px solid #ff4757;
+            background-color: #ffffff;
+            padding: 10px 40px;
+            border-radius: 4px;
+            box-shadow: 4px 4px 0px rgba(255, 71, 87, 0.2);
+            text-align: center;
+            margin-bottom: 5px;
+            margin-top: 20px;
         }
 
         h1 {
-            color: #00ffcc;
-            text-shadow: 0 0 10px rgba(0, 255, 210, 0.3);
-            margin-bottom: 5px;
+            color: #ff4757;
+            margin: 0;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 800;
         }
 
         p.subtitle {
-            color: #888;
+            color: #666;
             margin-bottom: 30px;
-            font-size: 0.9rem;
+            font-size: 0.9.5rem;
+            font-style: italic;
         }
 
         /* AREA DI CREAZIONE NOTA */
         .note-creator {
-            background: #1e1e1e;
+            background: #ffffff;
             padding: 20px;
             border-radius: 15px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
             width: 100%;
             max-width: 400px;
             margin-bottom: 40px;
+            z-index: 10;
         }
 
         textarea {
             width: 100%;
             height: 100px;
-            background: #2d2d2d;
-            border: 1px solid #444;
+            background: #f9f9f9;
+            border: 1px solid #ccc;
             border-radius: 10px;
-            color: white;
+            color: #333;
             padding: 10px;
             box-sizing: border-box;
             resize: none;
@@ -55,7 +78,7 @@
 
         textarea:focus {
             outline: none;
-            border-color: #00ffcc;
+            border-color: #ff4757;
         }
 
         .controls {
@@ -79,12 +102,12 @@
         }
 
         .color-option.selected {
-            border-color: white;
+            border-color: #333;
         }
 
         button {
-            background: #00ffcc;
-            color: #121212;
+            background: #ff4757;
+            color: white;
             border: none;
             padding: 10px 20px;
             border-radius: 8px;
@@ -95,25 +118,26 @@
 
         button:hover {
             transform: scale(1.05);
-            background: #00ccaa;
+            background: #ff2a3b;
         }
 
         /* GRIGLIA DEI POST-IT */
         .notes-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
+            gap: 25px;
             width: 100%;
             max-width: 1000px;
+            z-index: 10;
         }
 
         /* STILE DEL SINGOLO POST-IT */
         .note {
             padding: 20px;
-            border-radius: 12px;
+            border-radius: 4px; /* Più squadrati tipo veri post-it */
             color: #121212;
             position: relative;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.15);
             transform: rotate(calc(var(--rotation, 0deg)));
             transition: 0.3s;
             min-height: 150px;
@@ -123,8 +147,9 @@
         }
 
         .note:hover {
-            transform: scale(1.03) rotate(0deg);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            transform: scale(1.05) rotate(0deg);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+            z-index: 20;
         }
 
         .note-text {
@@ -153,19 +178,22 @@
         }
 
         .delete-btn:hover {
-            color: red;
+            color: #ff4757;
             transform: scale(1.2);
         }
     </style>
 </head>
 <body>
 
-    <h1>🚀 Our Secret Board</h1>
-    <p class="subtitle">Solo per noi e i nostri amici inglesi</p>
+    <!-- NUOVO TITOLO CON CORNICE ROSSA -->
+    <div class="title-container">
+        <h1>Poli-Notes</h1>
+    </div>
+    <p class="subtitle">Our private corner for thoughts and reminders</p>
 
     <!-- CREATORE DI NOTE -->
     <div class="note-creator">
-        <textarea id="noteText" placeholder="Scrivi qualcosa di divertente o un promemoria..."></textarea>
+        <textarea id="noteText" placeholder="Write something fun or a reminder here..."></textarea>
         <div class="controls">
             <div class="color-picker" id="colorPicker">
                 <div class="color-option selected" style="background: #ff7675;" data-color="#ff7675"></div>
@@ -174,7 +202,7 @@
                 <div class="color-option" style="background: #ffeaa7;" data-color="#ffeaa7"></div>
                 <div class="color-option" style="background: #a29bfe;" data-color="#a29bfe"></div>
             </div>
-            <button onclick="addNote()">Aggiungi 📌</button>
+            <button onclick="addNote()">Add Note 📌</button>
         </div>
     </div>
 
@@ -185,7 +213,6 @@
         let selectedColor = '#ff7675';
         let notes = JSON.parse(localStorage.getItem('myGroupNotes')) || [];
 
-        // Gestione cambio colore nel creatore
         document.getElementById('colorPicker').addEventListener('click', (e) => {
             if(e.target.classList.contains('color-option')) {
                 document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
@@ -194,17 +221,15 @@
             }
         });
 
-        // Funzione per aggiungere una nota
         function addNote() {
             const text = document.getElementById('noteText').value.trim();
-            if(!text) return alert("Scrivi qualcosa prima!");
+            if(!text) return alert("Please write something first!");
 
             const newNote = {
                 id: Date.now(),
                 text: text,
                 color: selectedColor,
-                date: new Date().toLocaleDateString('it-IT'),
-                // Crea una rotazione casuale per l'effetto post-it storto
+                date: new Date().toLocaleDateString('en-GB'), // Data in formato UK (gg/mm/aaaa)
                 rotation: (Math.random() * 6 - 3).toFixed(1) + 'deg'
             };
 
@@ -213,13 +238,11 @@
             document.getElementById('noteText').value = '';
         }
 
-        // Elimina nota
         function deleteNote(id) {
             notes = notes.filter(note => note.id !== id);
             saveAndRender();
         }
 
-        // Salva in memoria locale e mostra a schermo
         function saveAndRender() {
             localStorage.setItem('myGroupNotes', JSON.stringify(notes));
             const grid = document.getElementById('notesGrid');
@@ -242,7 +265,6 @@
             });
         }
 
-        // Mostra le note al caricamento della pagina
         saveAndRender();
     </script>
 </body>
