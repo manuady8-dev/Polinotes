@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poli-Notes Clone con Temi</title>
+    <title>Poli-Notes Clone con Temi funzionanti</title>
     <style>
-        /* Reset e Font */
+        /* ==========================================================================
+           RESET E STILI DI BASE
+           ========================================================================== */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -13,7 +15,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Stato iniziale dello sfondo (Tema di Default: Classic Notebook) */
+        /* Stato di default: Tema Classic (Sfondo Bianco con Righe Grigie) */
         body {
             min-height: 100vh;
             background-color: #ffffff;
@@ -24,17 +26,19 @@
             align-items: center;
             padding-top: 40px;
             position: relative;
-            transition: background 0.3s ease;
+            transition: background 0.4s ease, background-image 0.4s ease;
             overflow-x: hidden;
         }
 
-        /* Icona Impostazioni (Ingranaggio) */
+        /* ==========================================================================
+           BOTTONE IMPOSTAZIONI E SIDEBAR LATERALE
+           ========================================================================== */
         .settings-btn {
             position: absolute;
             top: 20px;
             right: 25px;
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border: 2px solid #e07a7a;
             border-radius: 50%;
             display: flex;
@@ -42,29 +46,33 @@
             justify-content: center;
             cursor: pointer;
             color: #e07a7a;
-            font-size: 20px;
+            font-size: 22px;
             background: #ffffff;
             z-index: 10;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            user-select: none;
+            transition: transform 0.2s ease;
+        }
+        .settings-btn:hover {
+            transform: rotate(45deg);
         }
 
-        /* --- SIDEBAR DEI SETTINGS --- */
         .settings-sidebar {
             position: fixed;
             top: 0;
-            right: -320px; /* Nascosta di default */
+            right: -320px; /* Nascosta fuori dallo schermo */
             width: 300px;
             height: 100vh;
             background: #ffffff;
             box-shadow: -5px 0 25px rgba(0,0,0,0.15);
             z-index: 100;
-            transition: right 0.3s ease;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             padding: 25px;
             overflow-y: auto;
         }
 
         .settings-sidebar.open {
-            right: 0; /* Mostra la barra */
+            right: 0; /* Scivola dentro lo schermo */
         }
 
         .sidebar-header {
@@ -73,29 +81,32 @@
             align-items: center;
             margin-bottom: 25px;
             border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 10px;
+            padding-bottom: 12px;
         }
 
         .sidebar-header h2 {
             font-size: 20px;
-            color: #333;
+            color: #333333;
         }
 
         .close-btn {
-            font-size: 24px;
+            font-size: 28px;
             cursor: pointer;
-            color: #999;
+            color: #aaaaaa;
+            line-height: 1;
         }
-        .close-btn:hover { color: #333; }
+        .close-btn:hover { 
+            color: #333333; 
+        }
 
-        /* Categorie e Griglia dei Temi */
+        /* Sezioni dei Temi */
         .theme-section {
             margin-bottom: 25px;
         }
 
         .theme-section h3 {
-            font-size: 14px;
-            color: #777;
+            font-size: 13px;
+            color: #888888;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 12px;
@@ -108,16 +119,16 @@
         }
 
         .theme-option {
-            padding: 12px 8px;
-            border: 1px solid #ddd;
+            padding: 12px 6px;
+            border: 1px solid #dddddd;
             border-radius: 8px;
             cursor: pointer;
             text-align: center;
             font-size: 13px;
             font-weight: 500;
-            color: #444;
+            color: #444444;
             background: #f9f9f9;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
         .theme-option:hover {
             border-color: #dc3545;
@@ -125,23 +136,25 @@
             transform: translateY(-1px);
         }
 
-        /* --- BLOCCHI DELL'INTERFACCIA PRINCIPALE --- */
+        /* ==========================================================================
+           INTERFACCIA PRINCIPALE (HEADER E LOGO)
+           ========================================================================== */
         .header-container {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
 
         .logo-box {
             border: 3px solid #dc3545;
-            padding: 8px 30px;
+            padding: 8px 32px;
             display: inline-block;
             background-color: #ffffff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
         .logo-text {
             color: #dc3545;
-            font-size: 28px;
+            font-size: 30px;
             font-weight: 900;
             letter-spacing: 2px;
             text-transform: uppercase;
@@ -149,44 +162,53 @@
 
         .subtitle {
             font-style: italic;
-            color: #555;
+            color: #444444;
             font-size: 13px;
-            margin-top: 10px;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.6);
+            margin-top: 12px;
+            font-weight: 500;
         }
 
+        /* ==========================================================================
+           BOX DELLA NOTA CENTRALE
+           ========================================================================== */
         .note-card {
             background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
             width: 90%;
-            max-width: 440px;
-            padding: 20px;
-            border: 1px solid #f0f0f0;
+            max-width: 450px;
+            padding: 22px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .note-textarea {
             width: 100%;
-            height: 100px;
+            height: 110px;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
-            padding: 12px;
+            padding: 14px;
             font-size: 14px;
             color: #4a5568;
             resize: none;
             outline: none;
             background-color: #fafafa;
+            transition: border-color 0.2s, background-color 0.2s;
         }
         .note-textarea::placeholder {
             color: #a0aec0;
             font-style: italic;
         }
+        .note-textarea:focus {
+            border-color: #cbd5e1;
+            background-color: #ffffff;
+        }
 
+        /* Palette dei tre pallini colorati */
         .color-palette {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
-            padding-left: 5px;
+            margin-top: 16px;
+            padding-left: 4px;
         }
 
         .color-dot {
@@ -195,6 +217,10 @@
             border-radius: 50%;
             cursor: pointer;
             border: 1px solid rgba(0, 0, 0, 0.15);
+            transition: transform 0.15s ease;
+        }
+        .color-dot:hover {
+            transform: scale(1.2);
         }
 
         .dot-red { background-color: #f28b82; }
@@ -204,17 +230,17 @@
 </head>
 <body>
 
-    <!-- Pulsante Ingranaggio per aprire i Settings -->
-    <div class="settings-btn" id="openSettings" title="Impostazioni Sfondo">&#9881;</div>
+    <!-- Bottone Ingranaggio -->
+    <div class="settings-btn" id="openSettings" title="Personalizza Sfondo">&#9881;</div>
 
-    <!-- Pannello Laterale dei Settings -->
+    <!-- Pannello Laterale delle Impostazioni -->
     <div class="settings-sidebar" id="sidebar">
         <div class="sidebar-header">
             <h2>Personalizza</h2>
             <div class="close-btn" id="closeSettings">&times;</div>
         </div>
 
-        <!-- Sezione CLASSIC -->
+        <!-- Categoria CLASSIC -->
         <div class="theme-section">
             <h3>Classic</h3>
             <div class="theme-grid">
@@ -226,7 +252,7 @@
             </div>
         </div>
 
-        <!-- Sezione GRADIENT -->
+        <!-- Categoria GRADIENT -->
         <div class="theme-section">
             <h3>Gradient</h3>
             <div class="theme-grid">
@@ -237,7 +263,7 @@
             </div>
         </div>
 
-        <!-- Sezione TIE-DYE -->
+        <!-- Categoria TIE-DYE -->
         <div class="theme-section">
             <h3>Tie-Dye</h3>
             <div class="theme-grid">
@@ -248,7 +274,7 @@
         </div>
     </div>
 
-    <!-- Interfaccia Principale dell'App -->
+    <!-- Contenuto Centrale dell'Applicazione -->
     <div class="header-container">
         <div class="logo-box">
             <h1 class="logo-text">Poli-Notes</h1>
@@ -256,36 +282,50 @@
         <p class="subtitle">Our private corner for thoughts and reminders</p>
     </div>
 
+    <!-- Blocco Nota -->
     <div class="note-card">
         <textarea class="note-textarea" placeholder="Write something fun or a reminder here..."></textarea>
         <div class="color-palette">
-            <div class="color-dot dot-red"></div>
-            <div class="color-dot dot-blue"></div>
-            <div class="color-dot dot-green"></div>
+            <div class="color-dot dot-red" title="Rosso"></div>
+            <div class="color-dot dot-blue" title="Blu"></div>
+            <div class="color-dot dot-green" title="Verde"></div>
         </div>
     </div>
 
-    <!-- Logica di Controllo dei Temi e della Sidebar -->
+    <!-- ==========================================================================
+       LOGICA JAVASCRIPT
+       ========================================================================== */ -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const openBtn = document.getElementById('openSettings');
+    <!-- ==========================================================================
+       LOGICA JAVASCRIPT
+       ========================================================================== */ -->
     <script>
         const sidebar = document.getElementById('sidebar');
         const openBtn = document.getElementById('openSettings');
         const closeBtn = document.getElementById('closeSettings');
 
-        // Gestione apertura/chiusura Sidebar
-        openBtn.addEventListener('click', () => sidebar.classList.add('open'));
-        closeBtn.addEventListener('click', () => sidebar.classList.remove('open'));
+        // Controllo apertura e chiusura Sidebar impostazioni
+        openBtn.addEventListener('click', () => {
+            sidebar.classList.add('open');
+        });
 
-        // Funzione per iniettare gli stili CSS di sfondo in base al tema cliccato
+        closeBtn.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+        });
+
+        // Funzione per cambiare dinamicamente lo sfondo dell'app
         function changeTheme(themeName) {
             const body = document.body;
             
-            // Pulizia preventiva degli sfondi precedenti
+            // Ripristina e azzera gli stili inline dei temi precedenti prima di applicare il nuovo
             body.style.backgroundColor = '';
             body.style.backgroundImage = '';
             body.style.backgroundSize = '';
 
             switch(themeName) {
-                // --- CATEGORIA: CLASSIC ---
+                // Temi Classici
                 case 'classic':
                     body.style.backgroundColor = '#ffffff';
                     body.style.backgroundImage = 'linear-gradient(#e0e0e0 1px, transparent 1px)';
@@ -303,27 +343,31 @@
                 case 'neutral':
                     body.style.backgroundColor = '#f5f5f5';
                     break;
-case 'grad-red':
-body.style.backgroundImage = 'linear-gradient(135deg, #2c0b0e 0%, #801a24 50%, #b83b48 100%)';
-break;
-case 'grad-pink':
-body.style.backgroundImage = 'linear-gradient(135deg, #421226 0%, #89214e 50%, #d04d7c 100%)';
-break;
-case 'grad-blue':
-body.style.backgroundImage = 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)';
-break;
-case 'grad-dark':
-body.style.backgroundImage = 'linear-gradient(135deg, #141e30 0%, #243b55 100%)';
-break;
-// --- CATEGORIA: TIE-DYE (Miscele Sfumate Psicadeliche) ---
-case 'tie-sunset':
-body.style.backgroundImage = 'radial-gradient(circle at 20% 30%, #ff9a9e 0%, #fecfef 40%, #fee140 100%)';
-break;
-case 'tie-aurora':
-body.style.backgroundImage = 'radial-gradient(circle at 80% 20%, #a1c4fd 0%, #c2e9fb 50%, #d4fc79 100%)';
-break;
-case 'tie-ocean':
-body.style.backgroundImage = 'radial-gradient(circle at 50% 50%, #84fab0 0%, #8fd3f4 100%)';
-break;
-}
-}
+
+                // Temi Gradienti Metallici
+                case 'grad-red':
+                    body.style.backgroundImage = 'linear-gradient(135deg, #2c0b0e 0%, #801a24 50%, #b83b48 100%)';
+                    break;
+                case 'grad-pink':
+                    body.style.backgroundImage = 'linear-gradient(135deg, #421226 0%, #89214e 50%, #d04d7c 100%)';
+                    break;
+                case 'grad-blue':
+                    body.style.backgroundImage = 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)';
+                    break;
+                case 'grad-dark':
+                    body.style.backgroundImage = 'linear-gradient(135deg, #141e30 0%, #243b55 100%)';
+                    break;
+
+                // Temi Tie-Dye Sfumati
+                case 'tie-sunset':
+                    body.style.backgroundImage = 'radial-gradient(circle at 20% 30%, #ff9a9e 0%, #fecfef 40%, #fee140 100%)';
+                    break;
+                case 'tie-aurora':
+                    body.style.backgroundImage = 'radial-gradient(circle at 80% 20%, #a1c4fd 0%, #c2e9fb 50%, #d4fc79 100%)';
+                    break;
+                case 'tie-ocean':
+                    body.style.backgroundImage = 'radial-gradient(circle at 50% 50%, #84fab0 0%, #8fd3f4 100%)';
+                    break;
+            }
+        }
+    </script>
