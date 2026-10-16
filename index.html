@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Poli-Notes 📝</title>
     <style>
-        /* STILE SFONDO A RIGHE TIPO QUADERNO */
+        /* CONFIGURAZIONE DI BASE DEI TEMI */
+        :root {
+            --bg-style: #fcfcfc linear-gradient(#e0e0e0 1px, transparent 1px);
+        }
+
+        /* STILE SFONDO DINAMICO CON RIGHE IN TRASPARENZA */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #fcfcfc;
-            /* Crea l'effetto delle linee del quaderno */
-            background-image: linear-gradient(#e0e0e0 1px, transparent 1px);
+            background: var(--bg-style);
             background-size: 100% 30px;
             color: #333333;
             margin: 0;
@@ -20,6 +23,97 @@
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
+            transition: background 0.3s ease;
+        }
+
+        /* BOTTONE SETTINGS IN ALTO A DESTRA */
+        .settings-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ffffff;
+            border: 2px solid #ff4757;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .settings-toggle:hover {
+            transform: rotate(45deg) scale(1.05);
+        }
+
+        /* MENU LATERALE SETTINGS (SIDEBAR) */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 280px;
+            height: 100vh;
+            background: #ffffff;
+            box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+            padding: 25px;
+            box-sizing: border-box;
+            transition: right 0.3s ease;
+            z-index: 99;
+            overflow-y: auto;
+            border-left: 4px solid #ff4757;
+        }
+
+        .settings-panel.open {
+            right: 0;
+        }
+
+        .settings-panel h3 {
+            margin-top: 0;
+            color: #ff4757;
+            border-bottom: 2px solid #f1f2f6;
+            padding-bottom: 10px;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        .theme-section {
+            margin-bottom: 25px;
+        }
+
+        .theme-section h4 {
+            margin: 10px 0;
+            color: #57606f;
+            font-size: 0.9rem;
+        }
+
+        /* GRIGLIA PULSANTI TEMI */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .theme-btn {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #f9f9f9;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .theme-btn:hover {
+            border-color: #ff4757;
+            background: #fff5f5;
+            transform: translateY(-2px);
         }
 
         /* TITOLO "POLI-NOTES" CON CORNICE ROSSA */
@@ -31,7 +125,7 @@
             box-shadow: 4px 4px 0px rgba(255, 71, 87, 0.2);
             text-align: center;
             margin-bottom: 5px;
-            margin-top: 20px;
+            margin-top: 40px;
         }
 
         h1 {
@@ -46,7 +140,7 @@
         p.subtitle {
             color: #666;
             margin-bottom: 30px;
-            font-size: 0.9.5rem;
+            font-size: 0.95rem;
             font-style: italic;
         }
 
@@ -55,7 +149,7 @@
             background: #ffffff;
             padding: 20px;
             border-radius: 15px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
             border: 1px solid #e0e0e0;
             width: 100%;
             max-width: 400px;
@@ -105,7 +199,7 @@
             border-color: #333;
         }
 
-        button {
+        button.add-btn {
             background: #ff4757;
             color: white;
             border: none;
@@ -116,7 +210,7 @@
             transition: 0.2s;
         }
 
-        button:hover {
+        button.add-btn:hover {
             transform: scale(1.05);
             background: #ff2a3b;
         }
@@ -134,10 +228,10 @@
         /* STILE DEL SINGOLO POST-IT */
         .note {
             padding: 20px;
-            border-radius: 4px; /* Più squadrati tipo veri post-it */
+            border-radius: 4px;
             color: #121212;
             position: relative;
-            box-shadow: 5px 5px 15px rgba(0,0,0,0.15);
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.12);
             transform: rotate(calc(var(--rotation, 0deg)));
             transition: 0.3s;
             min-height: 150px;
@@ -148,7 +242,7 @@
 
         .note:hover {
             transform: scale(1.05) rotate(0deg);
-            box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.18);
             z-index: 20;
         }
 
@@ -185,7 +279,47 @@
 </head>
 <body>
 
-    <!-- NUOVO TITOLO CON CORNICE ROSSA -->
+    <!-- BOTTONE E PANNELLO IMPOSTAZIONI -->
+    <button class="settings-toggle" onclick="toggleSettings()">⚙️</button>
+    
+    <div class="settings-panel" id="settingsPanel">
+        <h3>Custom Themes</h3>
+        
+        <!-- SEZIONE CLASSIC -->
+        <div class="theme-section">
+            <h4>🎨 Classic Style</h4>
+            <div class="theme-grid">
+                <button class="theme-btn" onclick="setTheme('classic')">Classic</button>
+                <button class="theme-btn" onclick="setTheme('light-red')">Light Red</button>
+                <button class="theme-btn" onclick="setTheme('pink')">Pink</button>
+                <button class="theme-btn" onclick="setTheme('green')">Green</button>
+                <button class="theme-btn" onclick="setTheme('neutral')">Neutral</button>
+            </div>
+        </div>
+
+        <!-- SEZIONE GRADIENT METALLO -->
+        <div class="theme-section">
+            <h4>✨ Metallic Gradients</h4>
+            <div class="theme-grid">
+                <button class="theme-btn" onclick="setTheme('metal-red')">Metal Red</button>
+                <button class="theme-btn" onclick="setTheme('metal-pink')">Metal Pink</button>
+                <button class="theme-btn" onclick="setTheme('metal-blue')">Metal Blue</button>
+                <button class="theme-btn" onclick="setTheme('metal-gold')">Metal Gold</button>
+            </div>
+        </div>
+
+        <!-- SEZIONE TIE-DYE -->
+        <div class="theme-section">
+            <h4>🌈 Tie-Dye Psych</h4>
+            <div class="theme-grid">
+                <button class="theme-btn" onclick="setTheme('tie-dye-sunset')">Sunset</button>
+                <button class="theme-btn" onclick="setTheme('tie-dye-neon')">Neon</button>
+                <button class="theme-btn" onclick="setTheme('tie-dye-candy')">Candy floss</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TITOLO CON CORNICE ROSSA -->
     <div class="title-container">
         <h1>Poli-Notes</h1>
     </div>
@@ -199,73 +333,3 @@
                 <div class="color-option selected" style="background: #ff7675;" data-color="#ff7675"></div>
                 <div class="color-option" style="background: #74b9ff;" data-color="#74b9ff"></div>
                 <div class="color-option" style="background: #55efc4;" data-color="#55efc4"></div>
-                <div class="color-option" style="background: #ffeaa7;" data-color="#ffeaa7"></div>
-                <div class="color-option" style="background: #a29bfe;" data-color="#a29bfe"></div>
-            </div>
-            <button onclick="addNote()">Add Note 📌</button>
-        </div>
-    </div>
-
-    <!-- GRIGLIA DOVE APPARIRANNO LE NOTE -->
-    <div class="notes-grid" id="notesGrid"></div>
-
-    <script>
-        let selectedColor = '#ff7675';
-        let notes = JSON.parse(localStorage.getItem('myGroupNotes')) || [];
-
-        document.getElementById('colorPicker').addEventListener('click', (e) => {
-            if(e.target.classList.contains('color-option')) {
-                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
-                e.target.classList.add('selected');
-                selectedColor = e.target.dataset.color;
-            }
-        });
-
-        function addNote() {
-            const text = document.getElementById('noteText').value.trim();
-            if(!text) return alert("Please write something first!");
-
-            const newNote = {
-                id: Date.now(),
-                text: text,
-                color: selectedColor,
-                date: new Date().toLocaleDateString('en-GB'), // Data in formato UK (gg/mm/aaaa)
-                rotation: (Math.random() * 6 - 3).toFixed(1) + 'deg'
-            };
-
-            notes.push(newNote);
-            saveAndRender();
-            document.getElementById('noteText').value = '';
-        }
-
-        function deleteNote(id) {
-            notes = notes.filter(note => note.id !== id);
-            saveAndRender();
-        }
-
-        function saveAndRender() {
-            localStorage.setItem('myGroupNotes', JSON.stringify(notes));
-            const grid = document.getElementById('notesGrid');
-            grid.innerHTML = '';
-
-            notes.forEach(note => {
-                const noteEl = document.createElement('div');
-                noteEl.className = 'note';
-                noteEl.style.backgroundColor = note.color;
-                noteEl.style.setProperty('--rotation', note.rotation);
-
-                noteEl.innerHTML = `
-                    <div class="note-text">${note.text}</div>
-                    <div class="note-footer">
-                        <span>${note.date}</span>
-                        <button class="delete-btn" onclick="deleteNote(${note.id})">🗑️</button>
-                    </div>
-                `;
-                grid.appendChild(noteEl);
-            });
-        }
-
-        saveAndRender();
-    </script>
-</body>
-</html>
