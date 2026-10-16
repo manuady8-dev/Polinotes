@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poli-Notes Clone con Temi funzionanti</title>
+    <title>Poli-Notes Completo</title>
     <style>
-        /* ==========================================================================
-           RESET E STILI DI BASE
-           ========================================================================== */
+        /* Reset e Font */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -15,7 +13,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Stato di default: Tema Classic (Sfondo Bianco con Righe Grigie) */
+        /* Stato di default: Tema Classic Notebook */
         body {
             min-height: 100vh;
             background-color: #ffffff;
@@ -30,9 +28,7 @@
             overflow-x: hidden;
         }
 
-        /* ==========================================================================
-           BOTTONE IMPOSTAZIONI E SIDEBAR LATERALE
-           ========================================================================== */
+        /* Pulsante Impostazioni (Ingranaggio) */
         .settings-btn {
             position: absolute;
             top: 20px;
@@ -57,10 +53,11 @@
             transform: rotate(45deg);
         }
 
+        /* Sidebar Impostazioni */
         .settings-sidebar {
             position: fixed;
             top: 0;
-            right: -320px; /* Nascosta fuori dallo schermo */
+            right: -320px;
             width: 300px;
             height: 100vh;
             background: #ffffff;
@@ -72,7 +69,7 @@
         }
 
         .settings-sidebar.open {
-            right: 0; /* Scivola dentro lo schermo */
+            right: 0;
         }
 
         .sidebar-header {
@@ -99,7 +96,6 @@
             color: #333333; 
         }
 
-        /* Sezioni dei Temi */
         .theme-section {
             margin-bottom: 25px;
         }
@@ -136,9 +132,7 @@
             transform: translateY(-1px);
         }
 
-        /* ==========================================================================
-           INTERFACCIA PRINCIPALE (HEADER E LOGO)
-           ========================================================================== */
+        /* Header e Logo */
         .header-container {
             text-align: center;
             margin-bottom: 35px;
@@ -168,9 +162,7 @@
             font-weight: 500;
         }
 
-        /* ==========================================================================
-           BOX DELLA NOTA CENTRALE
-           ========================================================================== */
+        /* Card della Nota */
         .note-card {
             background: #ffffff;
             border-radius: 12px;
@@ -179,6 +171,7 @@
             max-width: 450px;
             padding: 22px;
             border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: background-color 0.3s ease;
         }
 
         .note-textarea {
@@ -191,7 +184,7 @@
             color: #4a5568;
             resize: none;
             outline: none;
-            background-color: #fafafa;
+            background-color: rgba(250, 250, 250, 0.8);
             transition: border-color 0.2s, background-color 0.2s;
         }
         .note-textarea::placeholder {
@@ -203,7 +196,7 @@
             background-color: #ffffff;
         }
 
-        /* Palette dei tre pallini colorati */
+        /* Palette Colori della Nota */
         .color-palette {
             display: flex;
             gap: 10px;
@@ -226,14 +219,15 @@
         .dot-red { background-color: #f28b82; }
         .dot-blue { background-color: #aecbfa; }
         .dot-green { background-color: #ccff90; }
+        .dot-white { background-color: #ffffff; }
     </style>
 </head>
 <body>
 
-    <!-- Bottone Ingranaggio -->
+    <!-- Pulsante Ingranaggio -->
     <div class="settings-btn" id="openSettings" title="Personalizza Sfondo">&#9881;</div>
 
-    <!-- Pannello Laterale delle Impostazioni -->
+    <!-- Barra Laterale -->
     <div class="settings-sidebar" id="sidebar">
         <div class="sidebar-header">
             <h2>Personalizza</h2>
@@ -274,7 +268,7 @@
         </div>
     </div>
 
-    <!-- Contenuto Centrale dell'Applicazione -->
+    <!-- Contenuto Principale -->
     <div class="header-container">
         <div class="logo-box">
             <h1 class="logo-text">Poli-Notes</h1>
@@ -283,28 +277,22 @@
     </div>
 
     <!-- Blocco Nota -->
-    <div class="note-card">
+    <div class="note-card" id="noteCard">
         <textarea class="note-textarea" placeholder="Write something fun or a reminder here..."></textarea>
         <div class="color-palette">
-            <div class="color-dot dot-red" title="Rosso"></div>
-            <div class="color-dot dot-blue" title="Blu"></div>
-            <div class="color-dot dot-green" title="Verde"></div>
+            <div class="color-dot dot-white" onclick="changeNoteColor('#ffffff')" title="Bianco"></div>
+            <div class="color-dot dot-red" onclick="changeNoteColor('#f28b82')" title="Rosso"></div>
+            <div class="color-dot dot-blue" onclick="changeNoteColor('#aecbfa')" title="Blu"></div>
+            <div class="color-dot dot-green" onclick="changeNoteColor('#ccff90')" title="Verde"></div>
         </div>
     </div>
 
-    <!-- ==========================================================================
-       LOGICA JAVASCRIPT
-       ========================================================================== */ -->
-    <script>
-        const sidebar = document.getElementById('sidebar');
-        const openBtn = document.getElementById('openSettings');
-    <!-- ==========================================================================
-       LOGICA JAVASCRIPT
-       ========================================================================== */ -->
+    <!-- Logica JavaScript Integrata -->
     <script>
         const sidebar = document.getElementById('sidebar');
         const openBtn = document.getElementById('openSettings');
         const closeBtn = document.getElementById('closeSettings');
+        const noteCard = document.getElementById('noteCard');
 
         // Controllo apertura e chiusura Sidebar impostazioni
         openBtn.addEventListener('click', () => {
@@ -315,17 +303,22 @@
             sidebar.classList.remove('open');
         });
 
-        // Funzione per cambiare dinamicamente lo sfondo dell'app
+        // Funzione per cambiare colore di sfondo alla nota tramite i pallini
+        function changeNoteColor(colorHex) {
+            noteCard.style.backgroundColor = colorHex;
+        }
+
+        // Funzione per cambiare il tema dello sfondo principale
+        function changeTheme(themeName) {
+        // Funzione per cambiare il tema dello sfondo principale
         function changeTheme(themeName) {
             const body = document.body;
             
-            // Ripristina e azzera gli stili inline dei temi precedenti prima di applicare il nuovo
             body.style.backgroundColor = '';
             body.style.backgroundImage = '';
             body.style.backgroundSize = '';
 
             switch(themeName) {
-                // Temi Classici
                 case 'classic':
                     body.style.backgroundColor = '#ffffff';
                     body.style.backgroundImage = 'linear-gradient(#e0e0e0 1px, transparent 1px)';
@@ -343,8 +336,6 @@
                 case 'neutral':
                     body.style.backgroundColor = '#f5f5f5';
                     break;
-
-                // Temi Gradienti Metallici
                 case 'grad-red':
                     body.style.backgroundImage = 'linear-gradient(135deg, #2c0b0e 0%, #801a24 50%, #b83b48 100%)';
                     break;
@@ -357,8 +348,6 @@
                 case 'grad-dark':
                     body.style.backgroundImage = 'linear-gradient(135deg, #141e30 0%, #243b55 100%)';
                     break;
-
-                // Temi Tie-Dye Sfumati
                 case 'tie-sunset':
                     body.style.backgroundImage = 'radial-gradient(circle at 20% 30%, #ff9a9e 0%, #fecfef 40%, #fee140 100%)';
                     break;
@@ -370,4 +359,3 @@
                     break;
             }
         }
-    </script>
