@@ -79,6 +79,8 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 .av{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 11px 'Rubik',sans-serif;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);animation:pop .4s var(--ease)}
 .av.me{outline:2px solid #222;outline-offset:1px}
 /* gate */
+#syncBox textarea{width:100%;height:90px;margin-top:8px;padding:6px;font:10px monospace;border:1px solid #ccc;border-radius:6px}
+.gate a{color:var(--accent);cursor:pointer;text-decoration:underline}
 .gate{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center;background:var(--bg);transition:opacity .6s var(--ease),transform .6s var(--ease),visibility .6s}
 .gate.out{opacity:0;transform:scale(1.15);visibility:hidden;pointer-events:none}
 .gate .box{background:#fff;color:#222;padding:18px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);width:min(90vw,300px);animation:pop .6s var(--ease)}
@@ -96,6 +98,8 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
     <input id="code" type="password" placeholder="Access code" autocomplete="off">
     <button class="btn" id="enter" style="width:100%">Enter</button>
     <small>Anyone with the same code sees the same notes.</small>
+    <small id="syncRow"></small>
+    <div id="syncBox" hidden><textarea id="syncTxt" placeholder="Paste your firebaseConfig here (empty = remove)"></textarea><button class="btn" id="syncSave" style="width:100%">Save &amp; reload</button></div>
   </div>
 </div>
 
@@ -146,8 +150,10 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 /* ===== FIREBASE (sync) =====
    Paste your project config here. If it stays null,
    notes are saved in this browser only. */
-const FIREBASE_CONFIG = null;
-/* esempio: { apiKey:"...", authDomain:"...", databaseURL:"https://TUO-PROGETTO-default-rtdb.europe-west1.firebasedatabase.app", projectId:"...", appId:"..." } */
+const FIREBASE_CODE = null;   // <- optional: paste your config object here instead of null
+const cfgOk=c=>!!(c&&c.apiKey&&c.databaseURL&&!/\.\.\.|TUO-PROGETTO|1a2b3/.test(JSON.stringify(c)));
+const FIREBASE_CONFIG=(()=>{if(cfgOk(FIREBASE_CODE))return FIREBASE_CODE;
+  try{const c=JSON.parse(localStorage.getItem('pn_fbcfg'));return cfgOk(c)?c:null}catch{return null}})();
 
 const THEMES={
  classic:[
@@ -244,6 +250,15 @@ $('#enter').onclick=()=>enter($('#code').value);
 ['#code','#name'].forEach(i=>$(i).onkeydown=e=>{if(e.key==='Enter')enter($('#code').value)});
 $('#name').value=LS.get('pn_name','');
 $('#logout').onclick=()=>{localStorage.removeItem('pn_code');if(ref)ref.off();location.reload()};
+/* sync setup (gate) */
+$('#syncRow').innerHTML='Sync: <b>'+(FIREBASE_CONFIG?'ON':'OFF')+'</b> (<a id="syncLink">setup</a>)';
+$('#syncLink').onclick=()=>{$('#syncBox').hidden=!$('#syncBox').hidden};
+$('#syncSave').onclick=()=>{
+  const t=$('#syncTxt').value.trim();
+  if(!t){localStorage.removeItem('pn_fbcfg');location.reload();return}
+  const c={};[...t.matchAll(/["']?(\w+)["']?\s*:\s*["']([^"']*)["']/g)].forEach(m=>c[m[1]]=m[2]);
+  if(!cfgOk(c)){alert('Config incomplete: it needs real apiKey and databaseURL values.');return}
+  localStorage.setItem('pn_fbcfg',JSON.stringify(c));location.reload()};
 const saved=LS.get('pn_code',null);if(saved)enter(saved);
 
 /* ===== COMPOSER ===== */
