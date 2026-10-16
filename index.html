@@ -1,389 +1,254 @@
-&lt;!DOCTYPE html&gt;
-&lt;html lang="en"&gt;
-&lt;head&gt;
-    &lt;meta charset="UTF-8"&gt;
-    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-    &lt;title&gt;Poli-Notes 📝&lt;/title&gt;
-    &lt;style&gt;
-        /* --- TEMI DI SFONDO --- */
-        body.theme-classic { background-color: #fcfcfc; }
-        body.theme-light-red { background-color: #ffcccc; }
-        body.theme-pink { background-color: #ffb6c1; }
-        body.theme-green { background-color: #d4edda; }
-        body.theme-neutral { background-color: #e2e8f0; }
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poli-Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@800&family=Fira+Code&display=swap" rel="stylesheet">
+<style>
+:root {
+  --accent: #f0455a;
+  --text: #2b2b2b;
+  --card: #ffffff;
+  --line: rgba(0,0,0,.07);
+  --bg: #fdfdfd;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: 'Fira Code', monospace;
+  color: var(--text);
+  background: var(--bg);
+  background-attachment: fixed;
+  min-height: 100vh;
+  padding: 24px 16px 80px;
+}
+/* righe da quaderno */
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: repeating-linear-gradient(to bottom, transparent 0 15px, var(--line) 15px 16px);
+}
+main { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; text-align: center; }
 
-        body.theme-metallic-red { 
-            background: linear-gradient(135deg, #7f1d1d, #f87171, #7f1d1d); 
-        }
-        body.theme-metallic-pink { 
-            background: linear-gradient(135deg, #9d174d, #fbcfe8, #9d174d); 
-        }
-        body.theme-tie-dye { 
-            background: radial-gradient(circle at 30% 30%, #ff007f, transparent 40%),
-                        radial-gradient(circle at 70% 60%, #00f0ff, transparent 40%),
-                        radial-gradient(circle at 50% 20%, #ffff00, transparent 40%),
-                        #ff00a0;
-            background-size: cover;
-        }
+h1 {
+  display: inline-block; margin: 28px 0 10px; padding: 8px 22px;
+  font: 800 28px 'Rubik', sans-serif; letter-spacing: 1px; color: var(--accent);
+  background: #fff; border: 3px solid var(--accent);
+  box-shadow: 4px 4px 0 rgba(0,0,0,.12);
+}
+.sub { font-size: 11px; font-style: italic; margin: 0 0 24px; opacity: .8; }
 
-        /* --- STRUTTURA GENERALE --- */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333333;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-            position: relative;
-            transition: background 0.5s ease;
-        }
+/* box di scrittura */
+.composer {
+  width: min(92vw, 236px * 1.6); margin: 0 auto 36px; padding: 10px;
+  background: var(--card); border: 1px solid #e3e3e3; border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.1); text-align: left;
+}
+.composer textarea {
+  width: 100%; height: 54px; resize: none; padding: 6px 8px;
+  font: 11px 'Fira Code', monospace; color: var(--text);
+  background: #fafafa; border: 1px solid #ddd; border-radius: 6px;
+}
+.composer textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.dot {
+  width: 16px; height: 16px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; padding: 0;
+}
+.dot.sel { border-color: #111; }
+#add {
+  margin-left: auto; border: 0; border-radius: 6px; padding: 5px 12px;
+  background: var(--accent); color: #fff; font: 11px 'Fira Code', monospace; cursor: pointer;
+}
 
-        .notebook-lines {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: linear-gradient(#e0e0e0 1px, transparent 1px);
-            background-size: 100% 30px;
-            pointer-events: none;
-            z-index: 1;
-            opacity: 0.7;
-        }
+/* note */
+#notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.note {
+  position: relative; min-height: 120px; padding: 14px 14px 30px; text-align: left;
+  border-radius: 4px; font-size: 12px; white-space: pre-wrap; word-break: break-word;
+  box-shadow: 2px 4px 10px rgba(0,0,0,.15); color: #222;
+}
+.note:nth-child(odd)  { transform: rotate(-1deg); }
+.note:nth-child(even) { transform: rotate(1deg); }
+.note button {
+  position: absolute; right: 8px; bottom: 6px; border: 0; background: none;
+  cursor: pointer; font-size: 14px; opacity: .6;
+}
+.note button:hover { opacity: 1; }
+.c-red   { background: #ff8a8a; }
+.c-blue  { background: #8cc8f5; }
+.c-green { background: #8cf0c8; }
+.dot.c-red   { background: #f26b6b; }
+.dot.c-blue  { background: #6ab4ee; }
+.dot.c-green { background: #5ef0c0; }
 
-        .title-container, .note-creator, .notes-grid, .settings-container {
-            z-index: 10;
-        }
+/* ingranaggio */
+#gear {
+  position: fixed; top: 14px; right: 14px; z-index: 5; width: 26px; height: 26px;
+  border-radius: 50%; border: 2px solid var(--accent); background: #fff;
+  font-size: 14px; line-height: 1; cursor: pointer; padding: 0;
+}
 
-        /* --- IMPOSTAZIONI --- */
-        .settings-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(5px);
-            border: 1px solid #ccc;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 400px;
-            box-sizing: border-box;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
+/* pannello impostazioni */
+#overlay {
+  position: fixed; inset: 0; z-index: 10; display: none;
+  background: rgba(0,0,0,.35); align-items: center; justify-content: center; padding: 16px;
+}
+#overlay.open { display: flex; }
+.panel {
+  width: min(100%, 460px); max-height: 85vh; overflow: auto; padding: 20px;
+  background: #fff; color: #222; border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,.3);
+}
+.panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.panel h2 { margin: 0; font: 800 18px 'Rubik', sans-serif; }
+.panel h3 { margin: 18px 0 8px; font-size: 13px; }
+#close { border: 0; background: none; font-size: 20px; cursor: pointer; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.sw {
+  width: 64px; height: 64px; border-radius: 10px; border: 3px solid transparent;
+  cursor: pointer; padding: 0; position: relative; box-shadow: 0 0 0 1px #ccc inset;
+}
+.sw.sel { border-color: #111; }
+.sw span {
+  position: absolute; left: 0; right: 0; bottom: -18px; text-align: center;
+  font-size: 9px; color: #444;
+}
+.swatches { padding-bottom: 20px; }
+</style>
+</head>
+<body>
 
-        .settings-container h3 {
-            margin: 0 0 10px 0;
-            font-size: 1.1rem;
-            color: #ff4757;
-            text-transform: uppercase;
-        }
+<button id="gear" aria-label="Impostazioni">⚙️</button>
 
-        .settings-section {
-            margin-bottom: 12px;
-        }
+<main>
+  <h1>POLI-NOTES</h1>
+  <p class="sub">Our private corner for thoughts and reminders</p>
 
-        .settings-section label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 5px;
-        }
+  <section class="composer">
+    <textarea id="text" placeholder="Write something fun or a reminder here..."></textarea>
+    <div class="row">
+      <button class="dot c-red sel" data-c="c-red" aria-label="Rosso"></button>
+      <button class="dot c-blue" data-c="c-blue" aria-label="Blu"></button>
+      <button class="dot c-green" data-c="c-green" aria-label="Verde"></button>
+      <button id="add">Aggiungi</button>
+    </div>
+  </section>
 
-        .theme-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
+  <section id="notes"></section>
+</main>
 
-        .theme-btn {
-            background: #ffffff;
-            color: #333;
-            border: 1px solid #bbb;
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+<div id="overlay">
+  <div class="panel" role="dialog" aria-label="Impostazioni sfondo">
+    <header><h2>Sfondo</h2><button id="close" aria-label="Chiudi">✕</button></header>
+    <h3>Classic</h3><div class="swatches" id="grp-classic"></div>
+    <h3>Gradient</h3><div class="swatches" id="grp-gradient"></div>
+    <h3>Tie-Dye</h3><div class="swatches" id="grp-tiedye"></div>
+  </div>
+</div>
 
-        .theme-btn:hover {
-            transform: translateY(-1px);
-            background: #f0f0f0;
-        }
+<script>
+/* ---------- TEMI ----------
+   Ogni tema: nome, sfondo CSS, colore accento, colore righe, colore testo.
+   Per aggiungerne uno basta una nuova riga. */
+const THEMES = {
+  classic: [
+    { id: 'classic',  name: 'Classic',     bg: '#fdfdfd', accent: '#f0455a', line: 'rgba(0,0,0,.07)' },
+    { id: 'lred',     name: 'Rosso chiaro', bg: '#ffe3e3', accent: '#e03a3a', line: 'rgba(160,0,0,.10)' },
+    { id: 'pink',     name: 'Rosa',        bg: '#ffe4f0', accent: '#e0508f', line: 'rgba(160,0,80,.10)' },
+    { id: 'green',    name: 'Verde',       bg: '#e0f6e6', accent: '#2f9e5a', line: 'rgba(0,100,40,.10)' },
+    { id: 'neutral',  name: 'Neutral',     bg: '#ececea', accent: '#555',    line: 'rgba(0,0,0,.08)' }
+  ],
+  gradient: [
+    { id: 'g-red',    name: 'Rosso metal', bg: 'linear-gradient(135deg,#5c0a14,#c0392b 45%,#e8b0a8 55%,#7a1220)', accent: '#ff6b6b', line: 'rgba(255,255,255,.08)', dark: true },
+    { id: 'g-pink',   name: 'Rosa metal',  bg: 'linear-gradient(135deg,#7a2250,#e66aa6 45%,#f9d3e6 55%,#a03670)', accent: '#ff7ab8', line: 'rgba(255,255,255,.10)', dark: true },
+    { id: 'g-green',  name: 'Verde metal', bg: 'linear-gradient(135deg,#0d4a2e,#2ecc71 45%,#c8f2d9 55%,#157a4a)', accent: '#3be08a', line: 'rgba(255,255,255,.10)', dark: true },
+    { id: 'g-blue',   name: 'Blu metal',   bg: 'linear-gradient(135deg,#0b2a4a,#3a82c4 45%,#cfe4f7 55%,#1d5a96)', accent: '#6ab4ee', line: 'rgba(255,255,255,.10)', dark: true },
+    { id: 'g-silver', name: 'Argento',     bg: 'linear-gradient(135deg,#6e7378,#d9dde0 45%,#ffffff 55%,#8b9095)', accent: '#444', line: 'rgba(0,0,0,.08)' }
+  ],
+  tiedye: [
+    { id: 't-rainbow', name: 'Arcobaleno', bg: 'radial-gradient(circle at 20% 25%,#ff5f6d 0,transparent 40%),radial-gradient(circle at 80% 20%,#ffd36e 0,transparent 40%),radial-gradient(circle at 70% 80%,#5ee7a5 0,transparent 45%),radial-gradient(circle at 25% 80%,#6aa8ff 0,transparent 45%),#f6f0ff', accent: '#8a3ffc', line: 'rgba(0,0,0,.06)' },
+    { id: 't-sunset',  name: 'Tramonto',   bg: 'radial-gradient(circle at 30% 20%,#ff8a5c 0,transparent 45%),radial-gradient(circle at 80% 30%,#ff4d8d 0,transparent 45%),radial-gradient(circle at 50% 90%,#ffd166 0,transparent 50%),#ffe9dc', accent: '#d9366b', line: 'rgba(0,0,0,.06)' },
+    { id: 't-ocean',   name: 'Oceano',     bg: 'radial-gradient(circle at 25% 25%,#4cc9f0 0,transparent 45%),radial-gradient(circle at 80% 35%,#4361ee 0,transparent 45%),radial-gradient(circle at 40% 90%,#80ffdb 0,transparent 50%),#e6f4ff', accent: '#3a56d4', line: 'rgba(0,0,0,.06)' },
+    { id: 't-candy',   name: 'Candy',      bg: 'radial-gradient(circle at 20% 30%,#ff9ad5 0,transparent 42%),radial-gradient(circle at 80% 25%,#b8a1ff 0,transparent 42%),radial-gradient(circle at 60% 85%,#9bf6ff 0,transparent 48%),#fff0fa', accent: '#c13fb0', line: 'rgba(0,0,0,.06)' }
+  ]
+};
 
-        /* --- INTERFACCIA NOTE --- */
-        .title-container {
-            border: 4px solid #ff4757;
-            background-color: #ffffff;
-            padding: 10px 40px;
-            border-radius: 4px;
-            box-shadow: 4px 4px 0px rgba(255, 71, 87, 0.2);
-            text-align: center;
-            margin-bottom: 5px;
-            margin-top: 20px;
-        }
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
 
-        h1 {
-            color: #ff4757;
-            margin: 0;
-            font-size: 2.5rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 800;
-        }
+/* ---------- applica tema ---------- */
+function applyTheme(t) {
+  const r = document.documentElement.style;
+  r.setProperty('--bg', t.bg);
+  r.setProperty('--accent', t.accent);
+  r.setProperty('--line', t.line);
+  r.setProperty('--text', t.dark ? '#fff' : '#2b2b2b');
+  document.body.style.background = t.bg;
+  document.body.style.backgroundAttachment = 'fixed';
+  document.querySelectorAll('.sw').forEach(b => b.classList.toggle('sel', b.dataset.id === t.id));
+  store.set('theme', t.id);
+}
 
-        p.subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 0.95rem;
-            font-style: italic;
-        }
+/* ---------- pannello impostazioni ---------- */
+const all = Object.values(THEMES).flat();
+Object.entries(THEMES).forEach(([group, list]) => {
+  const box = $('#grp-' + group);
+  list.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'sw'; b.dataset.id = t.id; b.title = t.name;
+    b.style.background = t.bg;
+    b.innerHTML = '<span>' + t.name + '</span>';
+    b.onclick = () => applyTheme(t);
+    box.appendChild(b);
+  });
+});
+$('#gear').onclick = () => $('#overlay').classList.add('open');
+$('#close').onclick = () => $('#overlay').classList.remove('open');
+$('#overlay').onclick = e => { if (e.target.id === 'overlay') e.currentTarget.classList.remove('open'); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#overlay').classList.remove('open'); });
 
-        .note-creator {
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-            border: 1px solid #e0e0e0;
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 40px;
-        }
+applyTheme(all.find(t => t.id === store.get('theme', 'classic')) || all[0]);
 
-        textarea {
-            width: 100%;
-            height: 100px;
-            background: #f9f9f9;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            color: #333;
-            padding: 10px;
-            box-sizing: border-box;
-            resize: none;
-            font-size: 1rem;
-        }
+/* ---------- note ---------- */
+let color = 'c-red';
+let notes = store.get('notes', []);
 
-        textarea:focus {
-            outline: none;
-            border-color: #ff4757;
-        }
+document.querySelectorAll('.composer .dot').forEach(d => d.onclick = () => {
+  color = d.dataset.c;
+  document.querySelectorAll('.composer .dot').forEach(x => x.classList.toggle('sel', x === d));
+});
 
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 10px;
-        }
+function render() {
+  const box = $('#notes');
+  box.innerHTML = '';
+  notes.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'note ' + n.color;
+    el.textContent = n.text;
+    const del = document.createElement('button');
+    del.textContent = '🗑️'; del.setAttribute('aria-label', 'Elimina nota');
+    del.onclick = () => { notes = notes.filter(x => x.id !== n.id); store.set('notes', notes); render(); };
+    el.appendChild(del);
+    box.appendChild(el);
+  });
+}
 
-        .color-picker {
-            display: flex;
-            gap: 8px;
-        }
+function addNote() {
+  const text = $('#text').value.trim();
+  if (!text) return;
+  notes.unshift({ id: Date.now(), text, color });
+  store.set('notes', notes);
+  $('#text').value = '';
+  render();
+}
+$('#add').onclick = addNote;
+$('#text').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) addNote(); });
 
-        .color-option {
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid transparent;
-        }
-
-        .color-option.selected {
-            border-color: #333;
-        }
-
-        .add-note-btn {
-            background: #ff4757;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .add-note-btn:hover {
-            transform: scale(1.05);
-            background: #ff2a3b;
-        }
-
-        /* --- GRIGLIA E POST-IT --- */
-        .notes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 25px;
-            width: 100%;
-            max-width: 1000px;
-        }
-
-        .note {
-            padding: 20px;
-            border-radius: 4px;
-            color: #121212;
-            position: relative;
-            box-shadow: 5px 5px 15px rgba(0,0,0,0.15);
-            transform: rotate(calc(var(--rotation, 0deg)));
-            transition: 0.3s;
-            min-height: 150px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-sizing: border-box;
-        }
-
-        .note:hover {
-            transform: scale(1.05) rotate(0deg);
-            box-shadow: 0 12px 25px rgba(0,0,0,0.2);
-            z-index: 20;
-        }
-
-        .note-text {
-            font-size: 1.1rem;
-            font-weight: 500;
-            word-wrap: break-word;
-            white-space: pre-wrap;
-        }
-
-        .note-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            font-size: 0.8rem;
-            opacity: 0.7;
-        }
-
-        .delete-btn {
-            background: none;
-            border: none;
-            color: #121212;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 0;
-            transition: 0.2s;
-        }
-
-        .delete-btn:hover {
-            color: #ff4757;
-            transform: scale(1.2);
-        }
-    </style>
-&lt;/head&gt;
-&lt;body id="mainBody" class="theme-classic"&gt;
-
-    &lt;div class="notebook-lines"&gt;&lt;/div&gt;
-
-    &lt;div class="settings-container"&gt;
-        &lt;h3&gt;⚙️ Settings&lt;/h3&gt;
-        &lt;div class="settings-section"&gt;
-            &lt;label&gt;Classic Themes&lt;/label&gt;
-            &lt;div class="theme-buttons"&gt;
-                &lt;button class="theme-btn" onclick="changeTheme('theme-classic')"&gt;Classic&lt;/button&gt;
-                &lt;button class="theme-btn" onclick="changeTheme('theme-light-red')"&gt;Rosso chiaro&lt;/button&gt;
-                &lt;button class="theme-btn" onclick="changeTheme('theme-pink')"&gt;Rosa&lt;/button&gt;
-                &lt;button class="theme-btn" onclick="changeTheme('theme-green')"&gt;Verde&lt;/button&gt;
-                &lt;button class="theme-btn" onclick="changeTheme('theme-neutral')"&gt;Neutral&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
-        &lt;div class="settings-section"&gt;
-            &lt;label&gt;Gradient Themes&lt;/label&gt;
-            &lt;div class="theme-buttons"&gt;
-                &lt;button class="theme-btn" onclick="changeTheme('theme-metallic-red')"&gt;Rosso metallo&lt;/button&gt;
-                &lt;button class="theme-btn" onclick="changeTheme('theme-metallic-pink')"&gt;Rosa metallo&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
-        &lt;div class="settings-section"&gt;
-            &lt;label&gt;Tie-Dye Themes&lt;/label&gt;
-            &lt;div class="theme-buttons"&gt;
-                &lt;button class="theme-btn" onclick="changeTheme('theme-tie-dye')"&gt;Tie-Dye&lt;/button&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
-
-    &lt;div class="title-container"&gt;
-        &lt;h1&gt;Poli-Notes&lt;/h1&gt;
-    &lt;/div&gt;
-    &lt;p class="subtitle"&gt;Our private corner for thoughts and reminders&lt;/p&gt;
-
-    &lt;div class="note-creator"&gt;
-        &lt;textarea id="noteText" placeholder="Write something fun or a reminder here..."&gt;&lt;/textarea&gt;
-        &lt;div class="controls"&gt;
-            &lt;div class="color-picker" id="colorPicker"&gt;
-                &lt;div class="color-option selected" style="background: #ff7675;" data-color="#ff7675"&gt;&lt;/div&gt;
-                &lt;div class="color-option" style="background: #74b9ff;" data-color="#74b9ff"&gt;&lt;/div&gt;
-                &lt;div class="color-option" style="background: #55efc4;" data-color="#55efc4"&gt;&lt;/div&gt;
-    <!-- Rimuovi il testo del codice che si vede a schermo e inseriscilo così: -->
-    <script>
-    let selectedColor = '#ff7675';
-    let notes = JSON.parse(localStorage.getItem('myGroupNotes')) || [];
-
-    document.addEventListener("DOMContentLoaded", () => {
-        renderNotes();
-    });
-
-    document.getElementById('colorPicker').addEventListener('click', (e) => {
-        if (e.target.classList.contains('color-option')) {
-            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
-            e.target.classList.add('selected');
-            selectedColor = e.target.dataset.color;
-        }
-    });
-
-    function changeTheme(themeName) {
-        const body = document.getElementById('mainBody');
-        body.className = themeName;
-    }
-
-    function addNote() {
-        const text = document.getElementById('noteText').value.trim();
-        if (!text) return alert("Please write something first!");
-
-        const newNote = {
-            id: Date.now(),
-            text: text,
-            color: selectedColor,
-            date: new Date().toLocaleDateString('en-GB'),
-            rotation: (Math.random() * 6 - 3).toFixed(1) + 'deg'
-        };
-
-        notes.push(newNote);
-        saveAndRender();
-        document.getElementById('noteText').value = '';
-    }
-
-    function deleteNote(id) {
-        notes = notes.filter(note => note.id !== id);
-        saveAndRender();
-    }
-
-    function saveAndRender() {
-        localStorage.setItem('myGroupNotes', JSON.stringify(notes));
-        renderNotes();
-    }
-
-    function renderNotes() {
-        const grid = document.getElementById('notesGrid');
-        grid.innerHTML = '';
-
-        notes.forEach(note => {
-            const noteEl = document.createElement('div');
-            noteEl.className = 'note';
-            noteEl.style.backgroundColor = note.color;
-            noteEl.style.setProperty('--rotation', note.rotation);
-            
-            noteEl.innerHTML = `
-                <div class="note-text">${note.text}</div> 
-                <div class="note-footer"> 
-                    <span>${note.date}</span> 
-                    <button class="delete-btn" onclick="deleteNote(${note.id})">🗑️</button> 
-                </div>
-            `;
-            grid.appendChild(noteEl);
-        });
-    }
-    </script>
+render();
+</script>
 </body>
 </html>
