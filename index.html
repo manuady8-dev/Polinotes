@@ -1,361 +1,406 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poli-Notes Completo</title>
+    <title>Poli-Notes 📝</title>
     <style>
-        /* Reset e Font */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* --- CLASSI DEI TEMI DI SFONDO --- */
+        /* Classic (Default) */
+        body.theme-classic { background-color: #fcfcfc; }
+        body.theme-light-red { background-color: #ffcccc; }
+        body.theme-pink { background-color: #ffb6c1; }
+        body.theme-green { background-color: #d4edda; }
+        body.theme-neutral { background-color: #e2e8f0; }
+
+        /* Gradient */
+        body.theme-metallic-red { background: linear-gradient(135deg, #7f1d1d, #f87171, #7f1d1d); }
+        body.theme-metallic-pink { background: linear-gradient(135deg, #9d174d, #fbcfe8, #9d174d); }
+
+        /* Tie-Dye */
+        body.theme-tie-dye { 
+            background: radial-gradient(circle at 30% 30%, #ff007f, transparent 40%),
+                        radial-gradient(circle at 70% 60%, #00f0ff, transparent 40%),
+                        radial-gradient(circle at 50% 20%, #ffff00, transparent 40%),
+                        radial-gradient(circle at 80% 20%, #9900ff, transparent 40%),
+                        #ff00a0;
+            background-size: cover;
         }
 
-        /* Stato di default: Tema Classic Notebook */
+        /* --- STRUTTURA DI BASE --- */
         body {
-            min-height: 100vh;
-            background-color: #ffffff;
-            background-image: linear-gradient(#e0e0e0 1px, transparent 1px);
-            background-size: 100% 24px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333333;
+            margin: 0;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 40px;
+            min-height: 100vh;
+            box-sizing: border-box;
             position: relative;
-            transition: background 0.4s ease, background-image 0.4s ease;
-            overflow-x: hidden;
+            transition: background 0.5s ease;
         }
 
-        /* Pulsante Impostazioni (Ingranaggio) */
-        .settings-btn {
+        /* Effetto righe del quaderno sovrapposto allo sfondo */
+        .notebook-lines {
             position: absolute;
-            top: 20px;
-            right: 25px;
-            width: 38px;
-            height: 38px;
-            border: 2px solid #e07a7a;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #e07a7a;
-            font-size: 22px;
-            background: #ffffff;
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            user-select: none;
-            transition: transform 0.2s ease;
-        }
-        .settings-btn:hover {
-            transform: rotate(45deg);
-        }
-
-        /* Sidebar Impostazioni */
-        .settings-sidebar {
-            position: fixed;
             top: 0;
-            right: -320px;
-            width: 300px;
-            height: 100vh;
-            background: #ffffff;
-            box-shadow: -5px 0 25px rgba(0,0,0,0.15);
-            z-index: 100;
-            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 25px;
-            overflow-y: auto;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(#e0e0e0 1px, transparent 1px);
+            background-size: 100% 30px;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.7;
         }
 
-        .settings-sidebar.open {
-            right: 0;
+        /* --- STRUTTURA INTERFACCIA (Z-INDEX SUPERIORE PER RIGHE) --- */
+        .title-container, .note-creator, .notes-grid, .settings-container {
+            z-index: 10;
         }
 
-        .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 12px;
+        /* PANNELLO IMPOSTAZIONI TEMI */
+        .settings-container {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
 
-        .sidebar-header h2 {
-            font-size: 20px;
-            color: #333333;
-        }
-
-        .close-btn {
-            font-size: 28px;
-            cursor: pointer;
-            color: #aaaaaa;
-            line-height: 1;
-        }
-        .close-btn:hover { 
-            color: #333333; 
-        }
-
-        .theme-section {
-            margin-bottom: 25px;
-        }
-
-        .theme-section h3 {
-            font-size: 13px;
-            color: #888888;
+        .settings-container h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+            color: #ff4757;
             text-transform: uppercase;
             letter-spacing: 1px;
+        }
+
+        .settings-section {
             margin-bottom: 12px;
         }
 
-        .theme-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+        .settings-section:last-child {
+            margin-bottom: 0;
         }
 
-        .theme-option {
-            padding: 12px 6px;
-            border: 1px solid #dddddd;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
-            font-size: 13px;
-            font-weight: 500;
-            color: #444444;
-            background: #f9f9f9;
-            transition: all 0.2s ease;
-        }
-        .theme-option:hover {
-            border-color: #dc3545;
-            background: #fff5f5;
-            transform: translateY(-1px);
+        .settings-section label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
         }
 
-        /* Header e Logo */
-        .header-container {
-            text-align: center;
-            margin-bottom: 35px;
-        }
-
-        .logo-box {
-            border: 3px solid #dc3545;
-            padding: 8px 32px;
-            display: inline-block;
-            background-color: #ffffff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-
-        .logo-text {
-            color: #dc3545;
-            font-size: 30px;
-            font-weight: 900;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .subtitle {
-            font-style: italic;
-            color: #444444;
-            font-size: 13px;
-            margin-top: 12px;
-            font-weight: 500;
-        }
-
-        /* Card della Nota */
-        .note-card {
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            width: 90%;
-            max-width: 450px;
-            padding: 22px;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            transition: background-color 0.3s ease;
-        }
-
-        .note-textarea {
-            width: 100%;
-            height: 110px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 14px;
-            font-size: 14px;
-            color: #4a5568;
-            resize: none;
-            outline: none;
-            background-color: rgba(250, 250, 250, 0.8);
-            transition: border-color 0.2s, background-color 0.2s;
-        }
-        .note-textarea::placeholder {
-            color: #a0aec0;
-            font-style: italic;
-        }
-        .note-textarea:focus {
-            border-color: #cbd5e1;
-            background-color: #ffffff;
-        }
-
-        /* Palette Colori della Nota */
-        .color-palette {
+        .theme-buttons {
             display: flex;
-            gap: 10px;
-            margin-top: 16px;
-            padding-left: 4px;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
-        .color-dot {
-            width: 18px;
-            height: 18px;
+        .theme-btn {
+            background: #ffffff;
+            color: #333;
+            border: 1px solid #bbb;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .theme-btn:hover {
+            transform: translateY(-1px);
+            background: #f0f0f0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* TITOLO "POLI-NOTES" CON CORNICE ROSSA */
+        .title-container {
+            border: 4px solid #ff4757;
+            background-color: #ffffff;
+            padding: 10px 40px;
+            border-radius: 4px;
+            box-shadow: 4px 4px 0px rgba(255, 71, 87, 0.2);
+            text-align: center;
+            margin-bottom: 5px;
+            margin-top: 20px;
+        }
+
+        h1 {
+            color: #ff4757;
+            margin: 0;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 800;
+        }
+
+        p.subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+            font-style: italic;
+            z-index: 10;
+        }
+
+        /* AREA DI CREAZIONE NOTA */
+        .note-creator {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 40px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            color: #333;
+            padding: 10px;
+            box-sizing: border-box;
+            resize: none;
+            font-size: 1rem;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #ff4757;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+        }
+
+        .color-option {
+            width: 25px;
+            height: 25px;
             border-radius: 50%;
             cursor: pointer;
-            border: 1px solid rgba(0, 0, 0, 0.15);
-            transition: transform 0.15s ease;
+            border: 2px solid transparent;
         }
-        .color-dot:hover {
+
+        .color-option.selected {
+            border-color: #333;
+        }
+
+        .add-note-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .add-note-btn:hover {
+            transform: scale(1.05);
+            background: #ff2a3b;
+        }
+
+        /* GRIGLIA DEI POST-IT */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* STILE DEL SINGOLO POST-IT */
+        .note {
+            padding: 20px;
+            border-radius: 4px;
+            color: #121212;
+            position: relative;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.15);
+            transform: rotate(calc(var(--rotation, 0deg)));
+            transition: 0.3s;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+
+        .note:hover {
+            transform: scale(1.05) rotate(0deg);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.2);
+            z-index: 20;
+        }
+
+        .note-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .note-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #121212;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+            transition: 0.2s;
+        }
+
+        .delete-btn:hover {
+            color: #ff4757;
             transform: scale(1.2);
         }
-
-        .dot-red { background-color: #f28b82; }
-        .dot-blue { background-color: #aecbfa; }
-        .dot-green { background-color: #ccff90; }
-        .dot-white { background-color: #ffffff; }
     </style>
 </head>
-<body>
+<body id="mainBody" class="theme-classic">
 
-    <!-- Pulsante Ingranaggio -->
-    <div class="settings-btn" id="openSettings" title="Personalizza Sfondo">&#9881;</div>
+    <!-- Container invisibile che applica l'effetto righe su qualsiasi sfondo -->
+    <div class="notebook-lines"></div>
 
-    <!-- Barra Laterale -->
-    <div class="settings-sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h2>Personalizza</h2>
-            <div class="close-btn" id="closeSettings">&times;</div>
-        </div>
-
-        <!-- Categoria CLASSIC -->
-        <div class="theme-section">
-            <h3>Classic</h3>
-            <div class="theme-grid">
-                <div class="theme-option" onclick="changeTheme('classic')">Quaderno (Standard)</div>
-                <div class="theme-option" onclick="changeTheme('red-light')">Rosso Chiaro</div>
-                <div class="theme-option" onclick="changeTheme('pink-light')">Rosa</div>
-                <div class="theme-option" onclick="changeTheme('green-light')">Verde</div>
-                <div class="theme-option" onclick="changeTheme('neutral')">Neutral</div>
+    <!-- SEZIONE SETTINGS PER CAMBIARE TEMA -->
+    <div class="settings-container">
+        <h3>⚙️ Settings</h3>
+        <div class="settings-section">
+            <label>Classic Themes</label>
+            <div class="theme-buttons">
+                <button class="theme-btn" onclick="changeTheme('theme-classic')">Classic</button>
+                <button class="theme-btn" onclick="changeTheme('theme-light-red')">Rosso chiaro</button>
+                <button class="theme-btn" onclick="changeTheme('theme-pink')">Rosa</button>
+                <button class="theme-btn" onclick="changeTheme('theme-green')">Verde</button>
+                <button class="theme-btn" onclick="changeTheme('theme-neutral')">Neutral</button>
             </div>
         </div>
-
-        <!-- Categoria GRADIENT -->
-        <div class="theme-section">
-            <h3>Gradient</h3>
-            <div class="theme-grid">
-                <div class="theme-option" onclick="changeTheme('grad-red')">Rosso Metallo</div>
-                <div class="theme-option" onclick="changeTheme('grad-pink')">Rosa Metallo</div>
-                <div class="theme-option" onclick="changeTheme('grad-blue')">Blu Metallo</div>
-                <div class="theme-option" onclick="changeTheme('grad-dark')">Scuro Metallo</div>
+        <div class="settings-section">
+            <label>Gradient Themes</label>
+            <div class="theme-buttons">
+                <button class="theme-btn" onclick="changeTheme('theme-metallic-red')">Rosso metallo</button>
+                <button class="theme-btn" onclick="changeTheme('theme-metallic-pink')">Rosa metallo</button>
             </div>
         </div>
-
-        <!-- Categoria TIE-DYE -->
-        <div class="theme-section">
-            <h3>Tie-Dye</h3>
-            <div class="theme-grid">
-                <div class="theme-option" onclick="changeTheme('tie-sunset')">Sunset Psyche</div>
-                <div class="theme-option" onclick="changeTheme('tie-aurora')">Aurora Pastel</div>
-                <div class="theme-option" onclick="changeTheme('tie-ocean')">Ocean Mist</div>
+        <div class="settings-section">
+            <label>Tie-Dye Themes</label>
+            <div class="theme-buttons">
+                <button class="theme-btn" onclick="changeTheme('theme-tie-dye')">Tie-Dye</button>
             </div>
         </div>
     </div>
 
-    <!-- Contenuto Principale -->
-    <div class="header-container">
-        <div class="logo-box">
-            <h1 class="logo-text">Poli-Notes</h1>
-        </div>
-        <p class="subtitle">Our private corner for thoughts and reminders</p>
+    <!-- TITOLO -->
+    <div class="title-container">
+        <h1>Poli-Notes</h1>
     </div>
+    <p class="subtitle">Our private corner for thoughts and reminders</p>
 
-    <!-- Blocco Nota -->
-    <div class="note-card" id="noteCard">
-        <textarea class="note-textarea" placeholder="Write something fun or a reminder here..."></textarea>
-        <div class="color-palette">
-            <div class="color-dot dot-white" onclick="changeNoteColor('#ffffff')" title="Bianco"></div>
-            <div class="color-dot dot-red" onclick="changeNoteColor('#f28b82')" title="Rosso"></div>
-            <div class="color-dot dot-blue" onclick="changeNoteColor('#aecbfa')" title="Blu"></div>
-            <div class="color-dot dot-green" onclick="changeNoteColor('#ccff90')" title="Verde"></div>
-        </div>
-    </div>
+    <!-- CREATORE DI NOTE -->
+    <div class="note-creator">
+        <textarea id="noteText" placeholder="Write something fun or a reminder here..."></textarea>
+        <div class="controls">
+            <div class="color-picker" id="colorPicker">
+let selectedColor = '#ff7675';
+let notes = JSON.parse(localStorage.getItem('myGroupNotes')) || [];
 
-    <!-- Logica JavaScript Integrata -->
-    <script>
-        const sidebar = document.getElementById('sidebar');
-        const openBtn = document.getElementById('openSettings');
-        const closeBtn = document.getElementById('closeSettings');
-        const noteCard = document.getElementById('noteCard');
+// Inizializza i post-it al caricamento della pagina
+document.addEventListener("DOMContentLoaded", () => {
+    renderNotes();
+});
 
-        // Controllo apertura e chiusura Sidebar impostazioni
-        openBtn.addEventListener('click', () => {
-            sidebar.classList.add('open');
-        });
+// Gestione della scelta del colore
+document.getElementById('colorPicker').addEventListener('click', (e) => {
+    if (e.target.classList.contains('color-option')) {
+        document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+        e.target.classList.add('selected');
+        selectedColor = e.target.dataset.color;
+    }
+});
 
-        closeBtn.addEventListener('click', () => {
-            sidebar.classList.remove('open');
-        });
+// Cambia il tema della pagina
+function changeTheme(themeName) {
+    const body = document.getElementById('mainBody');
+    body.className = themeName;
+}
 
-        // Funzione per cambiare colore di sfondo alla nota tramite i pallini
-        function changeNoteColor(colorHex) {
-            noteCard.style.backgroundColor = colorHex;
-        }
+// Aggiunge una nuova nota
+function addNote() {
+    const text = document.getElementById('noteText').value.trim();
+    if (!text) return alert("Please write something first!");
 
-        // Funzione per cambiare il tema dello sfondo principale
-        function changeTheme(themeName) {
-        // Funzione per cambiare il tema dello sfondo principale
-        function changeTheme(themeName) {
-            const body = document.body;
-            
-            body.style.backgroundColor = '';
-            body.style.backgroundImage = '';
-            body.style.backgroundSize = '';
+    const newNote = {
+        id: Date.now(),
+        text: text,
+        color: selectedColor,
+        date: new Date().toLocaleDateString('en-GB'),
+        rotation: (Math.random() * 6 - 3).toFixed(1) + 'deg'
+    };
 
-            switch(themeName) {
-                case 'classic':
-                    body.style.backgroundColor = '#ffffff';
-                    body.style.backgroundImage = 'linear-gradient(#e0e0e0 1px, transparent 1px)';
-                    body.style.backgroundSize = '100% 24px';
-                    break;
-                case 'red-light':
-                    body.style.backgroundColor = '#ffebee';
-                    break;
-                case 'pink-light':
-                    body.style.backgroundColor = '#fce4ec';
-                    break;
-                case 'green-light':
-                    body.style.backgroundColor = '#e8f5e9';
-                    break;
-                case 'neutral':
-                    body.style.backgroundColor = '#f5f5f5';
-                    break;
-                case 'grad-red':
-                    body.style.backgroundImage = 'linear-gradient(135deg, #2c0b0e 0%, #801a24 50%, #b83b48 100%)';
-                    break;
-                case 'grad-pink':
-                    body.style.backgroundImage = 'linear-gradient(135deg, #421226 0%, #89214e 50%, #d04d7c 100%)';
-                    break;
-                case 'grad-blue':
-                    body.style.backgroundImage = 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)';
-                    break;
-                case 'grad-dark':
-                    body.style.backgroundImage = 'linear-gradient(135deg, #141e30 0%, #243b55 100%)';
-                    break;
-                case 'tie-sunset':
-                    body.style.backgroundImage = 'radial-gradient(circle at 20% 30%, #ff9a9e 0%, #fecfef 40%, #fee140 100%)';
-                    break;
-                case 'tie-aurora':
-                    body.style.backgroundImage = 'radial-gradient(circle at 80% 20%, #a1c4fd 0%, #c2e9fb 50%, #d4fc79 100%)';
-                    break;
-                case 'tie-ocean':
-                    body.style.backgroundImage = 'radial-gradient(circle at 50% 50%, #84fab0 0%, #8fd3f4 100%)';
-                    break;
-            }
-        }
+    notes.push(newNote);
+    saveAndRender();
+    document.getElementById('noteText').value = '';
+}
+
+// Elimina una nota tramite ID
+function deleteNote(id) {
+    notes = notes.filter(note => note.id !== id);
+    saveAndRender();
+}
+
+// Salva nel localStorage e aggiorna la vista
+function saveAndRender() {
+    localStorage.setItem('myGroupNotes', JSON.stringify(notes));
+    renderNotes();
+}
+
+// Mostra le note a schermo
+function renderNotes() {
+    const grid = document.getElementById('notesGrid');
+    grid.innerHTML = '';
+
+    notes.forEach(note => {
+        const noteEl = document.createElement('div');
+        noteEl.className = 'note';
+        noteEl.style.backgroundColor = note.color;
+        noteEl.style.setProperty('--rotation', note.rotation);
+        
+        // Corretto l'uso dei backtick per l'HTML multilinea
+        noteEl.innerHTML = `
+            <div class="note-text">${note.text}</div> 
+            <div class="note-footer"> 
+                <span>${note.date}</span> 
+                <button class="delete-btn" onclick="deleteNote(${note.id})">🗑️</button> 
+            </div>
+        `;
+        grid.appendChild(noteEl);
+    });
+}
