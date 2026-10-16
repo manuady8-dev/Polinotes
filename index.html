@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -72,6 +72,12 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 .custom{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px}
 .custom input[type=color]{width:36px;height:30px;border:0;padding:0;background:none}
 .tools{display:flex;gap:8px;flex-wrap:wrap}.tools .btn{background:#222}
+/* online */
+#online{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;margin:-10px auto 18px;width:max-content;max-width:92vw;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.6);color:#222;font-size:11px}
+.live{width:8px;height:8px;border-radius:50%;background:#2ecc71;animation:ping 1.8s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(46,204,113,.6)}100%{box-shadow:0 0 0 8px rgba(46,204,113,0)}}
+.av{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 11px 'Rubik',sans-serif;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);animation:pop .4s var(--ease)}
+.av.me{outline:2px solid #222;outline-offset:1px}
 /* gate */
 .gate{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center;background:var(--bg);transition:opacity .6s var(--ease),transform .6s var(--ease),visibility .6s}
 .gate.out{opacity:0;transform:scale(1.15);visibility:hidden;pointer-events:none}
@@ -86,78 +92,80 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 <div class="gate" id="gate">
   <h1>POLI-NOTES</h1>
   <div class="box">
-    <input id="code" type="password" placeholder="Codice d'accesso" autocomplete="off">
-    <button class="btn" id="enter" style="width:100%">Entra</button>
-    <small>Chi ha lo stesso codice vede le stesse note.</small>
+    <input id="name" type="text" maxlength="16" placeholder="Your name (optional)" autocomplete="off">
+    <input id="code" type="password" placeholder="Access code" autocomplete="off">
+    <button class="btn" id="enter" style="width:100%">Enter</button>
+    <small>Anyone with the same code sees the same notes.</small>
   </div>
 </div>
 
-<button id="gear" aria-label="Impostazioni">⚙️</button>
+<button id="gear" aria-label="Settings">⚙️</button>
 
 <main>
   <h1>POLI-NOTES</h1><br>
   <p class="sub">Our private corner for thoughts and reminders</p>
+  <div id="online" aria-live="polite"></div>
   <section class="composer">
     <textarea id="text" placeholder="Write something fun or a reminder here..."></textarea>
     <div class="row">
-      <button class="dot c-red sel" data-c="c-red" aria-label="Rosso"></button>
-      <button class="dot c-blue" data-c="c-blue" aria-label="Blu"></button>
-      <button class="dot c-green" data-c="c-green" aria-label="Verde"></button>
-      <button class="chip" id="listBtn">☑ Lista</button>
+      <button class="dot c-red sel" data-c="c-red" aria-label="Red"></button>
+      <button class="dot c-blue" data-c="c-blue" aria-label="Blue"></button>
+      <button class="dot c-green" data-c="c-green" aria-label="Green"></button>
+      <button class="chip" id="listBtn">☑ List</button>
     </div>
     <div class="row">
-      <input type="datetime-local" id="due" title="Promemoria">
-      <button class="btn" id="add">Aggiungi</button>
+      <input type="datetime-local" id="due" title="Reminder">
+      <button class="btn" id="add">Add</button>
     </div>
   </section>
   <section id="board"></section>
 </main>
 
 <div id="overlay">
-  <div class="panel" role="dialog" aria-label="Impostazioni">
-    <header><h2>Impostazioni</h2><button id="close" aria-label="Chiudi">✕</button></header>
+  <div class="panel" role="dialog" aria-label="Settings">
+    <header><h2>Settings</h2><button id="close" aria-label="Close">✕</button></header>
     <h3>Classic</h3><div class="sws" id="g-classic"></div>
     <h3>Gradient</h3><div class="sws" id="g-gradient"></div>
     <h3>Tie-Dye</h3><div class="sws" id="g-tiedye"></div>
-    <h3>Personalizzato</h3>
+    <h3>Custom</h3>
     <div class="custom">
       <input type="color" id="c1" value="#f0455a"><input type="color" id="c2" value="#ffd166">
-      <button class="btn" id="applyC">Gradiente</button>
-      <button class="btn" id="imgBtn">Foto</button><input type="file" id="img" accept="image/*" hidden>
+      <button class="btn" id="applyC">Gradient</button>
+      <button class="btn" id="imgBtn">Photo</button><input type="file" id="img" accept="image/*" hidden>
     </div>
-    <h3>Backup e accesso</h3>
+    <h3>Backup &amp; access</h3>
     <div class="tools">
-      <button class="btn" id="exp">Esporta</button>
-      <button class="btn" id="impBtn">Importa</button><input type="file" id="imp" accept=".json" hidden>
-      <button class="btn" id="logout">Esci</button>
+      <button class="btn" id="exp">Export</button>
+      <button class="btn" id="impBtn">Import</button><input type="file" id="imp" accept=".json" hidden>
+      <button class="btn" id="logout">Log out</button>
     </div>
   </div>
 </div>
 
 <script>
-/* ===== FIREBASE (sincronizzazione) =====
-   Incolla qui la config del tuo progetto (vedi istruzioni). Se resta null,
-   le note si salvano solo nel browser. */
+/* ===== FIREBASE (sync) =====
+   Paste your project config here. If it stays null,
+   notes are saved in this browser only. */
 const FIREBASE_CONFIG = null;
 /* esempio: { apiKey:"...", authDomain:"...", databaseURL:"https://TUO-PROGETTO-default-rtdb.europe-west1.firebasedatabase.app", projectId:"...", appId:"..." } */
 
 const THEMES={
  classic:[
   {id:'classic',name:'Classic',bg:'#fdfdfd',accent:'#f0455a',line:'rgba(0,0,0,.07)'},
-  {id:'lred',name:'Rosso chiaro',bg:'#ffe3e3',accent:'#e03a3a',line:'rgba(160,0,0,.10)'},
-  {id:'pink',name:'Rosa',bg:'#ffe4f0',accent:'#e0508f',line:'rgba(160,0,80,.10)'},
-  {id:'green',name:'Verde',bg:'#e0f6e6',accent:'#2f9e5a',line:'rgba(0,100,40,.10)'},
+  {id:'lred',name:'Light red',bg:'#ffe3e3',accent:'#e03a3a',line:'rgba(160,0,0,.10)'},
+  {id:'pink',name:'Pink',bg:'#ffe4f0',accent:'#e0508f',line:'rgba(160,0,80,.10)'},
+  {id:'green',name:'Green',bg:'#e0f6e6',accent:'#2f9e5a',line:'rgba(0,100,40,.10)'},
   {id:'neutral',name:'Neutral',bg:'#ececea',accent:'#555',line:'rgba(0,0,0,.08)'}],
  gradient:[
-  {id:'g-red',name:'Rosso metal',bg:'linear-gradient(135deg,#5c0a14,#c0392b 45%,#e8b0a8 55%,#7a1220)',accent:'#ff6b6b',line:'rgba(255,255,255,.08)',dark:1},
-  {id:'g-pink',name:'Rosa metal',bg:'linear-gradient(135deg,#7a2250,#e66aa6 45%,#f9d3e6 55%,#a03670)',accent:'#ff7ab8',line:'rgba(255,255,255,.10)',dark:1},
-  {id:'g-green',name:'Verde metal',bg:'linear-gradient(135deg,#0d4a2e,#2ecc71 45%,#c8f2d9 55%,#157a4a)',accent:'#3be08a',line:'rgba(255,255,255,.10)',dark:1},
-  {id:'g-blue',name:'Blu metal',bg:'linear-gradient(135deg,#0b2a4a,#3a82c4 45%,#cfe4f7 55%,#1d5a96)',accent:'#6ab4ee',line:'rgba(255,255,255,.10)',dark:1},
-  {id:'g-silver',name:'Argento',bg:'linear-gradient(135deg,#6e7378,#d9dde0 45%,#fff 55%,#8b9095)',accent:'#444',line:'rgba(0,0,0,.08)'}],
+  {id:'g-red',name:'Red metal',bg:'linear-gradient(135deg,#5c0a14,#c0392b 45%,#e8b0a8 55%,#7a1220)',accent:'#ff6b6b',line:'rgba(255,255,255,.08)',dark:1},
+  {id:'g-pink',name:'Pink metal',bg:'linear-gradient(135deg,#7a2250,#e66aa6 45%,#f9d3e6 55%,#a03670)',accent:'#ff7ab8',line:'rgba(255,255,255,.10)',dark:1},
+  {id:'g-green',name:'Green metal',bg:'linear-gradient(135deg,#0d4a2e,#2ecc71 45%,#c8f2d9 55%,#157a4a)',accent:'#3be08a',line:'rgba(255,255,255,.10)',dark:1},
+  {id:'g-blue',name:'Blue metal',bg:'linear-gradient(135deg,#0b2a4a,#3a82c4 45%,#cfe4f7 55%,#1d5a96)',accent:'#6ab4ee',line:'rgba(255,255,255,.10)',dark:1},
+  {id:'g-silver',name:'Silver',bg:'linear-gradient(135deg,#6e7378,#d9dde0 45%,#fff 55%,#8b9095)',accent:'#444',line:'rgba(0,0,0,.08)'}],
  tiedye:[
-  {id:'t-rainbow',name:'Arcobaleno',bg:'radial-gradient(circle at 20% 25%,#ff5f6d 0,transparent 40%),radial-gradient(circle at 80% 20%,#ffd36e 0,transparent 40%),radial-gradient(circle at 70% 80%,#5ee7a5 0,transparent 45%),radial-gradient(circle at 25% 80%,#6aa8ff 0,transparent 45%),#f6f0ff',accent:'#8a3ffc',line:'rgba(0,0,0,.06)'},
-  {id:'t-sunset',name:'Tramonto',bg:'radial-gradient(circle at 30% 20%,#ff8a5c 0,transparent 45%),radial-gradient(circle at 80% 30%,#ff4d8d 0,transparent 45%),radial-gradient(circle at 50% 90%,#ffd166 0,transparent 50%),#ffe9dc',accent:'#d9366b',line:'rgba(0,0,0,.06)'},
-  {id:'t-ocean',name:'Oceano',bg:'radial-gradient(circle at 25% 25%,#4cc9f0 0,transparent 45%),radial-gradient(circle at 80% 35%,#4361ee 0,transparent 45%),radial-gradient(circle at 40% 90%,#80ffdb 0,transparent 50%),#e6f4ff',accent:'#3a56d4',line:'rgba(0,0,0,.06)'},
+  {id:'t-rainbow',name:'Rainbow',bg:'radial-gradient(circle at 20% 25%,#ff5f6d 0,transparent 40%),radial-gradient(circle at 80% 20%,#ffd36e 0,transparent 40%),radial-gradient(circle at 70% 80%,#5ee7a5 0,transparent 45%),radial-gradient(circle at 25% 80%,#6aa8ff 0,transparent 45%),#f6f0ff',accent:'#8a3ffc',line:'rgba(0,0,0,.06)'},
+  {id:'t-sunset',name:'Sunset',bg:'radial-gradient(circle at 30% 20%,#ff8a5c 0,transparent 45%),radial-gradient(circle at 80% 30%,#ff4d8d 0,transparent 45%),radial-gradient(circle at 50% 90%,#ffd166 0,transparent 50%),#ffe9dc',accent:'#d9366b',line:'rgba(0,0,0,.06)'},
+  {id:'t-ocean',name:'Ocean',bg:'radial-gradient(circle at 25% 25%,#4cc9f0 0,transparent 45%),radial-gradient(circle at 80% 35%,#4361ee 0,transparent 45%),radial-gradient(circle at 40% 90%,#80ffdb 0,transparent 50%),#e6f4ff',accent:'#3a56d4',line:'rgba(0,0,0,.06)'},
   {id:'t-candy',name:'Candy',bg:'radial-gradient(circle at 20% 30%,#ff9ad5 0,transparent 42%),radial-gradient(circle at 80% 25%,#b8a1ff 0,transparent 42%),radial-gradient(circle at 60% 85%,#9bf6ff 0,transparent 48%),#fff0fa',accent:'#c13fb0',line:'rgba(0,0,0,.06)'}]
 };
 const ICON=document.querySelector('link[rel=icon]').href;
@@ -165,7 +173,7 @@ const $=s=>document.querySelector(s);
 const LS={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 
-/* ===== TEMI ===== */
+/* ===== THEMES ===== */
 function applyTheme(t){
   const r=document.documentElement.style;
   r.setProperty('--bg',t.bg);r.setProperty('--accent',t.accent);r.setProperty('--line',t.line);
@@ -197,26 +205,44 @@ $('#overlay').onclick=e=>{if(e.target.id==='overlay')open_(false)};
 addEventListener('keydown',e=>{if(e.key==='Escape')open_(false)});
 applyTheme(LS.get('pn_theme',THEMES.classic[0]));
 
-/* ===== ACCESSO + DATI ===== */
+/* ===== ACCESS + DATA ===== */
 let room,notes={},ref=null,color='c-red',listMode=false;
+const myId=Math.random().toString(36).slice(2,9);let myName='Guest';
+const hue=id=>[...id].reduce((a,c)=>a+c.charCodeAt(0)*37,0)%360;
+function showOnline(o){
+  const list=Object.entries(o||{}),box=$('#online');box.innerHTML='';
+  box.append(el('span','live'),el('span',null,'Lobby: '+list.length+' online'));
+  list.forEach(([id,u])=>{const name=(u&&u.name)||'Guest',a=el('span','av'+(id===myId?' me':''),name[0].toUpperCase());
+    a.style.background='hsl('+hue(id)+',60%,48%)';a.title=name+(id===myId?' (you)':'');box.append(a)});
+  if(!ref)box.append(el('span',null,'(sync off)'));
+}
+function trackPresence(){
+  if(!ref){showOnline({[myId]:{name:myName}});return}
+  const db=firebase.database(),pr=db.ref('rooms/'+room+'/presence');
+  db.ref('.info/connected').on('value',s=>{if(s.val()){const me=pr.child(myId);me.onDisconnect().remove();me.set({name:myName,t:Date.now()})}});
+  pr.on('value',s=>showOnline(s.val()));
+}
 const seen=new Set();
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,32)}
 async function enter(code){
   code=code.trim().toLowerCase();
   if(!code){const b=$('.gate .box');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');return}
+  myName=($('#name').value.trim()||LS.get('pn_name','')||'Guest '+Math.floor(10+Math.random()*90)).slice(0,16);LS.set('pn_name',myName);
   room=await sha(code);LS.set('pn_code',code);
   if(FIREBASE_CONFIG&&typeof firebase!=='undefined'){
     if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
     ref=firebase.database().ref('rooms/'+room+'/notes');
     ref.on('value',s=>{notes=s.val()||{};render()});
   }else{notes=LS.get('pn_'+room,{});render()}
+  trackPresence();
   $('#gate').classList.add('out');
 }
 const persist=()=>{if(!ref)LS.set('pn_'+room,notes)};
 const put=n=>{notes[n.id]=n;ref?ref.child(n.id).set(n):persist();render()};
 const del=id=>{delete notes[id];ref?ref.child(id).remove():persist();render()};
 $('#enter').onclick=()=>enter($('#code').value);
-$('#code').onkeydown=e=>{if(e.key==='Enter')enter($('#code').value)};
+['#code','#name'].forEach(i=>$(i).onkeydown=e=>{if(e.key==='Enter')enter($('#code').value)});
+$('#name').value=LS.get('pn_name','');
 $('#logout').onclick=()=>{localStorage.removeItem('pn_code');if(ref)ref.off();location.reload()};
 const saved=LS.get('pn_code',null);if(saved)enter(saved);
 
@@ -224,7 +250,7 @@ const saved=LS.get('pn_code',null);if(saved)enter(saved);
 document.querySelectorAll('.composer .dot').forEach(d=>d.onclick=()=>{color=d.dataset.c;
   document.querySelectorAll('.composer .dot').forEach(x=>x.classList.toggle('sel',x===d))});
 $('#listBtn').onclick=e=>{listMode=!listMode;e.target.classList.toggle('on',listMode);
-  $('#text').placeholder=listMode?'Una voce per riga...':'Write something fun or a reminder here...'};
+  $('#text').placeholder=listMode?'One item per line...':'Write something fun or a reminder here...'};
 function add(){
   const text=$('#text').value.trim();if(!text)return;
   const i=Object.keys(notes).length,cols=Math.max(1,Math.floor($('#board').clientWidth/216));
@@ -249,7 +275,7 @@ const fired=new Set(JSON.parse(sessionStorage.getItem('pn_fired')||'[]'));
 function render(){
   const b=$('#board');b.innerHTML='';
   const list=Object.values(notes);
-  if(!list.length){b.append(el('p','empty','Ancora nessuna nota. Scrivi la prima!'));return}
+  if(!list.length){b.append(el('p','empty','No notes yet. Write the first one!'));return}
   let maxY=0;
   list.forEach((n,idx)=>{
     n.reacts=n.reacts||{};n.items=n.items||[];
@@ -258,7 +284,7 @@ function render(){
     const c=el('div','note '+n.color+(n.pinned?' pinned':'')+(isDue?' due':'')+(seen.has(n.id)?'':' new'));
     seen.add(n.id);c.style.left=x+'px';c.style.top=y+'px';c.style.setProperty('--r',((idx%3)-1)*1.2+'deg');
     const bar=el('div','bar'),g=el('span','grip','⠿'),pin=el('button','pin','📌'),rm=el('button',null,'🗑️');
-    pin.title='Fissa in alto';pin.onclick=()=>{n.pinned=!n.pinned;put(n)};rm.onclick=()=>del(n.id);
+    pin.title='Pin to top';pin.onclick=()=>{n.pinned=!n.pinned;put(n)};rm.onclick=()=>del(n.id);
     bar.append(g,pin,rm);c.append(bar);
     if(n.type==='list'){
       n.items.forEach((it,k)=>{const l=el('label','item'+(it.d?' d':'')),cb=el('input');cb.type='checkbox';cb.checked=!!it.d;
@@ -269,7 +295,7 @@ function render(){
       t.onblur=()=>{const v=t.textContent.trim();if(v&&v!==n.text){n.text=v;put(n)}};c.append(t);
     }
     c.dataset.id=n.id;
-    if(n.due){const d=el('div','due-b','⏰ '+new Date(n.due).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}));c.append(d)}
+    if(n.due){const d=el('div','due-b','⏰ '+new Date(n.due).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}));c.append(d)}
     const rc=el('div','reacts');
     ['❤️','😂','👍'].forEach(e=>{const r=el('button',null,e+(n.reacts[e]?' '+n.reacts[e]:''));r.onclick=()=>{n.reacts[e]=(n.reacts[e]||0)+1;put(n)};rc.append(r)});
     c.append(rc);
@@ -283,7 +309,7 @@ function render(){
   });
   b.style.minHeight=maxY+260+'px';
 }
-/* promemoria */
+/* reminders */
 setInterval(()=>{let hit=false;
   Object.values(notes).forEach(n=>{if(n.due&&new Date(n.due)<=new Date()&&!fired.has(n.id)){
     fired.add(n.id);hit=true;sessionStorage.setItem('pn_fired',JSON.stringify([...fired]));
@@ -294,9 +320,9 @@ setInterval(()=>{let hit=false;
 $('#exp').onclick=()=>{const a=el('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(Object.values(notes),null,1)],{type:'application/json'}));a.download='poli-notes-backup.json';a.click()};
 $('#impBtn').onclick=()=>$('#imp').click();
 $('#imp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{JSON.parse(r.result).forEach(n=>{if(n&&n.id)put(n)})}catch{alert('File non valido')}};r.readAsText(f)};
+  r.onload=()=>{try{JSON.parse(r.result).forEach(n=>{if(n&&n.id)put(n)})}catch{alert('Invalid file')}};r.readAsText(f)};
 
-/* ===== APP INSTALLABILE (manifest generato al volo) ===== */
+/* ===== INSTALLABLE APP (manifest generated on the fly) ===== */
 const mf=document.createElement('link');mf.rel='manifest';
 mf.href=URL.createObjectURL(new Blob([JSON.stringify({name:'Poli-Notes',short_name:'Poli-Notes',start_url:location.href,scope:location.href.replace(/[^/]*$/,''),display:'standalone',background_color:'#fdfdfd',theme_color:'#f0455a',icons:[{src:ICON,sizes:'any',type:'image/svg+xml',purpose:'any maskable'}]})],{type:'application/manifest+json'}));
 document.head.append(mf);
