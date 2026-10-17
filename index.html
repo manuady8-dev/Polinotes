@@ -607,7 +607,7 @@ function showOnline(o){
     a.title=(u.name||'Guest')+(id===myId?' (you)':'')+(fr?' - friend':'');box.append(a)});
   const ty=list.filter(([id,u])=>id!==myId&&u&&u.typing&&Date.now()-u.typing<5000).map(([,u])=>u.name||'Guest');
   if(ty.length)box.append(el('span','typing','✍️ '+ty.join(', ')+(ty.length>1?' are':' is')+' typing...'));
-  if(!SYNC){const st=db&&db.state;box.append(el('span',null,st?(st.connected?'(sync off · live p2p)':'(sync off · waiting for friends)'):'(sync off)'))}
+  if(!SYNC){const st=db&&db.state;box.append(el('span',null,st?(st.connected?'(sync off · live p2p)':(st.err?'(sync off · p2p error: '+st.err+')':'(sync off · waiting for friends)')):'(sync off)'))}
   loadProfiles(list.map(([,u])=>u&&u.uid));
   renderPlayers();
 }
@@ -688,11 +688,14 @@ function bind(){
    same access code connect directly (WebRTC via PeerJS). It mimics the small part of the
    Firebase API this app uses, keeps everything in memory and mirrors it to localStorage. */
 const SYNC=!!db;
+const TURN={username:'openrelayproject',credential:'openrelayproject'};
+const PEER_OPTS={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'},
+  {urls:'turn:openrelay.metered.ca:80',...TURN},{urls:'turn:openrelay.metered.ca:443',...TURN},{urls:'turns:openrelay.metered.ca:443?transport=tcp',...TURN}]}};
 const p2pPref=()=>LS.get('pn_p2p',true)!==false;
 function makeP2P(room){
   const R='rooms/'+room+'/',hubId='pn-'+room,root={},L=[],myOds=[],connOds=new Map(),conns=new Map();
   const COLL=new Set(['notes','stickers','trash','chat','presence','cursors','boardlist','pp']);
-  let peer=null,isHub=false,hubConn=null,dead=false,infoCbs=[],pT=null;
+  let peer=null,isHub=false,hubConn=null,dead=false,infoCbs=[],pT=null,lastErr='';
   const split=p=>String(p).split('/').filter(Boolean);
   const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
   const norm=p=>{const m=/^users\/([^/]+)\/(p|banner)$/.exec(p);return m?R+'pp/'+m[1]+'/'+m[2]:p};
@@ -734,7 +737,7 @@ function makeP2P(room){
     if(cur===undefined||(wins&&JSON.stringify(cur)!==JSON.stringify(rv))){setAt(p,rv);fire(p);persistSoon(p);if(out)out.push([p,rv])}
   })([],tree||{})}
   const infoFire=()=>infoCbs.slice().forEach(o=>{try{o.cb({val:()=>true,exists:()=>true})}catch(e){console.error(e)}});
-  function status(){api.state={connected:isHub?conns.size>0:!!hubConn,hub:isHub,peers:conns.size};try{showOnline(lastPres)}catch{}}
+  function status(){const cn=isHub?conns.size>0:!!hubConn;if(cn)lastErr='';api.state={connected:cn,hub:isHub,peers:conns.size,err:lastErr};try{showOnline(lastPres)}catch{}}
   function applyOds(id,announce){const ods=connOds.get(id)||[];connOds.delete(id);
     ods.forEach(o=>{const v=o.op==='set'?o.v:null;setAt(o.p,v);fire(o.p);persistSoon(o.p);if(announce)sendW({k:'w',p:o.p,v:v==null?null:v},null)})}
   function onMsg(c,m){if(!m||typeof m!=='object')return;
@@ -752,19 +755,19 @@ function makeP2P(room){
     pr.on('disconnected',()=>{try{pr.reconnect()}catch{}});
     infoFire();status()}
   function retry(ms){if(!dead)setTimeout(start,ms)}
-  function joinClient(){isHub=false;const pr=new Peer();peer=pr;
+  function joinClient(){isHub=false;const pr=new Peer(undefined,PEER_OPTS);peer=pr;
     const giveUp=setTimeout(()=>{if(!hubConn&&!dead){try{pr.destroy()}catch{}retry(500+Math.random()*1500)}},12000);
     pr.on('open',()=>{const c=pr.connect(hubId,{reliable:true});
       c.on('open',()=>{clearTimeout(giveUp);hubConn=c;c.send({k:'hello'});myOds.forEach(o=>c.send({k:'od',p:o.p,op:o.op,v:o.v}));status()});
       c.on('data',m=>onMsg(c,m));
       const lost=()=>{if(hubConn!==c)return;hubConn=null;applyOds(c.peer,false);status();try{pr.destroy()}catch{}retry(400+Math.random()*1600)};
       c.on('close',lost);c.on('error',lost)});
-    pr.on('error',e=>{if(e&&e.type==='peer-unavailable'){clearTimeout(giveUp);try{pr.destroy()}catch{}retry(200+Math.random()*600)}else console.warn('p2p',e)})}
+    pr.on('error',e=>{if(e&&e.type&&e.type!=='peer-unavailable'){lastErr=e.type;status()}if(e&&e.type==='peer-unavailable'){clearTimeout(giveUp);try{pr.destroy()}catch{}retry(200+Math.random()*600)}else console.warn('p2p',e)})}
   function start(){if(dead)return;
     if(typeof Peer==='undefined'){status();return}
-    let pr,opened=false;try{pr=new Peer(hubId)}catch(e){console.error(e);retry(5000);return}
+    let pr,opened=false;try{pr=new Peer(hubId,PEER_OPTS)}catch(e){console.error(e);retry(5000);return}
     pr.on('open',()=>{opened=true;becomeHub(pr)});
-    pr.on('error',e=>{if(opened){console.warn('p2p',e);return}try{pr.destroy()}catch{}
+    pr.on('error',e=>{if(e&&e.type&&e.type!=='unavailable-id'){lastErr=e.type;status()}if(opened){console.warn('p2p',e);return}try{pr.destroy()}catch{}
       if(e&&e.type==='unavailable-id')joinClient();else retry(4000+Math.random()*3000)})}
   function mkRef(p,lim){p=norm(p);const self={path:p,
     child:c=>mkRef(p+'/'+c),
@@ -1111,7 +1114,7 @@ function sStart(){
   const gen=++sGen,cur=()=>gen===sGen;
   if(sPeer){const old=sPeer;sPeer=null;try{old.destroy()}catch{}}
   sReady=false;
-  let pr;try{pr=new Peer(pid(uid))}catch(e){console.error(e);sRetry(15000);return}
+  let pr;try{pr=new Peer(pid(uid),PEER_OPTS)}catch(e){console.error(e);sRetry(15000);return}
   sPeer=pr;
   pr.on('open',()=>{if(!cur())return;sReady=true;setStat('ok');sTick();clearInterval(sPoll);sPoll=setInterval(sTick,10000)});
   pr.on('connection',c=>{
