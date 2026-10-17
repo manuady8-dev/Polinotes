@@ -306,6 +306,43 @@ main #tools input,main #tools select{border-radius:0}
 #chInput{background:rgba(8,16,34,.55);border-top:1px solid rgba(255,255,255,.18);padding:6px 8px}
 #chInput input{background:rgba(225,230,240,.9);color:#222;border:0;border-radius:3px;font:13px 'Source Sans 3','Segoe UI',Arial,sans-serif;padding:7px 9px}
 #chInput .btn{background:#3d7be0;border-radius:3px;font-size:13px}
+/* friends page (home): stesso stile classic */
+.gate .gnav i{display:inline-block;margin-left:6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e03a3a;color:#fff;font:700 12px/18px var(--rb);font-style:normal;text-align:center;vertical-align:2px}
+.gate .gnav i[hidden]{display:none}
+.gate .fme{margin:-4px 0 12px 2px;font:400 15px var(--rb);color:#555}.gate .fme b{color:#222}
+.gate .fsearch{display:flex;gap:8px;align-items:flex-start}
+.gate .gpanel .fsearch input[type=text]{flex:1;width:auto;min-width:0;margin:0}
+.gate .fgo{flex:none;height:47px;padding:0 20px;border:0;border-radius:2px;background:var(--accent);color:#fff;font:600 18px var(--rb);letter-spacing:.3px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .12s,box-shadow .12s,filter .2s}
+.gate .fgo:hover{filter:brightness(1.08)}
+.gate .fgo:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.gate .fgo:disabled{opacity:.6;pointer-events:none}
+.gate .fmsg{margin:14px 2px 0;font:400 15px var(--rb);color:#555}
+.gate .fres{display:flex;align-items:center;gap:10px;margin-top:14px;padding:8px 10px;background:#f6f6f6;border:1px solid #cfcfcf}
+.gate .gpanel .fnote{margin:12px 2px 0;font:400 14px var(--rb);color:#555}
+.gate .gpanel .fnote.warn{color:#b32323;font-weight:600}
+.gate .ftb{width:100%;border-collapse:collapse;font:400 15px var(--rb)}
+.gate .ftb th{padding:0 0 6px;border-bottom:2px solid var(--accent);color:var(--accent);font:700 16px var(--rb);letter-spacing:.5px;text-transform:uppercase;text-align:left;white-space:nowrap}
+.gate .ftb th+th{padding-left:8px}
+.gate .ftb td{padding:8px 0;border-bottom:1px solid rgba(0,0,0,.09);vertical-align:middle}
+.gate .ftb td+td{padding-left:8px}
+.gate .ftb tr:last-child td{border-bottom:0}
+.gate .ftb td.fnone{padding:14px 0 4px;color:#777;font-style:italic;text-align:center}
+.gate .fwho{display:flex;align-items:center;gap:9px;min-width:0}
+.gate .fwho .av{flex:none;width:32px;height:32px;font-size:14px;border:2px solid #2b2b2b;box-shadow:none}
+.gate .fwho .fnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.gate .fst{white-space:nowrap;font-size:14px;color:#777}
+.gate .fst.on{color:#1f8a4c;font-weight:600}
+.gate .fst i{display:inline-block;width:9px;height:9px;margin-right:5px;border-radius:50%;background:#bbb}
+.gate .fst.on i{background:#2ecc71}
+.gate .fact{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.gate .fbt{height:32px;padding:0 10px;border:2px solid #2b2b2b;border-radius:2px;background:#fff;color:#222;font:700 14px var(--rb);cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.2);transition:background .2s,color .2s,transform .12s,box-shadow .12s}
+.gate .fbt:hover{background:var(--accent);color:#fff}
+.gate .fbt:active{transform:translate(2px,2px);box-shadow:none}
+.gate .fbt.pri{background:var(--accent);color:#fff}.gate .fbt.pri:hover{filter:brightness(1.08)}
+.gate .fbt.dis{background:#eee;color:#777;border-style:dashed;box-shadow:none}.gate .fbt.dis:hover{background:#e2e2e2;color:#555}
+.gate .ftag{display:inline-block;padding:1px 8px;border:2px solid #2b2b2b;font:700 12px var(--rb);letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.gate .ftag.in{background:#fff3c4}.gate .ftag.out{background:#e4eefb}
+@media(max-width:480px){.gate .fbt{padding:0 7px}.gate .fgo{padding:0 14px}}
 </style>
 </head>
 <body class="lines">
@@ -313,7 +350,7 @@ main #tools input,main #tools select{border-radius:0}
 <div class="gate" id="gate">
   <header class="gbar"><div>
     <span class="glogo-s"><i>P</i>Poli-Notes</span>
-    <nav class="gnav"><a class="sel" id="navPlay" data-v="play">Play</a><a id="navAbout" data-v="about">About</a><a id="navFriends">Friends</a></nav>
+    <nav class="gnav"><a class="sel" id="navPlay" data-v="play">Play</a><a id="navAbout" data-v="about">About</a><a id="navFriends" data-v="friends">Friends<i id="navBadge" hidden></i></a></nav>
     <span class="sp"></span><span class="gbadge">Our private corner for thoughts and reminders</span>
   </div></header>
   <div class="gmain">
@@ -335,11 +372,23 @@ main #tools input,main #tools select{border-radius:0}
           <button id="gChat"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2h-8l-5 4v-4H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="currentColor"/><circle cx="8" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="12" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="16" cy="11" r="1.4" fill="#1e2f4d"/></svg> Friends chat <i id="gBadge" hidden></i></button>
         </div>
       </div>
+      <div class="gview" data-v="friends">
+        <div class="gpanel">
+          <h2>Add a friend</h2>
+          <div class="fme" id="fMe"></div>
+          <div class="fsearch"><input id="fSearch" type="text" maxlength="16" placeholder="Search a username" autocomplete="off"><button class="fgo" id="fGo">Search</button></div>
+          <div id="fResult"></div>
+          <p class="fnote" id="fNote"></p>
+        </div>
+        <div class="gpanel" id="fTab"></div>
+        <div class="gpanel" id="fPend"></div>
+      </div>
       <div class="gview" data-v="about">
         <aside class="gpanel upd" id="gAbout" aria-label="Updates">
           <table>
             <thead><tr><th colspan="2">What's new</th></tr></thead>
             <tbody>
+              <tr><td>✅</td><td>Friends page: username search, friends table and pending requests</td></tr>
               <tr><td>✅</td><td>Notebook-style home with Play / About / Friends</td></tr>
               <tr><td>✅</td><td>New in-room menu (players and settings)</td></tr>
               <tr><td>✅</td><td>Smooth transitions when entering and leaving</td></tr>
@@ -782,6 +831,7 @@ const RULES=`{
     ".read": false,
     ".write": false,
     "users": { "$uid": { ".read": true, ".write": true } },
+    "names": { ".read": true, ".write": true },
     "rooms": { ".read": true, ".write": true },
     "dms":   { ".read": true, ".write": true }
   }
@@ -807,7 +857,7 @@ const rulesErr=e=>{console.error('Firebase error:',e);
 const fb=p=>{if(p&&p.catch)p.catch(rulesErr);return p};
 function saveProf(){LS.set('pn_prof',myProf);myName=myProf.name;profs[uid]=myProf;
   if(db){fb(db.ref('users/'+uid+'/p').set(myProf));if(prRef)prRef.child(myId+'/name').set(myName)}
-  if(!SYNC)sBroadcastProf()}
+  if(!SYNC)sBroadcastProf();nameSync()}
 function av(u,name,cls){
   const a=el('span','av '+(cls||''),(name||'?')[0].toUpperCase()),p=profs[u];a.title=name||'';
   if(p&&safeImg(p.pfp)){a.style.background='url('+p.pfp+') center/cover';a.textContent=''}
@@ -827,9 +877,9 @@ function refreshUI(){showOnline(lastPres);render();renderStrips();if(chatOpen())
 function renderStrips(){
   ['#gFriends','#fBar'].forEach(sel=>{const box=$(sel);box.innerHTML='';const ids=Object.keys(friends);box.hidden=!ids.length;if(!ids.length)return;
     box.append(el('span',null,'Friends'));
-    ids.forEach(f=>{const p=profs[f]||{},a=av(f,p.name||'Friend',fOn[f]?'on':'off');a.title=(p.name||'Friend')+(fOn[f]?' (online)':' (offline)');box.append(a)})})}
+    ids.forEach(f=>{const p=profs[f]||{},a=av(f,p.name||'Friend',fOn[f]?'on':'off');a.title=(p.name||'Friend')+(fOn[f]?' (online)':' (offline)');box.append(a)})});renderFView()}
 function badges(){const n=Object.keys(reqIn).length+Object.keys(invIn).length;$('#reqBadge').hidden=!n;$('#reqBadge').textContent=n;
-  const t=unread+n;$('#chatBadge').hidden=!t;$('#chatBadge').textContent=t;$('#gBadge').hidden=!t;$('#gBadge').textContent=t}
+  const t=unread+n;$('#chatBadge').hidden=!t;$('#chatBadge').textContent=t;$('#gBadge').hidden=!t;$('#gBadge').textContent=t;const rn=Object.keys(reqIn).length,nb=$('#navBadge');nb.hidden=!rn;nb.textContent=rn;renderFView()}
 const accept=u=>{if(!SYNC){sAccept(u);return}fb(db.ref('users/'+uid+'/friends/'+u).set({t:Date.now()}));fb(db.ref('users/'+u+'/friends/'+uid).set({t:Date.now()}));fb(db.ref('users/'+uid+'/requests/'+u).remove())};
 const decline=u=>{if(!SYNC){delete reqIn[u];sSave();badges();refreshSoc();return}fb(db.ref('users/'+uid+'/requests/'+u).remove())};
 const declineInv=u=>{if(!SYNC){delete invIn[u];badges();refreshSoc();return}fb(db.ref('users/'+uid+'/invites/'+u).remove())};
@@ -913,8 +963,8 @@ async function actions(u){
   else{let sent;
     if(SYNC){const s=await db.ref('users/'+u+'/requests/'+uid).once('value').catch(()=>null);if(pView!==u)return;sent=!!(s&&s.exists())}
     else sent=!!sOut[u];
-    if(sent)B('Request sent ✓ (cancel)',()=>{if(SYNC)fb(db.ref('users/'+u+'/requests/'+uid).remove());else sCancelReq(u);close()},'#888');
-    else B('➕ Add friend',()=>{if(SYNC)db.ref('users/'+u+'/requests/'+uid).set({n:myName,t:Date.now()}).then(()=>toast('Friend request sent')).catch(rulesErr);else sRequest(u);close()})}}
+    if(sent)B('Request sent ✓ (cancel)',()=>{cancelReq(u);close()},'#888');
+    else B('➕ Add friend',()=>{reqFriend(u);close()})}}
 function cropImg(file,w,h,q){return new Promise(res=>{const im=new Image();
   im.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;const k=Math.max(w/im.width,h/im.height),dw=im.width*k,dh=im.height*k;
     c.getContext('2d').drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);res(c.toDataURL('image/webp',q))};
@@ -1104,6 +1154,146 @@ function sendChat(){const t=$('#chText').value.trim().slice(0,300);
   if(!t||!db)return;$('#chText').value='';
   fb(db.ref(dmWith?'dms/'+pair(dmWith)+'/msgs':'rooms/'+room+'/chat').push({u:uid,n:myName,t:Date.now(),x:t}))}
 $('#chSend').onclick=sendChat;$('#chText').onkeydown=e=>{if(e.key==='Enter')sendChat()};
+/* ===== FRIENDS PAGE (home): username search, friends table, pendings =====
+   Username = your name, compared ignoring case, spaces and accents ("Test Account" = "testaccount").
+   With sync: a "names/<username>" index in Firebase. Without sync: each browser also holds a small
+   peer "pn-n-<username>" that answers lookups, so you can find people who are online right now. */
+const uname=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,16);
+let myKey='',nameTaken=false,nPeer=null,nTimer=null,fvResults=null,fvMsg='',fvBusy=false;
+const outW=new Set(),saveOut=()=>LS.set('pn_s_rout',sOut);
+if(SYNC){const o=LS.get('pn_s_rout',{});sOut=o&&typeof o==='object'?o:{}}
+function watchOut(u){if(!SYNC||outW.has(u))return;outW.add(u);
+  db.ref('users/'+u+'/requests/'+uid).on('value',s=>{if(!s.exists()&&sOut[u]){delete sOut[u];saveOut();renderFView()}},()=>{})}
+function reqFriend(u,p){
+  if(!u||u===uid||friends[u])return;
+  if(reqIn[u]){accept(u);return}
+  if(SYNC){
+    db.ref('users/'+u+'/requests/'+uid).set({n:myName,t:Date.now()}).then(()=>toast('Friend request sent')).catch(rulesErr);
+    sOut[u]={t:Date.now()};saveOut();watchOut(u);loadProfiles([u])}
+  else{sRequest(u);if(sOut[u]&&p){sOut[u].p=sClean(p);sSave()}}
+  renderFView()}
+function cancelReq(u){
+  if(SYNC){fb(db.ref('users/'+u+'/requests/'+uid).remove());delete sOut[u];saveOut();renderFView()}
+  else sCancelReq(u)}
+/* claim my username */
+function nStop(){clearTimeout(nTimer);if(nPeer){const p=nPeer;nPeer=null;try{p.destroy()}catch{}}}
+function nRetry(k,ms){clearTimeout(nTimer);nTimer=setTimeout(()=>{if(myKey===k&&!nPeer)nStart(k)},ms)}
+function nStart(k){
+  if(typeof Peer==='undefined'||sDead)return;
+  let pr;try{pr=new Peer('pn-n-'+k)}catch(e){console.warn(e);return}
+  nPeer=pr;
+  pr.on('open',()=>{if(nPeer!==pr)return;nameTaken=false;renderFView()});
+  pr.on('connection',c=>{c.on('data',m=>{if(m&&m.k==='who'){try{c.send({k:'me',u:uid,p:sProf()})}catch{}setTimeout(()=>{try{c.close()}catch{}},1500)}})});
+  pr.on('disconnected',()=>{try{pr.reconnect()}catch{}});
+  pr.on('error',e=>{
+    if(nPeer!==pr)return;
+    if(e&&e.type==='unavailable-id'){nameTaken=true;nPeer=null;try{pr.destroy()}catch{}renderFView();nRetry(k,15000);return}
+    console.warn('username p2p',e)});
+  pr.on('close',()=>{if(nPeer===pr&&!sDead){nPeer=null;nRetry(k,8000)}})}
+function nameSync(){
+  try{
+    const k=uname(myProf.name);
+    if(SYNC){
+      if(k===myKey)return;
+      const old=myKey;myKey=k;nameTaken=false;
+      if(old)db.ref('names/'+old).once('value').then(s=>{const v=s.val();if(v&&v.u===uid)return db.ref('names/'+old).remove()}).catch(()=>{});
+      if(k)db.ref('names/'+k).transaction(cur=>(cur&&cur.u!==uid)?undefined:{u:uid,t:Date.now()},(err,ok)=>{
+        if(myKey!==k)return;if(err){rulesErr(err);return}nameTaken=!ok;renderFView()},false);
+      renderFView();return}
+    if(k===myKey&&nPeer)return;
+    nStop();myKey=k;nameTaken=false;if(k)nStart(k);renderFView()
+  }catch(e){console.warn('nameSync',e)}}
+addEventListener('pagehide',()=>{clearTimeout(nTimer);try{nPeer&&nPeer.destroy()}catch{}});
+/* search */
+function lookupP2P(k){return new Promise(res=>{
+  if(typeof Peer==='undefined'){res({err:'The peer-to-peer library failed to load. Check your connection or any content blockers.'});return}
+  if(!sPeer||!sReady){res({err:'Not connected yet. Try again in a few seconds.'});return}
+  const target='pn-n-'+k;let c,done=false,t;
+  const h=e=>{if(e&&e.type==='peer-unavailable'&&String(e.message||'').includes(target))fin({none:1})};
+  const fin=r=>{if(done)return;done=true;clearTimeout(t);try{sPeer.off('error',h)}catch{}try{c&&c.close()}catch{}res(r)};
+  sPeer.on('error',h);t=setTimeout(()=>fin({none:1}),9000);
+  try{c=sPeer.connect(target,{reliable:true})}catch{fin({none:1});return}
+  c.on('open',()=>{try{c.send({k:'who'})}catch{fin({none:1})}});
+  c.on('data',m=>{if(m&&m.k==='me'&&typeof m.u==='string'&&/^[a-z0-9]{1,24}$/i.test(m.u))fin({u:m.u,p:sClean(m.p)})});
+  c.on('error',()=>fin({none:1}))})}
+async function fSearch(){
+  if(fvBusy)return;
+  const k=uname($('#fSearch').value);
+  if(!k){fvResults=null;fvMsg='Type a username to search.';renderFView();return}
+  fvBusy=true;fvResults=null;fvMsg='Searching…';renderFView();
+  let out=[];
+  try{
+    if(SYNC){
+      const s=await db.ref('names').orderByKey().startAt(k).endAt(k+'\uf8ff').limitToFirst(8).once('value');
+      const v=s.val()||{},all=Object.entries(v).filter(([,x])=>x&&typeof x.u==='string');
+      out=all.filter(([,x])=>x.u!==uid).map(([key,x])=>({u:x.u,key}));
+      out.sort((a,b)=>(b.key===k)-(a.key===k)||a.key.localeCompare(b.key));
+      await loadProfiles(out.map(x=>x.u));
+      fvMsg=out.length?'':(all.length?"That's you!":'No user found with that username.')}
+    else if(k===myKey){fvMsg="That's you!"}
+    else{
+      const r=await lookupP2P(k);
+      if(r.err)fvMsg=r.err;
+      else if(r.none)fvMsg='No user found. Without sync you need the exact username, and the person must be online right now.';
+      else if(r.u===uid)fvMsg="That's you!";
+      else{profs[r.u]=r.p;out=[{u:r.u,key:k,p:r.p}];fvMsg=''}}
+  }catch(e){fvMsg='Search failed. Try again.';rulesErr(e)}
+  fvBusy=false;fvResults=out;renderFView()}
+/* render */
+const fprof=u=>{if(!profs[u]){const x=(sOut[u]&&sOut[u].p)||(reqIn[u]&&reqIn[u].p);if(x)profs[u]=x}return profs[u]||{}};
+const fname=u=>fprof(u).name||(reqIn[u]&&reqIn[u].n)||'Guest';
+const fbtn=(t,f,c,title)=>{const b=el('button','fbt'+(c?' '+c:''),t);if(title)b.title=title;b.onclick=f;return b};
+const fwho=(u,cls)=>{const d=el('div','fwho');fprof(u);d.append(av(u,fname(u),cls||''),el('span','fnm',fname(u)));return d};
+const fcell=(...n)=>{const td=el('td');td.append(...n);return td};
+function ftable(title,cols,rows,none){
+  const t=el('table','ftb'),h=el('thead'),hr=el('tr'),b=el('tbody');
+  [title,...cols].forEach(x=>hr.append(el('th',null,x)));h.append(hr);
+  if(rows.length)rows.forEach(r=>b.append(r));
+  else{const tr=el('tr'),td=el('td','fnone',none);td.colSpan=cols.length+1;tr.append(td);b.append(tr)}
+  t.append(h,b);return t}
+function renderFView(){
+  const me=$('#fMe');if(!me)return;
+  me.replaceChildren('Your username: ',el('b',null,myProf.name||'Guest'));
+  const note=$('#fNote');
+  note.className='fnote'+(nameTaken?' warn':'');
+  note.textContent=nameTaken?"This username is already taken by someone else, so friends can't find you with it. Change your name in the Play tab.":
+    (myKey?'Friends can find you with this name.':'Use letters or numbers in your name (Play tab) so friends can find you.');
+  $('#fGo').disabled=fvBusy;
+  /* search results */
+  const rs=$('#fResult');rs.replaceChildren();
+  if(fvMsg)rs.append(el('p','fmsg',fvMsg));
+  (fvResults||[]).forEach(r=>{const u=r.u,row=el('div','fres'),who=fwho(u);who.style.cssText='flex:1;min-width:0';row.append(who);
+    if(friends[u])row.append(fbtn('✓ Friends',()=>{},'dis'));
+    else if(reqIn[u])row.append(fbtn('Accept',()=>accept(u),'pri'));
+    else if(sOut[u])row.append(fbtn('Pending',()=>cancelReq(u),'dis','Click to cancel the request'));
+    else row.append(fbtn('Add friend',()=>reqFriend(u,r.p||profs[u]),'pri'));
+    rs.append(row)});
+  /* friends table */
+  const fl=Object.keys(friends).sort((a,b)=>(fOn[b]?1:0)-(fOn[a]?1:0)||fname(a).localeCompare(fname(b)));
+  $('#fTab').replaceChildren(ftable('Friends ('+fl.length+')',['Status',''],fl.map(u=>{
+    const tr=el('tr'),st=el('span','fst'+(fOn[u]?' on':'')),ac=el('div','fact');
+    st.append(el('i'),fOn[u]?'Online':'Offline');
+    ac.append(fbtn('Chat',()=>{tab='friends';dmWith=u;openChat(true);renderChat()},'','Private chat'),
+              fbtn('Invite',()=>sendInvite(u),'','Invite to my room'));
+    const rm=fbtn('✕',()=>{
+      if(rm.dataset.a){unfriend(u);return}
+      rm.dataset.a='1';rm.textContent='Sure?';rm.classList.add('pri');
+      setTimeout(()=>{rm.dataset.a='';rm.textContent='✕';rm.classList.remove('pri')},3000)},'','Remove friend');
+    ac.append(rm);
+    tr.append(fcell(fwho(u,fOn[u]?'on':'off')),fcell(st),fcell(ac));return tr}),
+    'No friends yet. Search a username above to add someone.'));
+  /* pendings */
+  const inc=Object.keys(reqIn).filter(u=>!friends[u]),out=Object.keys(sOut).filter(u=>!friends[u]&&!reqIn[u]);
+  const prow=(u,kind)=>{const tr=el('tr'),ac=el('div','fact');
+    if(kind==='in')ac.append(fbtn('Accept',()=>accept(u),'pri'),fbtn('✕',()=>decline(u),'','Decline'));
+    else ac.append(fbtn('Cancel',()=>cancelReq(u),'','Cancel the request'));
+    tr.append(fcell(fwho(u)),fcell(el('span','ftag '+kind,kind==='in'?'Received':'Sent')),fcell(ac));return tr};
+  $('#fPend').replaceChildren(ftable('Pendings ('+(inc.length+out.length)+')',['Type',''],
+    [...inc.map(u=>prow(u,'in')),...out.map(u=>prow(u,'out'))],'No pending requests.'));
+}
+$('#fGo').onclick=fSearch;$('#fSearch').onkeydown=e=>{if(e.key==='Enter')fSearch()};
+Object.keys(sOut).forEach(watchOut);
+nameSync();
 startSocial();
 
 /* ===== menu classico: scheda Players ===== */
@@ -1113,12 +1303,9 @@ function playerBtn(u){
   const b=el('button','rb','Add Friend');
   if(friends[u]){b.textContent='Message';b.onclick=()=>{open_(false);tab='friends';dmWith=u;openChat(true);renderChat()};return b}
   if(reqIn[u]){b.textContent='Accept';b.onclick=()=>{accept(u);renderPlayers()};return b}
-  if((!SYNC&&sOut[u])||sentReq.has(u)){b.textContent='Pending';b.classList.add('dis');b.title='Click to cancel';
-    b.onclick=()=>{if(SYNC){fb(db.ref('users/'+u+'/requests/'+uid).remove());sentReq.delete(u)}else sCancelReq(u);renderPlayers()};return b}
-  b.onclick=()=>{
-    if(SYNC){db.ref('users/'+u+'/requests/'+uid).set({n:myName,t:Date.now()}).then(()=>toast('Friend request sent')).catch(rulesErr);sentReq.add(u)}
-    else sRequest(u);
-    renderPlayers()};
+  if(sOut[u]){b.textContent='Pending';b.classList.add('dis');b.title='Click to cancel';
+    b.onclick=()=>{cancelReq(u);renderPlayers()};return b}
+  b.onclick=()=>{reqFriend(u);renderPlayers()};
   return b}
 let rowAnim=false;
 function renderPlayers(){
@@ -1151,6 +1338,7 @@ let rsT;addEventListener('resize',()=>{clearTimeout(rsT);rsT=setTimeout(()=>{ren
 $('#enter').onclick=()=>enter($('#code').value);
 ['#code','#name'].forEach(i=>$(i).onkeydown=e=>{if(e.key==='Enter')enter($('#code').value)});
 $('#name').value=myProf.name;
+$('#name').addEventListener('change',()=>{const nn=$('#name').value.trim().slice(0,16);if(nn&&nn!==myProf.name){myProf.name=nn;saveProf();renderFView()}});
 let quitting=false;
 $('#logout').onclick=()=>{
   if(quitting)return;quitting=true;
@@ -1178,7 +1366,7 @@ function gView(v){
   if(v==='play')setTimeout(()=>{try{$('#code').focus({preventScroll:true})}catch{}},80)}
 $('#navPlay').onclick=()=>gView('play');
 $('#navAbout').onclick=()=>gView('about');
-$('#navFriends').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
+$('#navFriends').onclick=()=>{gView('friends');renderFView()};
 $('#gChat').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
 const joinM=/[#&]join=([^&]+)/.exec(location.hash);let joinCode='';
 try{joinCode=joinM?decodeURIComponent(joinM[1]).trim().toLowerCase().slice(0,64):''}catch{}
