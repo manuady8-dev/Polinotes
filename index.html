@@ -2086,9 +2086,14 @@ function ban(tu,name,n,k,reason){
   if(SYNC)w=db.ref('bans/'+tu).set(b);
   else if(room)w=db.ref('rooms/'+room+'/ban/'+tu).set(b);
   else return T('Entra prima in una stanza.','Enter a room first.');
-  if(w&&w.catch)w.catch(rulesErr);
-  const m=name+(T(' bannato per ',' banned for '))+n+' '+unitName(k,n)+(SYNC?'.':T(' (senza sync vale solo se è online nella stanza).',' (without sync it only works if they are online in the room).'));
-  toast(m);return m}
+  const ok=name+T(' bannato per ',' banned for ')+n+' '+unitName(k,n)+(SYNC?'.':T(' (senza sync vale solo se è online nella stanza).',' (without sync it only works if they are online in the room).'));
+  return Promise.resolve(w).then(()=>{
+    if(SYNC)return db.ref('bans/'+tu).once('value').then(s=>{
+      if(!s.exists())return T('ERRORE: il ban non risulta salvato nel database.','ERROR: the ban was not saved in the database.');
+      toast(ok);return ok+T('\n(salvato nel database ✓)','\n(saved in the database ✓)')});
+    toast(ok);return ok
+  }).catch(e=>{rulesErr(e);
+    return T('ERRORE: scrittura rifiutata dal database. Aggiorna le regole Firebase aggiungendo "bans" (Show rules), poi riprova.\n','ERROR: the database refused the write. Update the Firebase rules to include "bans" (Show rules), then retry.\n')+String(e&&e.message||e)})}
 function unban(tu){
   if(!db)return T('Non disponibile.','Not available.');
   let w;if(SYNC)w=db.ref('bans/'+tu).remove();else if(room)w=db.ref('rooms/'+room+'/ban/'+tu).remove();else return T('Entra prima in una stanza.','Enter a room first.');
