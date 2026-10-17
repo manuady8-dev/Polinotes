@@ -1982,7 +1982,7 @@ window.pnBadName=n=>{if(window.__owner)return false;const f=n.replace(/[ ._-]/g,
 {const o=window.editProf;if(typeof o==='function')window.editProf=function(){o.apply(this,arguments);$('#eSt').value=myProf.status||''}}
 $('#eSave').addEventListener('click',()=>{myProf.status=$('#eSt').value.trim().slice(0,30)},true);
 /* owner console: Ctrl+Shift+K */
-const OWNER_HASH='a72833c6d6f84440b8e5aed6b1d15e68';let unlocked=false;
+const OWNER_HASH='';let unlocked=false; /* paste your owner code above (see console setup) */
 const OWNER_UID=''; /* optional: your friend code (/whoami); if set, gifts are accepted only from it */
 window.pnGift=(id,n,from)=>{try{n=Number(n);if(typeof id!=='string'||id.length>40||!Number.isInteger(n)||n<1||n>1000)return;
  if(OWNER_UID?from!==OWNER_UID:!friends[from])return;
@@ -1998,9 +1998,10 @@ function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,
  case 'give':{if(!a||isNaN(n)||n<1||n>1000)return 'Usage: /give <friend code or friend name> N  (N from 1 to 1000)';
   const t=UID_RE.test(a.toLowerCase())?a.toLowerCase():Object.keys(friends).find(u=>String(fname(u)).toLowerCase()===a.toLowerCase());
   if(!t)return 'Friend not found. Use their 7-character friend code.';
+  if(t===uid)return "That is YOUR own friend code. Use /polis add N to give Polis to yourself, or use the code of another account.";
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid});else if(typeof sSend==='function')sSend(t,{k:'gift',i:id,n});else return 'Not connected.';
-  return 'Sent '+n+' Polis to '+t.toUpperCase()+'. They receive them when they are online.'}
+  return 'Sent '+n+' Polis to '+t.toUpperCase()+'. They receive them when they are online.'+(friends[t]||OWNER_UID?'':'\nNote: you are not friends yet, so they will ignore it. Add each other from the Friends tab first.')}
  case 'name':localStorage.removeItem('pn_name_free_used');renderNameInfo();return 'Free name change restored.';
  case 'badges':if(!window.pnBD)return 'n/a';if(a=='all')pnBD.BD.forEach(x=>pnBD.B.got[x[0]]=1);else if(a=='reset')pnBD.B.got={};else return 'Usage: /badges all|reset';pnBD.bsave();return 'Done.';
  case 'unlock':if(!P)return 'n/a';P.ex().forEach(k=>P.own()[k]=1);P.spend(0);return 'All cosmetics unlocked.';
