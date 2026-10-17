@@ -82,12 +82,12 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 .av.fr{box-shadow:0 0 0 2px #ff6b81}
 .strip{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:-8px auto 16px;width:max-content;max-width:92vw;padding:3px 10px;border-radius:16px;background:rgba(255,255,255,.6);color:#222;font-size:11px}
 .gate .strip{margin:0}
-#chatBtn{position:fixed;top:14px;left:14px;z-index:20;width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);background:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0;transition:transform .3s var(--ease)}
+#chatBtn{position:fixed;top:14px;left:14px;z-index:60;width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);background:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0;transition:transform .3s var(--ease)}
 #chatBtn:hover{transform:scale(1.12)}
 #chatBtn i,#chat .tab i{font:700 10px/16px sans-serif;font-style:normal;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e03a3a;color:#fff;text-align:center}
 #chatBtn i{position:absolute;top:-7px;right:-7px}#chat .tab i{display:inline-block;margin-left:4px}
 #chatBtn i[hidden],#chat .tab i[hidden]{display:none}
-#chat{position:fixed;left:0;top:0;bottom:0;width:min(92vw,340px);z-index:40;display:flex;flex-direction:column;background:#fff;color:#222;box-shadow:6px 0 30px rgba(0,0,0,.25);transform:translateX(-105%);transition:transform .45s var(--ease)}
+#chat{position:fixed;left:0;top:0;bottom:0;width:min(92vw,340px);z-index:61;display:flex;flex-direction:column;background:#fff;color:#222;box-shadow:6px 0 30px rgba(0,0,0,.25);transform:translateX(-105%);transition:transform .45s var(--ease)}
 #chat.open{transform:none}
 #chat header{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid #eee}
 #chat header b{font:800 14px 'Rubik',sans-serif;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -131,7 +131,7 @@ body.dk .sub{background:rgba(0,0,0,.35)}
 #trashList .tr{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #eee;font-size:11px}
 #trashList img{height:32px}.tt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #trashList .btn{background:#222;padding:3px 8px;font-size:10px}.mut{opacity:.6;font-size:11px;margin:4px 0}
-#toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,80px);opacity:0;z-index:60;display:flex;gap:12px;align-items:center;padding:8px 14px;background:#222;color:#fff;border-radius:10px;font-size:12px;transition:all .35s var(--ease);pointer-events:none}
+#toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,80px);opacity:0;z-index:80;display:flex;gap:12px;align-items:center;padding:8px 14px;background:#222;color:#fff;border-radius:10px;font-size:12px;transition:all .35s var(--ease);pointer-events:none}
 #toast.show{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 #toast button{border:0;background:none;color:#ffd166;font:inherit;cursor:pointer;text-decoration:underline}
 .cur{position:absolute;left:0;top:0;transition:transform .09s linear}
@@ -162,7 +162,16 @@ body.dk .sub{background:rgba(0,0,0,.35)}
 .gate .box{background:#fff;color:#222;padding:18px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);width:min(90vw,300px);animation:pop .6s var(--ease)}
 .gate input{width:100%;padding:9px;font:13px 'Fira Code',monospace;text-align:center;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;letter-spacing:2px}
 .gate small{display:block;margin-top:10px;font-size:10px;opacity:.6}
+.gate .upd{position:absolute;right:28px;top:50%;transform:translateY(-50%);width:230px;background:#fff;color:#222;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:14px 16px;text-align:left;animation:pop .6s var(--ease)}
+.gate .upd table{width:100%;border-collapse:collapse;font-size:12px}
+.gate .upd th{font:800 12px 'Rubik',sans-serif;letter-spacing:1px;text-transform:uppercase;color:var(--accent);padding:0 0 8px;border-bottom:2px solid var(--accent);text-align:left}
+.gate .upd td{padding:8px 0;border-bottom:1px solid rgba(0,0,0,.08);vertical-align:top;line-height:1.35}
+.gate .upd tr:last-child td{border-bottom:0;padding-bottom:0}
+.gate .upd td:first-child{width:22px}
+@media(max-width:980px){.gate{overflow:auto;justify-content:flex-start;padding-top:8vh}.gate .upd{position:static;transform:none;width:min(90vw,300px)}}
 .shake{animation:shake .4s}@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#pOv{z-index:70}
+#gChat i{font:700 10px/16px sans-serif;font-style:normal;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e03a3a;color:#fff;text-align:center;display:inline-block;margin-left:4px}#gChat i[hidden]{display:none}
 </style>
 </head>
 <body class="lines">
@@ -173,11 +182,27 @@ body.dk .sub{background:rgba(0,0,0,.35)}
     <input id="name" type="text" maxlength="16" placeholder="Your name (optional)" autocomplete="off">
     <input id="code" type="password" placeholder="Access code" autocomplete="off">
     <button class="btn" id="enter" style="width:100%">Enter</button>
+    <small id="joinNote" style="display:none;opacity:1;font-weight:700;color:var(--accent)"></small>
+    <small><a id="invLink">🔗 Copy invite link</a></small>
     <small>Anyone with the same code sees the same notes.</small>
     <small id="syncRow"></small>
     <div id="syncBox" hidden><textarea id="syncTxt" placeholder="Paste your firebaseConfig here (empty = remove)"></textarea><button class="btn" id="syncSave" style="width:100%">Save &amp; reload</button><a id="rulesLink" style="display:block;margin-top:6px;cursor:pointer;text-decoration:underline;font-size:11px">Show database rules to paste in Firebase</a></div>
   </div>
   <div id="gFriends" class="strip" hidden></div>
+  <button class="chip" id="gChat">💬 Friends chat <i id="gBadge" hidden></i></button>
+  <aside class="upd" aria-label="Updates">
+    <table>
+      <thead><tr><th colspan="2">What's new</th></tr></thead>
+      <tbody>
+        <tr><td>✅</td><td>Added more space</td></tr>
+        <tr><td>✅</td><td>Added friends and chats</td></tr>
+        <tr><td>✅</td><td>Added customizable profiles</td></tr>
+        <tr><td>✅</td><td>Fixed some functions</td></tr>
+        <tr><td>✅</td><td>Added chat on the home screen</td></tr>
+        <tr><td>✅</td><td>Added invites (link or friend invite)</td></tr>
+      </tbody>
+    </table>
+  </aside>
 </div>
 
 <button id="gear" aria-label="Settings">⚙️</button>
@@ -447,7 +472,7 @@ async function enter(code){
   code=code.trim().toLowerCase();
   if(!code){const b=$('.gate .box');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');return}
   const nn=$('#name').value.trim().slice(0,16);if(nn&&nn!==myProf.name){myProf.name=nn;saveProf()}myName=myProf.name;
-  room=await sha(code);LS.set('pn_code',code);
+  room=await sha(code);LS.set('pn_code',code);inRoom=true;
   board=LS.get('pn_board_'+room,'main');
   if(db){setBoards({});db.ref('rooms/'+room+'/boardlist').on('value',s=>setBoards(s.val()))}
   else setBoards(LS.get('pn_bl_'+room,{}));
@@ -482,7 +507,7 @@ function renderTrash(){
     const b=el('button','btn','Restore');b.onclick=()=>restore(t.id);r.append(b);box.append(r)})}
 $('#clrTr').onclick=()=>{Object.keys(trash).forEach(id=>trRef&&trRef.child(id).remove());trash={};LS.set(lk('pn_tr_'),trash);renderTrash()};
 /* ===== PROFILE / FRIENDS / CHAT ===== */
-let friends={},reqIn={},fOn={},unread=0,enterT=0,tab='lobby',dmWith=null,chL=null,dmRef=null,pView=null,pendPfp=null,pendBan=null;
+let friends={},reqIn={},invIn={},inRoom=false,fOn={},unread=0,enterT=0,tab='lobby',dmWith=null,chL=null,dmRef=null,pView=null,pendPfp=null,pendBan=null;
 const watched=new Set(),lobbyMsgs=[],pOv=$('#pOv');
 const RULES=`{
   "rules": {
@@ -534,8 +559,8 @@ function renderStrips(){
   ['#gFriends','#fBar'].forEach(sel=>{const box=$(sel);box.innerHTML='';const ids=Object.keys(friends);box.hidden=!ids.length;if(!ids.length)return;
     box.append(el('span',null,'Friends'));
     ids.forEach(f=>{const p=profs[f]||{},a=av(f,p.name||'Friend',fOn[f]?'on':'off');a.title=(p.name||'Friend')+(fOn[f]?' (online)':' (offline)');box.append(a)})})}
-function badges(){const n=Object.keys(reqIn).length;$('#reqBadge').hidden=!n;$('#reqBadge').textContent=n;
-  const t=unread+n;$('#chatBadge').hidden=!t;$('#chatBadge').textContent=t}
+function badges(){const n=Object.keys(reqIn).length+Object.keys(invIn).length;$('#reqBadge').hidden=!n;$('#reqBadge').textContent=n;
+  const t=unread+n;$('#chatBadge').hidden=!t;$('#chatBadge').textContent=t;$('#gBadge').hidden=!t;$('#gBadge').textContent=t}
 const accept=u=>{fb(db.ref('users/'+uid+'/friends/'+u).set({t:Date.now()}));fb(db.ref('users/'+u+'/friends/'+uid).set({t:Date.now()}));fb(db.ref('users/'+uid+'/requests/'+u).remove())};
 function startSocial(){
   renderStrips();badges();
@@ -543,12 +568,40 @@ function startSocial(){
   db.ref('users/'+uid+'/p').once('value').then(s=>{if(!s.exists())fb(db.ref('users/'+uid+'/p').set(myProf))}).catch(rulesErr);
   db.ref('.info/connected').on('value',s=>{if(s.val()){const st=db.ref('users/'+uid+'/status');st.onDisconnect().set(false);st.set(true)}});
   const friendsTab=()=>chatOpen()&&tab==='friends'&&!dmWith&&renderChat();
-  db.ref('users/'+uid+'/friends').on('value',s=>{friends=s.val()||{};
+  db.ref('users/'+uid+'/friends').on('value',s=>{friends=s.val()||{};Object.keys(friends).forEach(watchDM);
     Object.keys(friends).forEach(f=>{if(!watched.has(f)){watched.add(f);db.ref('users/'+f+'/status').on('value',x=>{fOn[f]=!!x.val();renderStrips();friendsTab()})}});
     loadProfiles(Object.keys(friends));renderStrips();showOnline(lastPres);friendsTab()},rulesErr);
   let reqFirst=true;
   db.ref('users/'+uid+'/requests').on('value',s=>{const prev=reqIn;reqIn=s.val()||{};loadProfiles(Object.keys(reqIn));badges();friendsTab();
-    if(!reqFirst)Object.keys(reqIn).filter(u=>!prev[u]).forEach(reqToast);reqFirst=false},rulesErr)}
+    if(!reqFirst)Object.keys(reqIn).filter(u=>!prev[u]).forEach(reqToast);reqFirst=false},rulesErr);
+  let invFirst=true;
+  db.ref('users/'+uid+'/invites').on('value',s=>{const prev=invIn;invIn=s.val()||{};loadProfiles(Object.keys(invIn));badges();friendsTab();
+    Object.keys(invIn).filter(u=>invFirst?Date.now()-(invIn[u].t||0)<36e5:!prev[u]||prev[u].t!==invIn[u].t).forEach(invToast);invFirst=false},rulesErr)}
+const bootT=Date.now(),dmWatch=new Set();
+function actToast(msg,acts,ms){const t=$('#toast');t.innerHTML='';t.append(el('span',null,msg));
+  acts.forEach(([l,f])=>{const b=el('button',null,l);b.onclick=()=>{f();t.classList.remove('show')};t.append(b)});
+  t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms||8000)}
+function watchDM(f){if(dmWatch.has(f)||!db)return;dmWatch.add(f);
+  db.ref('dms/'+pair(f)+'/msgs').limitToLast(1).on('child_added',s=>{const m=s.val();
+    if(!m||m.u===uid||!(m.t>bootT)||(chatOpen()&&dmWith===f))return;
+    unread++;badges();if(LS.get('pn_snd',true))ping();
+    actToast('💬 '+(m.n||(profs[f]||{}).name||'Friend')+': '+String(m.x||'').slice(0,40),[['Open',()=>{tab='friends';dmWith=f;openChat(true);renderChat()}]])})}
+/* invites */
+const curCode=()=>inRoom?LS.get('pn_code',''):$('#code').value.trim().toLowerCase();
+const inviteURL=c=>location.href.split('#')[0]+'#join='+encodeURIComponent(c);
+async function copyInvite(){const c=curCode();if(!c){toast('Type an access code first');return}
+  const url=inviteURL(c);
+  try{if(navigator.share&&/Mobi|Android/i.test(navigator.userAgent)){await navigator.share({title:'Poli-Notes',text:myName+' invited you to Poli-Notes',url});return}}catch{}
+  try{await navigator.clipboard.writeText(url);toast('Invite link copied')}catch{prompt('Copy this invite link:',url)}}
+function sendInvite(u){const c=curCode();if(!c){toast('Enter a room first (or type an access code)');return}
+  if(!db)return;
+  db.ref('users/'+u+'/invites/'+uid).set({n:myName,c,t:Date.now()}).then(()=>toast('Invite sent to '+((profs[u]||{}).name||'your friend'))).catch(rulesErr)}
+function joinInvite(u){const i=invIn[u];if(!i||!i.c)return;
+  const go=()=>{LS.set('pn_code',String(i.c).trim().toLowerCase().slice(0,64));location.reload()};
+  db.ref('users/'+uid+'/invites/'+u).remove().then(go,go)}
+function invToast(u){const i=invIn[u];if(!i)return;
+  actToast('✉️ '+(i.n||(profs[u]||{}).name||'A friend')+' invited you to their room',
+    [['Join',()=>joinInvite(u)],['Decline',()=>fb(db.ref('users/'+uid+'/invites/'+u).remove())]],14000);try{ping()}catch{}}
 function reqToast(u){
   const n=(reqIn[u]||{}).n||(profs[u]||{}).name||'Someone',t=$('#toast');t.innerHTML='';
   t.append(el('span',null,'👋 '+n+' sent you a friend request'));
@@ -576,6 +629,7 @@ async function actions(u){
   if(u===uid){B('✏️ Edit profile',editProf);return}
   if(!db){box.append(el('span','mut','Turn on sync to use friends.'));return}
   if(friends[u]){B('💬 Message',()=>{close();openChat(true);tab='friends';dmWith=u;renderChat()});
+    B('✉️ Invite to my room',()=>{sendInvite(u);close()});
     B('Remove friend',()=>{fb(db.ref('users/'+uid+'/friends/'+u).remove());fb(db.ref('users/'+u+'/friends/'+uid).remove());close()},'#888')}
   else if(reqIn[u]){B('✓ Accept',()=>{accept(u);close()});B('Decline',()=>{fb(db.ref('users/'+uid+'/requests/'+u).remove());close()},'#888')}
   else{const s=await db.ref('users/'+u+'/requests/'+uid).once('value').catch(()=>null);
@@ -618,22 +672,29 @@ function addMsg(m){
   h.append(nm,el('span','mt',new Date(m.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})));
   w.append(h,el('div','mx',String(m.x||'')));r.append(av(m.u,m.n,''),w);body.append(r);body.scrollTop=body.scrollHeight}
 function friendsList(body){
+  const ic=Object.keys(invIn);
+  if(ic.length){body.append(el('h4',null,'Invites'));
+    ic.forEach(u=>{const p=profs[u]||{name:(invIn[u]||{}).n},r=el('div','fr-row');r.append(av(u,p.name,''),el('span','tt',(p.name||'Guest')+' invited you'));
+      const ok=el('button','btn','Join');ok.onclick=()=>joinInvite(u);const no=el('button','btn','✕');no.style.background='#888';no.onclick=()=>fb(db.ref('users/'+uid+'/invites/'+u).remove());
+      r.append(ok,no);body.append(r)})}
   const rq=Object.keys(reqIn);
   if(rq.length){body.append(el('h4',null,'Requests'));
     rq.forEach(u=>{const p=profs[u]||{name:(reqIn[u]||{}).n},r=el('div','fr-row');r.append(av(u,p.name,''),el('span','tt',p.name||'Guest'));
       const ok=el('button','btn','Accept');ok.onclick=()=>accept(u);const no=el('button','btn','✕');no.style.background='#888';no.onclick=()=>fb(db.ref('users/'+uid+'/requests/'+u).remove());
       r.append(ok,no);body.append(r)})}
+  const lkb=el('button','btn','🔗 Copy invite link');lkb.style.cssText='width:100%;margin:8px 0';lkb.onclick=copyInvite;body.append(lkb);
   const fl=Object.keys(friends);body.append(el('h4',null,'Friends ('+fl.length+')'));
   if(!fl.length)body.append(el('p','mut','No friends yet. Click someone in the lobby to add them.'));
   fl.sort((a,b)=>(fOn[b]?1:0)-(fOn[a]?1:0)).forEach(u=>{const p=profs[u]||{},r=el('div','fr-row');
     r.append(av(u,p.name||'Friend',fOn[u]?'on':'off'),el('span','tt',(p.name||'Friend')+(fOn[u]?'':' (offline)')));
-    const m=el('button','btn','💬');m.onclick=()=>{dmWith=u;renderChat()};r.append(m);body.append(r)})}
+    const iv=el('button','btn','✉️');iv.title='Invite to my room';iv.onclick=()=>sendInvite(u);const m=el('button','btn','💬');m.onclick=()=>{dmWith=u;renderChat()};r.append(iv,m);body.append(r)})}
 function renderChat(){
   const body=$('#chBody');body.innerHTML='';stopDM();
+  if(!inRoom)tab='friends';document.querySelector('#chat .tab[data-t=lobby]').style.display=inRoom?'':'none';
   document.querySelectorAll('#chat .tab').forEach(t=>t.classList.toggle('sel',t.dataset.t===tab&&!dmWith));
   $('#chBack').hidden=!dmWith;$('#chTitle').textContent=dmWith?((profs[dmWith]||{}).name||'Friend'):'Chat';
   $('#chInput').hidden=!(tab==='lobby'||dmWith);
-  if(!db){body.append(el('p','mut','Turn on sync to chat and add friends.'));$('#chInput').hidden=true;return}
+  if(!db){body.append(el('p','mut','Turn on sync to chat and add friends.'));const lk0=el('button','btn','🔗 Copy invite link');lk0.onclick=copyInvite;body.append(lk0);$('#chInput').hidden=true;return}
   if(dmWith){const u=dmWith;loadProfiles([u]);
     dmRef=db.ref('dms/'+pair(u)+'/msgs').limitToLast(100);
     dmRef.on('child_added',s=>{const m=s.val();if(m&&dmWith===u)addMsg(m)});
@@ -663,7 +724,14 @@ $('#syncSave').onclick=()=>{
   const c={};[...t.matchAll(/["']?(\w+)["']?\s*:\s*["']([^"']*)["']/g)].forEach(m=>c[m[1]]=m[2]);
   if(!cfgOk(c)){alert('Config incomplete: it needs real apiKey and databaseURL values.');return}
   localStorage.setItem('pn_fbcfg',JSON.stringify(c));location.reload()};
-const saved=LS.get('pn_code',null);if(saved)enter(saved);
+$('#invLink').onclick=copyInvite;
+$('#gChat').style.display=db?'':'none';$('#gChat').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
+const joinM=/[#&]join=([^&]+)/.exec(location.hash);let joinCode='';
+try{joinCode=joinM?decodeURIComponent(joinM[1]).trim().toLowerCase().slice(0,64):''}catch{}
+if(joinM)history.replaceState(null,'',location.pathname+location.search);
+const saved=LS.get('pn_code',null);
+if(joinCode){$('#code').value=joinCode;const jn=$('#joinNote');jn.style.display='block';jn.textContent='🎉 You were invited! Check your name and press Enter.';$('#enter').focus()}
+else if(saved)enter(saved);
 
 /* ===== COMPOSER ===== */
 document.querySelectorAll('.composer .dot').forEach(d=>d.onclick=()=>{color=d.dataset.c;
