@@ -14,6 +14,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>try{var _b=JSON.parse(localStorage.getItem('pn_ban'));if(_b&&_b.until>Date.now()){document.documentElement.classList.add('banned');localStorage.removeItem('pn_code')}}catch(e){}</script>
+<style>
+html.banned body>*:not(#banScr){display:none!important}
+html.banned body{overflow:hidden}
+</style>
 <style>
 :root{--accent:#f0455a;--text:#2b2b2b;--line:rgba(0,0,0,.07);--bg:#fdfdfd;--ease:cubic-bezier(.2,.8,.2,1)}
 *{box-sizing:border-box}
@@ -868,6 +873,7 @@ const RULES=`{
     "users": { "$uid": { ".read": true, ".write": true } },
     "names": { ".read": true, ".write": true },
     "rooms": { ".read": true, ".write": true },
+    "bans":  { ".read": true, ".write": true },
     "dms":   { ".read": true, ".write": true }
   }
 }`;
@@ -1458,6 +1464,9 @@ function renderPlayers(){
     row.append(a,nm);
     const v=el('button','rb','View');v.onclick=()=>openProfile(u.uid);if(u.uid)row.append(v);
     const fb_=playerBtn(u.uid);if(fb_)row.append(fb_);
+    if(window.__owner&&!me&&u.uid&&window.pnMod){const kb=el('button','rb','Kick'),bb=el('button','rb','Ban');
+      [kb,bb].forEach(b=>{b.style.minWidth='64px';b.style.borderColor='#c0283c';b.style.color='#c0283c'});
+      kb.onclick=()=>pnMod.kick(u.uid,u.name||'Guest');bb.onclick=()=>pnMod.banDlg(u.uid,u.name||'Guest');row.append(kb,bb)}
     box.append(row)});
   box.scrollTop=sc}
 function menuTab(t){
@@ -1961,6 +1970,158 @@ body.a-big main,body.a-big .note{zoom:1.15}
 body.a-hc .note{border:2px solid #000;color:#000}body.a-hc{--line:rgba(0,0,0,.28)}
 body.a-rm *,body.a-rm *::before,body.a-rm *::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 </style>
+<style>
+#banScr{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:16px;background:var(--bg,#fdfdfd);overflow:auto}
+#banScr .bx{width:min(100%,460px);background:#fff;color:#222;border:3px solid #c0283c;box-shadow:8px 8px 0 rgba(0,0,0,.15);padding:26px 22px;text-align:center;font:16px/1.5 'Source Sans 3',Arial,sans-serif}
+#banScr h1{margin:0 0 14px;padding:6px 16px;font-size:26px;color:#c0283c;border-color:#c0283c}
+#banScr .big{font:800 30px 'Rubik',sans-serif;color:#c0283c;margin:10px 0}
+#banScr small{display:block;opacity:.7;margin-top:6px}
+#banScr .rs{margin-top:12px;padding:8px;background:#fff3f4;border:1px dashed #c0283c;word-break:break-word}
+#banOv{position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(25,38,48,.55);backdrop-filter:blur(3px)}
+#banOv .tc{width:min(100%,400px);background:#fff;color:#222;border:2px solid #2b2b2b;box-shadow:8px 8px 0 rgba(0,0,0,.28);padding:18px;font:16px/1.4 'Source Sans 3',Arial,sans-serif;text-align:left}
+#banOv h2{margin:0 0 8px;font:800 20px 'Rubik',sans-serif;color:#c0283c}
+#banOv input,#banOv select{width:100%;margin:5px 0;padding:8px;font:15px 'Source Sans 3',Arial,sans-serif;border:1px solid #b9b9b9;background:#fff;color:#222}
+#banOv .r2{display:flex;gap:8px}#banOv .r2>*{flex:1}
+#banOv .tr{display:flex;gap:10px;margin-top:12px}
+#banOv button{flex:1;height:42px;border:2px solid #2b2b2b;border-radius:2px;font:700 16px 'Source Sans 3',Arial,sans-serif;cursor:pointer;background:#fff;color:#222}
+#banOv button.go{background:#c0283c;color:#fff;border-color:#c0283c}
+</style>
+<script>
+/* ===== MODERATION: kick (lobby only) + ban (whole site, timed) ===== */
+(()=>{try{
+const IT=/^it/i.test(navigator.language||'');
+const T=(it,en)=>IT?it:en;
+const UNITS={m:['m','min','mins','minuto','minuti','minute','minutes'],h:['h','hr','hrs','ora','ore','hour','hours'],d:['d','g','giorno','giorni','day','days'],w:['w','sett','settimana','settimane','week','weeks'],mo:['mo','mese','mesi','month','months'],y:['y','a','anno','anni','year','years']};
+const UN_IT={m:['minuto','minuti'],h:['ora','ore'],d:['giorno','giorni'],w:['settimana','settimane'],mo:['mese','mesi'],y:['anno','anni']};
+const UN_EN={m:['minute','minutes'],h:['hour','hours'],d:['day','days'],w:['week','weeks'],mo:['month','months'],y:['year','years']};
+const unitKey=x=>{x=String(x||'').toLowerCase();return Object.keys(UNITS).find(k=>UNITS[k].includes(x))||null};
+const unitName=(k,n)=>(IT?UN_IT:UN_EN)[k][n==1?0:1];
+const addDur=(n,k)=>{const d=new Date();
+  if(k==='m')d.setMinutes(d.getMinutes()+n);else if(k==='h')d.setHours(d.getHours()+n);else if(k==='d')d.setDate(d.getDate()+n);
+  else if(k==='w')d.setDate(d.getDate()+7*n);else if(k==='mo')d.setMonth(d.getMonth()+n);else if(k==='y')d.setFullYear(d.getFullYear()+n);
+  return d.getTime()};
+const myUid=()=>uid;
+
+/* ---------- ban screen ---------- */
+let banned=false,banT=null;
+const two=n=>String(n).padStart(2,'0');
+const fmtLeft=ms=>{let s=Math.max(0,Math.ceil(ms/1000));const d=Math.floor(s/86400);s-=d*86400;const h=Math.floor(s/3600);s-=h*3600;const m=Math.floor(s/60);s-=m*60;
+  return (d?d+(IT?'g ':'d '):'')+two(h)+':'+two(m)+':'+two(s)};
+function clearBan(reload){try{localStorage.removeItem('pn_ban')}catch{}
+  try{if(SYNC&&db)db.ref('bans/'+uid).remove().catch(()=>{})}catch{}
+  if(reload)location.reload()}
+function showBan(b){
+  if(banned)return;banned=true;document.documentElement.classList.add('banned');
+  const o=document.createElement('div');o.id='banScr';
+  const bx=el('div','bx'),h=el('h1',null,T('SEI STATO BANNATO','YOU ARE BANNED'));
+  const dur=el('div',null,T('Non puoi accedere a Poli-Notes per:','You cannot access Poli-Notes for:'));
+  const big=el('div','big',b.n+' '+unitName(b.k,b.n));
+  const until=el('div',null,T('Il ban termina il ','Your ban ends on ')+new Date(b.until).toLocaleString(navigator.language||'en-GB'));
+  const left=el('small');
+  bx.append(h,dur,big,until,left);
+  if(b.r){const r=el('div','rs');r.append(el('b',null,T('Motivo: ','Reason: ')),document.createTextNode(String(b.r).slice(0,80)));bx.append(r)}
+  o.append(bx);document.body.append(o);
+  const tick=()=>{const ms=b.until-Date.now();if(ms<=0){clearInterval(banT);clearBan(true);return}left.textContent=T('Tempo rimanente: ','Time left: ')+fmtLeft(ms)};
+  tick();banT=setInterval(tick,1000)}
+function applyBan(b){
+  if(!b||!(b.until>Date.now())||!Number.isFinite(b.until))return;
+  b={until:b.until,n:Math.max(1,b.n|0),k:UNITS[b.k]?b.k:'d',r:typeof b.r==='string'?b.r.slice(0,80):''};
+  LS.set('pn_ban',b);localStorage.removeItem('pn_code');
+  try{if(typeof prRef!=='undefined'&&prRef)prRef.child(myId).remove()}catch{}
+  try{if(typeof curRef!=='undefined'&&curRef)curRef.child(myId).remove()}catch{}
+  try{sDead=true;sPeer&&sPeer.destroy();nStop()}catch{}
+  try{if(db&&db.p2p)db.stop()}catch{}
+  showBan(b)}
+
+/* ---------- receiving side ---------- */
+const watchBan=path=>{if(!db)return;
+  db.ref(path).on('value',s=>{const v=s.val();
+    if(v&&v.until>Date.now())applyBan(v);
+    else if(banned||LS.get('pn_ban',null)){if(path==='bans/'+uid||(!v&&banned))clearBan(true)}},()=>{})};
+function doKicked(){
+  try{sessionStorage.setItem('pn_kicked','1')}catch{}
+  const c=el('div');c.id='curtain';c.append(el('span',null,T('Sei stato cacciato dalla Lobby…','You were kicked from the Lobby…')));document.body.append(c);
+  setTimeout(()=>c.classList.add('on'),50);
+  localStorage.removeItem('pn_code');
+  setTimeout(()=>{try{if(ref)ref.off()}catch{}location.reload()},1300)}
+let kickOn=false;
+function watchKick(){if(kickOn||!db||!room)return;kickOn=true;
+  const p='rooms/'+room+'/kick/'+uid;
+  db.ref(p).on('value',s=>{const v=s.val();if(!v||typeof v.t!=='number')return;
+    if(Math.abs(Date.now()-v.t)>30000){db.ref(p).remove();return}
+    db.ref(p).remove();doKicked()},()=>{});
+  if(!SYNC)watchBan('rooms/'+room+'/ban/'+uid)}
+if(SYNC&&db)watchBan('bans/'+uid);
+setInterval(()=>{if(document.body.classList.contains('entered')&&db&&room)watchKick()},700);
+
+/* ---------- on load ---------- */
+{const b=LS.get('pn_ban',null);
+ if(b&&b.until>Date.now())applyBan(b);else if(b)localStorage.removeItem('pn_ban');
+ try{if(sessionStorage.getItem('pn_kicked')){sessionStorage.removeItem('pn_kicked');setTimeout(()=>toast(T('Sei stato cacciato dalla Lobby.','You were kicked from the Lobby.')),700)}}catch{}}
+
+/* ---------- owner side ---------- */
+const online=()=>Object.values(lastPres||{}).filter(u=>u&&u.uid);
+function resolve(q){q=String(q||'').trim();if(!q)return{err:T('Specifica un giocatore.','Specify a player.')};
+  const lc=q.toLowerCase();
+  const hit=online().filter(u=>String(u.name||'').toLowerCase()===lc||u.uid===lc);
+  const uniq=[...new Map(hit.map(u=>[u.uid,u])).values()];
+  if(uniq.length>1)return{err:T('Più giocatori con quel nome, usa il codice amico: ','Several players with that name, use the friend code: ')+uniq.map(u=>u.uid.toUpperCase()).join(', ')};
+  if(uniq.length===1)return{uid:uniq[0].uid,name:uniq[0].name||'Guest'};
+  if(UID_RE.test(lc))return{uid:lc,name:lc.toUpperCase(),offline:true};
+  return{err:T('Giocatore non trovato nella Lobby. Usa il nome esatto o il codice amico (7 caratteri).','Player not found in the Lobby. Use the exact name or the 7-character friend code.')}}
+const guard=t=>{if(!t||t.err)return t&&t.err;if(t.uid===uid)return T('Non puoi farlo a te stesso.','You cannot do that to yourself.');return ''};
+function kick(tu,name){
+  if(!db||!room)return T('Entra prima in una stanza.','Enter a room first.');
+  if(tu===uid)return T('Non puoi farlo a te stesso.','You cannot do that to yourself.');
+  const w=db.ref('rooms/'+room+'/kick/'+tu).set({t:Date.now(),by:uid});if(w&&w.catch)w.catch(rulesErr);
+  setTimeout(()=>{try{db.ref('rooms/'+room+'/kick/'+tu).remove()}catch{}},20000);
+  const m=T('Kick inviato a ','Kick sent to ')+name+'.';toast(m);return m}
+function ban(tu,name,n,k,reason){
+  if(!db)return T('Serve la sincronizzazione o una stanza live.','Needs sync or a live room.');
+  if(tu===uid)return T('Non puoi farlo a te stesso.','You cannot do that to yourself.');
+  if(!Number.isInteger(n)||n<1||n>9999||!UNITS[k])return T('Durata non valida.','Invalid duration.');
+  const until=addDur(n,k);if(!Number.isFinite(until)||until>8.6e15)return T('Durata troppo lunga.','Duration too long.');
+  const b={until,n,k,t:Date.now(),by:uid};if(reason)b.r=String(reason).slice(0,80);
+  let w;
+  if(SYNC)w=db.ref('bans/'+tu).set(b);
+  else if(room)w=db.ref('rooms/'+room+'/ban/'+tu).set(b);
+  else return T('Entra prima in una stanza.','Enter a room first.');
+  if(w&&w.catch)w.catch(rulesErr);
+  const m=name+(T(' bannato per ',' banned for '))+n+' '+unitName(k,n)+(SYNC?'.':T(' (senza sync vale solo se è online nella stanza).',' (without sync it only works if they are online in the room).'));
+  toast(m);return m}
+function unban(tu){
+  if(!db)return T('Non disponibile.','Not available.');
+  let w;if(SYNC)w=db.ref('bans/'+tu).remove();else if(room)w=db.ref('rooms/'+room+'/ban/'+tu).remove();else return T('Entra prima in una stanza.','Enter a room first.');
+  if(w&&w.catch)w.catch(rulesErr);return T('Ban rimosso da ','Ban removed from ')+tu.toUpperCase()+'.'}
+function banDlg(tu,name){
+  const o=document.createElement('div');o.id='banOv';
+  o.innerHTML='<div class="tc"><h2></h2><div class="r2"><input id="bn" type="number" min="1" max="9999" value="1"><select id="bk"></select></div><input id="br" maxlength="80"><div class="tr"><button class="x"></button><button class="go"></button></div></div>';
+  o.querySelector('h2').textContent='Ban: '+name;
+  const sel=o.querySelector('#bk');[['m',T('Minuti','Minutes')],['h',T('Ore','Hours')],['d',T('Giorni','Days')],['w',T('Settimane','Weeks')],['mo',T('Mesi','Months')],['y',T('Anni','Years')]].forEach(([v,t])=>{const op=document.createElement('option');op.value=v;op.textContent=t;sel.append(op)});
+  sel.value='h';o.querySelector('#br').placeholder=T('Motivo (facoltativo)','Reason (optional)');
+  o.querySelector('.x').textContent=T('Annulla','Cancel');o.querySelector('.go').textContent=T('Banna','Ban');
+  document.body.append(o);o.querySelector('#bn').focus();
+  o.querySelector('.x').onclick=()=>o.remove();o.onclick=e=>{if(e.target===o)o.remove()};
+  o.querySelector('.go').onclick=()=>{const n=parseInt(o.querySelector('#bn').value,10);
+    if(!(n>=1&&n<=9999)){toast(T('Durata non valida.','Invalid duration.'));return}
+    ban(tu,name,n,sel.value,o.querySelector('#br').value.trim());o.remove()}}
+
+/* console commands (called from run()) */
+window.pnMod={kick:(u,n)=>{const r=kick(u,n);return r},banDlg,
+ cmd(c,v){
+  const body=v.replace(/^\/?\S+\s*/,'');
+  if(c==='kick'){const t=resolve(body),g=guard(t);if(g)return g;return kick(t.uid,t.name)}
+  if(c==='ban'){const m=/^(.+?)\s+(\d+)\s*([a-zA-Z]+)\b\s*(.*)$/.exec(body);
+    if(!m)return T('Uso: /ban <giocatore> <N> <minuti|ore|giorni|settimane|mesi|anni> [motivo]\nEs: /ban Mario 3 giorni spam','Usage: /ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\nEx: /ban Mario 3 days spam');
+    const k=unitKey(m[3]);if(!k)return T('Unità non valida. Usa: minuti, ore, giorni, settimane, mesi, anni.','Invalid unit. Use: minutes, hours, days, weeks, months, years.');
+    const t=resolve(m[1]),g=guard(t);if(g)return g;return ban(t.uid,t.name,parseInt(m[2],10),k,m[4].trim())}
+  if(c==='unban'){const q=body.trim().toLowerCase();if(!UID_RE.test(q))return T('Uso: /unban <codice amico>  (vedi /bans)','Usage: /unban <friend code>  (see /bans)');return unban(q)}
+  if(c==='bans'){if(!SYNC||!db)return T('Elenco disponibile solo con la sincronizzazione attiva.','The list needs sync to be on.');
+    return db.ref('bans').once('value').then(s=>{const o=s.val()||{},l=Object.entries(o).filter(([,b])=>b&&b.until>Date.now());
+      return l.length?l.map(([u,b])=>u.toUpperCase()+'  '+b.n+' '+unitName(b.k,b.n)+T('  fino al ','  until ')+new Date(b.until).toLocaleString('en-GB')+(b.r?'  "'+b.r+'"':'')).join('\n'):T('Nessun ban attivo.','No active bans.')}).catch(e=>String(e&&e.message||e))}
+  return ''}};
+}catch(e){console.warn('moderation',e)}})();
+</script>
 <script>
 (()=>{try{
 const $=s=>document.querySelector(s);
@@ -1996,7 +2157,7 @@ window.pnGift=(id,n,from,msg)=>{try{n=Number(n);if(typeof id!=='string'||id.leng
 if(SYNC&&db){db.ref('users/'+uid+'/gifts').on('child_added',s=>{const g=s.val()||{},k=s.key;setTimeout(()=>{pnGift(k,g.n,g.f,g.m);s.ref.remove()},3000)})}
 function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,n=parseInt(b,10);
  switch(c){
- case 'help':return '/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
+ case 'help':return '/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/kick <player>   (throws them out of the Lobby)\n/ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\n/unban <friend code>\n/bans   (active bans)\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
  case 'polis':if(!P||isNaN(n)||n<0)return 'Usage: /polis add|take|set N';
   if(a=='add')P.earn(n);else if(a=='take')P.earn(-Math.min(n,P.bal()));else if(a=='set')P.earn(n-P.bal());else return 'Usage: /polis add|take|set N';
   return 'Balance: '+P.bal()+' Polis';
@@ -2015,7 +2176,8 @@ function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,
  case 'unlock':if(!P)return 'n/a';P.ex().forEach(k=>P.own()[k]=1);P.spend(0);return 'All cosmetics unlocked.';
  case 'tutorial':localStorage.removeItem('pn_tut');return 'The tutorial will show again on your next visit.';
  case 'whoami':return 'uid: '+uid+'\nname: '+myProf.name;
- case 'lock':unlocked=false;window.__owner=0;$('#ownOv')&&$('#ownOv').remove();return '';
+ case 'kick':case 'ban':case 'unban':case 'bans':return window.pnMod?pnMod.cmd(c,v):'n/a';
+ case 'lock':unlocked=false;window.__owner=0;$('#ownOv')&&$('#ownOv').remove();try{renderPlayers()}catch{}return '';
  default:return 'Unknown command. Type /help'}}
 function con(){if($('#ownOv'))return;const o=document.createElement('div');o.id='ownOv';
  o.style.cssText='position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)';
@@ -2026,8 +2188,8 @@ function con(){if($('#ownOv'))return;const o=document.createElement('div');o.id=
  inp.type=mode=='cmd'?'text':'password';inp.focus();o.onclick=e=>{if(e.target===o)o.remove()};
  inp.onkeydown=async e=>{if(e.key==='Escape'){o.remove();return}if(e.key!=='Enter')return;const v=inp.value.trim();inp.value='';
   if(mode=='setup'){if(v.length<8){log('Use at least 8 characters.');return}log("Paste this in index.html, replacing const OWNER_HASH='';\nconst OWNER_HASH='"+await sha(v)+"';\nUntil you do, the console stays locked for everyone.");return}
-  if(mode=='login'){if(await sha(v)===OWNER_HASH){unlocked=true;window.__owner=1;mode='cmd';inp.type='text';log('Unlocked. Type /help')}else log('Wrong password.');return}
-  log('> '+v);const r=run(v);if(r)log(r)}}
+  if(mode=='login'){if(await sha(v)===OWNER_HASH){unlocked=true;window.__owner=1;mode='cmd';inp.type='text';try{renderPlayers()}catch{}log('Unlocked. Type /help')}else log('Wrong password.');return}
+  log('> '+v);Promise.resolve(run(v)).then(r=>{if(r)log(r)})}}
 addEventListener('keydown',e=>{const t=e.target,ed=t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));if(!ed&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&e.key.toLowerCase()==='k'&&!$('#ownOv')){e.preventDefault();con()}});
 }catch(e){console.warn('extras2',e)}})();
 </script>
