@@ -1009,21 +1009,28 @@ function sTakeProf(u,p){if(!p||typeof p!=='object')return;const c=sClean(p);
   if(friends[u]){friends[u].p=c;profs[u]=c;sSave()}
   else if(reqIn[u]){reqIn[u].p=c;profs[u]=c;sSave()}}
 function sFlush(u){const c=sConn.get(u);if(!c||!c.open)return;
-  const keep=[];
+  /* messages stay queued until the other side acknowledges them ({k:'ack'}); unacked ones are
+     re-sent, and if a connection looks dead (no ack after 2 tries) it is dropped and re-opened */
+  const now=Date.now();let stale=false;
+  sQ=sQ.filter(x=>!(x.m.k==='inv'&&now-x.t>36e5));
   sQ.forEach(x=>{
-    if(x.to!==u){keep.push(x);return}
-    if(x.m.k==='inv'&&Date.now()-x.t>36e5)return;
-    try{c.send(x.m)}catch{keep.push(x);return}
-    if(x.m.k==='dm'){const h=sHist(u),it=h.find(y=>y.i===x.m.i);if(it&&it.q){delete it.q;sSaveHist(u,h);if(chatOpen()&&dmWith===u)renderChat()}}});
-  sQ=keep;sSave()}
+    if(x.to!==u)return;
+    if(!x.a)x.a=Math.random().toString(36).slice(2,10);
+    if(x.s&&now-x.s<9000)return;
+    if(x.n>=2)stale=true;
+    x.n=(x.n||0)+1;x.s=now;
+    try{c.send(Object.assign({a:x.a},x.m))}catch{stale=true}});
+  sSave();
+  if(stale){sConn.delete(u);sSetOn(u,false);try{c.close()}catch{}
+    sQ.forEach(x=>{if(x.to===u)x.n=0});setTimeout(()=>sConnect(u),300)}}
 function sSend(u,m){
   if(!u||u===uid)return;
-  sQ.push({to:u,m,t:Date.now()});sSave();
+  sQ.push({to:u,m,t:Date.now(),a:Math.random().toString(36).slice(2,10)});sSave();
   const c=sConn.get(u);if(c&&c.open)sFlush(u);else sConnect(u)}
 function sSendDM(u,x){
   const m={k:'dm',i:Date.now().toString(36)+Math.random().toString(36).slice(2,6),n:myName,t:Date.now(),x:String(x).slice(0,300)};
-  const c=sConn.get(u),online=!!(c&&c.open),h=sHist(u);
-  h.push({u:uid,n:myName,t:m.t,x:m.x,i:m.i,...(online?{}:{q:1})});sSaveHist(u,h);
+  const h=sHist(u);
+  h.push({u:uid,n:myName,t:m.t,x:m.x,i:m.i,q:1});sSaveHist(u,h);
   if(chatOpen()&&dmWith===u)addMsg(h[h.length-1]);
   sSend(u,m)}
 function sAttach(c,u){
@@ -1042,7 +1049,7 @@ function sConnect(u){
   c.on('open',()=>{clearTimeout(fail);sPend.delete(u);sAttach(c,u)});
   c.on('error',()=>{clearTimeout(fail);sPend.delete(u)})}
 function sTargets(){return new Set([...Object.keys(friends),...Object.keys(sOut),...sQ.map(x=>x.to)])}
-function sTick(){sTargets().forEach(sConnect)}
+function sTick(){sTargets().forEach(sConnect);sConn.forEach((c,u)=>sFlush(u))}
 function sRequest(u){sOut[u]={t:Date.now()};sSave();
   sSend(u,{k:'req',n:myName,p:sProf()});toast('Friend request sent');refreshSoc()}
 function sCancelReq(u){delete sOut[u];sQ=sQ.filter(x=>!(x.to===u&&x.m.k==='req'));sSave();refreshSoc()}
@@ -1054,6 +1061,12 @@ function sUnfriend(u){
 function sBroadcastProf(){sConn.forEach(c=>{if(c.open)try{c.send({k:'hi',p:sProf()})}catch{}})}
 function sOn(u,m){
   if(!m||typeof m!=='object')return;
+  if(m.k==='ack'){
+    const it=sQ.find(x=>x.a===m.a&&x.to===u);
+    if(it){sQ=sQ.filter(x=>x!==it);sSave();
+      if(it.m.k==='dm'){const h=sHist(u),hm=h.find(y=>y.i===it.m.i);if(hm&&hm.q){delete hm.q;sSaveHist(u,h);if(chatOpen()&&dmWith===u)renderChat()}}}
+    return}
+  if(typeof m.a==='string'){const cc=sConn.get(u);if(cc&&cc.open)try{cc.send({k:'ack',a:m.a})}catch{}}
   if(m.k==='hi'){sTakeProf(u,m.p);if(friends[u]||reqIn[u])refreshSoc();return}
   if(m.k==='req'){
     if(friends[u]){sSend(u,{k:'acc',p:sProf()});return}
@@ -1083,7 +1096,7 @@ function sStart(){
   if(typeof Peer==='undefined'||sDead)return;
   let pr;try{pr=new Peer(pid(uid))}catch(e){console.error(e);setTimeout(sStart,15000);return}
   sPeer=pr;sReady=false;
-  pr.on('open',()=>{sReady=true;sTick();clearInterval(sPoll);sPoll=setInterval(sTick,25000)});
+  pr.on('open',()=>{sReady=true;sTick();clearInterval(sPoll);sPoll=setInterval(sTick,10000)});
   pr.on('connection',c=>{
     const mt=/^pn-u-([a-z0-9]+)$/i.exec(c.peer||'');if(!mt){try{c.close()}catch{}return}
     const u=mt[1];c.on('open',()=>sAttach(c,u))});
