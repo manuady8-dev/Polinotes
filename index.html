@@ -648,7 +648,8 @@ const rulesErr=e=>{console.error('Firebase error:',e);
   else toast('Errore di sincronizzazione: '+((e&&e.message)||e))};
 const fb=p=>{if(p&&p.catch)p.catch(rulesErr);return p};
 function saveProf(){LS.set('pn_prof',myProf);myName=myProf.name;profs[uid]=myProf;
-  if(db){fb(db.ref('users/'+uid+'/p').set(myProf));if(prRef)prRef.child(myId+'/name').set(myName)}}
+  if(db){fb(db.ref('users/'+uid+'/p').set(myProf));if(prRef)prRef.child(myId+'/name').set(myName)}
+  if(!SYNC)sBroadcastProf()}
 function av(u,name,cls){
   const a=el('span','av '+(cls||''),(name||'?')[0].toUpperCase()),p=profs[u];a.title=name||'';
   if(p&&safeImg(p.pfp)){a.style.background='url('+p.pfp+') center/cover';a.textContent=''}
@@ -659,7 +660,7 @@ const profW=new Set();let rfT;
 const refreshSoon=()=>{clearTimeout(rfT);rfT=setTimeout(refreshUI,80)};
 function watchProf(u){return new Promise(res=>{
   if(profW.has(u))return res();profW.add(u);let first=true;
-  db.ref('users/'+u+'/p').on('value',s=>{profs[u]=s.val()||{name:'Guest'};if(first){first=false;res()}else refreshSoon()},
+  db.ref('users/'+u+'/p').on('value',s=>{profs[u]=s.val()||profs[u]||{name:'Guest'};if(first){first=false;res()}else refreshSoon()},
     e=>{profW.delete(u);console.error('profile read failed',u,e);if(first){first=false;res()}rulesErr(e)})})}
 async function loadProfiles(ids){
   if(!db)return;const need=[...new Set(ids)].filter(u=>u&&u!==uid&&!profW.has(u));if(!need.length)return;
@@ -671,10 +672,14 @@ function renderStrips(){
     ids.forEach(f=>{const p=profs[f]||{},a=av(f,p.name||'Friend',fOn[f]?'on':'off');a.title=(p.name||'Friend')+(fOn[f]?' (online)':' (offline)');box.append(a)})})}
 function badges(){const n=Object.keys(reqIn).length+Object.keys(invIn).length;$('#reqBadge').hidden=!n;$('#reqBadge').textContent=n;
   const t=unread+n;$('#chatBadge').hidden=!t;$('#chatBadge').textContent=t;$('#gBadge').hidden=!t;$('#gBadge').textContent=t}
-const accept=u=>{fb(db.ref('users/'+uid+'/friends/'+u).set({t:Date.now()}));fb(db.ref('users/'+u+'/friends/'+uid).set({t:Date.now()}));fb(db.ref('users/'+uid+'/requests/'+u).remove())};
+const accept=u=>{if(!SYNC){sAccept(u);return}fb(db.ref('users/'+uid+'/friends/'+u).set({t:Date.now()}));fb(db.ref('users/'+u+'/friends/'+uid).set({t:Date.now()}));fb(db.ref('users/'+uid+'/requests/'+u).remove())};
+const decline=u=>{if(!SYNC){delete reqIn[u];sSave();badges();refreshSoc();return}fb(db.ref('users/'+uid+'/requests/'+u).remove())};
+const declineInv=u=>{if(!SYNC){delete invIn[u];badges();refreshSoc();return}fb(db.ref('users/'+uid+'/invites/'+u).remove())};
+const unfriend=u=>{if(!SYNC){sUnfriend(u);return}fb(db.ref('users/'+uid+'/friends/'+u).remove());fb(db.ref('users/'+u+'/friends/'+uid).remove())};
 function startSocial(){
+  if(!SYNC)sLoad();
   renderStrips();badges();
-  if(!db)return;
+  if(!SYNC){sStart();return}
   db.ref('users/'+uid+'/p').once('value').then(s=>{if(!s.exists())fb(db.ref('users/'+uid+'/p').set(myProf))}).catch(rulesErr);
   db.ref('.info/connected').on('value',s=>{if(s.val()){const st=db.ref('users/'+uid+'/status');st.onDisconnect().set(false);st.set(true)}});
   const friendsTab=()=>chatOpen()&&tab==='friends'&&!dmWith&&renderChat();
@@ -704,20 +709,21 @@ async function copyInvite(){const c=curCode();if(!c){toast('Type an access code 
   try{if(navigator.share&&/Mobi|Android/i.test(navigator.userAgent)){await navigator.share({title:'Poli-Notes',text:myName+' invited you to Poli-Notes',url});return}}catch{}
   try{await navigator.clipboard.writeText(url);toast('Invite link copied')}catch{prompt('Copy this invite link:',url)}}
 function sendInvite(u){const c=curCode();if(!c){toast('Enter a room first (or type an access code)');return}
-  if(!SYNC)return;
+  if(!SYNC){sSend(u,{k:'inv',n:myName,c});toast('Invito inviato a '+((profs[u]||{}).name||'un amico'));return}
   db.ref('users/'+u+'/invites/'+uid).set({n:myName,c,t:Date.now()}).then(()=>toast('Invite sent to '+((profs[u]||{}).name||'your friend'))).catch(rulesErr)}
 function joinInvite(u){const i=invIn[u];if(!i||!i.c)return;
   const go=()=>{LS.set('pn_code',String(i.c).trim().toLowerCase().slice(0,64));location.reload()};
+  if(!SYNC){delete invIn[u];go();return}
   db.ref('users/'+uid+'/invites/'+u).remove().then(go,go)}
 function invToast(u){const i=invIn[u];if(!i)return;
   actToast('✉️ '+(i.n||(profs[u]||{}).name||'A friend')+' invited you to their room',
-    [['Join',()=>joinInvite(u)],['Decline',()=>fb(db.ref('users/'+uid+'/invites/'+u).remove())]],14000);try{ping()}catch{}}
+    [['Join',()=>joinInvite(u)],['Decline',()=>declineInv(u)]],14000);try{ping()}catch{}}
 function reqToast(u){
   const n=(reqIn[u]||{}).n||(profs[u]||{}).name||'Someone',t=$('#toast');t.innerHTML='';
   t.append(el('span',null,'👋 '+n+' sent you a friend request'));
   const ok=el('button',null,'Accept'),no=el('button',null,'Decline');
   ok.onclick=()=>{accept(u);t.classList.remove('show')};
-  no.onclick=()=>{fb(db.ref('users/'+uid+'/requests/'+u).remove());t.classList.remove('show')};
+  no.onclick=()=>{decline(u);t.classList.remove('show')};
   t.append(ok,no);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),12000);
   try{ping()}catch{}
   try{if('Notification'in window&&Notification.permission==='granted')new Notification('Poli-Notes',{body:n+' sent you a friend request',icon:ICON})}catch{}}
@@ -737,15 +743,15 @@ async function actions(u){
   const B=(t,f,bg)=>{const b=el('button','btn',t);if(bg)b.style.background=bg;b.onclick=f;box.append(b)};
   const close=()=>pOv.classList.remove('open');
   if(u===uid){B('✏️ Edit profile',editProf);return}
-  if(!SYNC){box.append(el('span','mut','Attiva la sincronizzazione per usare gli amici.'));return}
   if(friends[u]){B('💬 Message',()=>{close();openChat(true);tab='friends';dmWith=u;renderChat()});
     B('✉️ Invite to my room',()=>{sendInvite(u);close()});
-    B('Remove friend',()=>{fb(db.ref('users/'+uid+'/friends/'+u).remove());fb(db.ref('users/'+u+'/friends/'+uid).remove());close()},'#888')}
-  else if(reqIn[u]){B('✓ Accept',()=>{accept(u);close()});B('Decline',()=>{fb(db.ref('users/'+uid+'/requests/'+u).remove());close()},'#888')}
-  else{const s=await db.ref('users/'+u+'/requests/'+uid).once('value').catch(()=>null);
-    if(pView!==u)return;
-    if(s&&s.exists())B('Request sent ✓ (cancel)',()=>{fb(db.ref('users/'+u+'/requests/'+uid).remove());close()},'#888');
-    else B('➕ Add friend',()=>{db.ref('users/'+u+'/requests/'+uid).set({n:myName,t:Date.now()}).then(()=>toast('Friend request sent')).catch(rulesErr);close()})}}
+    B('Remove friend',()=>{unfriend(u);close()},'#888')}
+  else if(reqIn[u]){B('✓ Accept',()=>{accept(u);close()});B('Decline',()=>{decline(u);close()},'#888')}
+  else{let sent;
+    if(SYNC){const s=await db.ref('users/'+u+'/requests/'+uid).once('value').catch(()=>null);if(pView!==u)return;sent=!!(s&&s.exists())}
+    else sent=!!sOut[u];
+    if(sent)B('Request sent ✓ (cancel)',()=>{if(SYNC)fb(db.ref('users/'+u+'/requests/'+uid).remove());else sCancelReq(u);close()},'#888');
+    else B('➕ Add friend',()=>{if(SYNC)db.ref('users/'+u+'/requests/'+uid).set({n:myName,t:Date.now()}).then(()=>toast('Friend request sent')).catch(rulesErr);else sRequest(u);close()})}}
 function cropImg(file,w,h,q){return new Promise(res=>{const im=new Image();
   im.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;const k=Math.max(w/im.width,h/im.height),dw=im.width*k,dh=im.height*k;
     c.getContext('2d').drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);res(c.toDataURL('image/webp',q))};
@@ -765,6 +771,116 @@ $('#eCancel').onclick=()=>openProfile(uid);
 $('#pClose').onclick=()=>pOv.classList.remove('open');
 pOv.onclick=e=>{if(e.target===pOv)pOv.classList.remove('open')};
 $('#myProf').onclick=()=>{open_(false);openProfile(uid)};
+/* ===== AMICI E CHAT PRIVATE SENZA SINCRONIZZAZIONE (peer-to-peer) =====
+   Con Firebase spento gli amici vivono nel browser (localStorage) e ogni utente ha un peer
+   personale 'pn-u-<uid>'. Richieste, messaggi privati e inviti viaggiano direttamente tra i
+   browser; se l'amico è offline restano in coda e partono quando siete online insieme. */
+const pid=u=>'pn-u-'+u;
+let sOut={},sQ=[],sPeer=null,sReady=false,sPoll=null,sDead=false;
+const sConn=new Map(),sPend=new Set();
+const sSave=()=>{LS.set('pn_s_fr',friends);LS.set('pn_s_rin',reqIn);LS.set('pn_s_rout',sOut);LS.set('pn_s_q',sQ.slice(-200))};
+const sClean=p=>({name:String((p&&p.name)||'Guest').slice(0,16),bio:String((p&&p.bio)||'').slice(0,120),bc:/^#[0-9a-f]{6}$/i.test((p&&p.bc)||'')?p.bc:'#f0455a',pfp:safeImg(p&&p.pfp)?p.pfp:''});
+const sProf=()=>({name:myProf.name,bio:myProf.bio||'',bc:myProf.bc||'#f0455a',pfp:myProf.pfp||''});
+const sHist=u=>{const h=LS.get('pn_s_dm_'+pair(u),[]);return Array.isArray(h)?h:[]};
+const sSaveHist=(u,h)=>LS.set('pn_s_dm_'+pair(u),h.slice(-100));
+function refreshSoc(){renderStrips();badges();if(chatOpen())renderChat()}
+function sLoad(){
+  friends=LS.get('pn_s_fr',{});reqIn=LS.get('pn_s_rin',{});sOut=LS.get('pn_s_rout',{});sQ=LS.get('pn_s_q',[]);
+  if(!Array.isArray(sQ))sQ=[];
+  Object.entries(friends).forEach(([f,v])=>{if(v&&v.p)profs[f]=sClean(v.p)});
+  Object.entries(reqIn).forEach(([r,v])=>{if(v&&v.p)profs[r]=sClean(v.p)})}
+function dmHead(){if(dmWith&&!SYNC)$('#chTitle').textContent=((profs[dmWith]||{}).name||'Friend')+(fOn[dmWith]?'':' (offline)')}
+function sSetOn(u,v){if(!!fOn[u]===v)return;fOn[u]=v;renderStrips();
+  if(chatOpen()){if(dmWith===u)dmHead();else if(tab==='friends'&&!dmWith)renderChat()}}
+function sTakeProf(u,p){if(!p||typeof p!=='object')return;const c=sClean(p);
+  if(friends[u]){friends[u].p=c;profs[u]=c;sSave()}
+  else if(reqIn[u]){reqIn[u].p=c;profs[u]=c;sSave()}}
+function sFlush(u){const c=sConn.get(u);if(!c||!c.open)return;
+  const keep=[];
+  sQ.forEach(x=>{
+    if(x.to!==u){keep.push(x);return}
+    if(x.m.k==='inv'&&Date.now()-x.t>36e5)return;
+    try{c.send(x.m)}catch{keep.push(x);return}
+    if(x.m.k==='dm'){const h=sHist(u),it=h.find(y=>y.i===x.m.i);if(it&&it.q){delete it.q;sSaveHist(u,h);if(chatOpen()&&dmWith===u)renderChat()}}});
+  sQ=keep;sSave()}
+function sSend(u,m){
+  if(!u||u===uid)return;
+  sQ.push({to:u,m,t:Date.now()});sSave();
+  const c=sConn.get(u);if(c&&c.open)sFlush(u);else sConnect(u)}
+function sSendDM(u,x){
+  const m={k:'dm',i:Date.now().toString(36)+Math.random().toString(36).slice(2,6),n:myName,t:Date.now(),x:String(x).slice(0,300)};
+  const c=sConn.get(u),online=!!(c&&c.open),h=sHist(u);
+  h.push({u:uid,n:myName,t:m.t,x:m.x,i:m.i,...(online?{}:{q:1})});sSaveHist(u,h);
+  if(chatOpen()&&dmWith===u)addMsg(h[h.length-1]);
+  sSend(u,m)}
+function sAttach(c,u){
+  sConn.set(u,c);sSetOn(u,true);
+  try{c.send({k:'hi',p:sProf()})}catch{}
+  c.on('data',m=>sOn(u,m));
+  const drop=()=>{if(sConn.get(u)===c){sConn.delete(u);sSetOn(u,false)}};
+  c.on('close',drop);c.on('error',drop);
+  sFlush(u)}
+function sConnect(u){
+  if(!sPeer||!sReady||!u||u===uid||sPend.has(u))return;
+  const cur=sConn.get(u);if(cur&&cur.open)return;
+  let c;try{c=sPeer.connect(pid(u),{reliable:true})}catch{return}
+  sPend.add(u);
+  const fail=setTimeout(()=>{sPend.delete(u);try{c.close()}catch{}},9000);
+  c.on('open',()=>{clearTimeout(fail);sPend.delete(u);sAttach(c,u)});
+  c.on('error',()=>{clearTimeout(fail);sPend.delete(u)})}
+function sTargets(){return new Set([...Object.keys(friends),...Object.keys(sOut),...sQ.map(x=>x.to)])}
+function sTick(){sTargets().forEach(sConnect)}
+function sRequest(u){sOut[u]={t:Date.now()};sSave();
+  sSend(u,{k:'req',n:myName,p:sProf()});toast('Friend request sent');refreshSoc()}
+function sCancelReq(u){delete sOut[u];sQ=sQ.filter(x=>!(x.to===u&&x.m.k==='req'));sSave();refreshSoc()}
+function sAccept(u){
+  friends[u]={t:Date.now(),p:profs[u]?sClean(profs[u]):undefined};delete reqIn[u];delete sOut[u];
+  sSave();sSend(u,{k:'acc',p:sProf()});refreshSoc();showOnline(lastPres)}
+function sUnfriend(u){
+  delete friends[u];delete fOn[u];sSave();sSend(u,{k:'rm'});refreshSoc();showOnline(lastPres)}
+function sBroadcastProf(){sConn.forEach(c=>{if(c.open)try{c.send({k:'hi',p:sProf()})}catch{}})}
+function sOn(u,m){
+  if(!m||typeof m!=='object')return;
+  if(m.k==='hi'){sTakeProf(u,m.p);if(friends[u]||reqIn[u])refreshSoc();return}
+  if(m.k==='req'){
+    if(friends[u]){sSend(u,{k:'acc',p:sProf()});return}
+    if(sOut[u]){if(m.p)profs[u]=sClean(m.p);sAccept(u);return}
+    const first=!reqIn[u];
+    reqIn[u]={n:String(m.n||'').slice(0,16),t:Date.now(),p:m.p?sClean(m.p):undefined};
+    if(reqIn[u].p)profs[u]=reqIn[u].p;sSave();refreshSoc();if(first)reqToast(u);return}
+  if(m.k==='acc'){
+    if(!sOut[u]||friends[u])return;
+    friends[u]={t:Date.now(),p:m.p?sClean(m.p):undefined};if(friends[u].p)profs[u]=friends[u].p;
+    delete sOut[u];sSave();refreshSoc();showOnline(lastPres);
+    toast('🎉 '+((profs[u]||{}).name||'Un utente')+' ha accettato la tua richiesta');return}
+  if(m.k==='rm'){if(friends[u]){delete friends[u];delete fOn[u];sSave();refreshSoc();showOnline(lastPres)}return}
+  if(m.k==='dm'){
+    if(!friends[u]||typeof m.x!=='string'||typeof m.i!=='string')return;
+    const h=sHist(u);if(h.some(y=>y.i===m.i))return;
+    const msg={u,n:String(m.n||'').slice(0,16),t:Number(m.t)||Date.now(),x:m.x.slice(0,300),i:m.i.slice(0,24)};
+    h.push(msg);sSaveHist(u,h);
+    if(chatOpen()&&dmWith===u){addMsg(msg);return}
+    unread++;badges();if(LS.get('pn_snd',true))ping();
+    actToast('💬 '+(msg.n||(profs[u]||{}).name||'Friend')+': '+msg.x.slice(0,40),[['Open',()=>{tab='friends';dmWith=u;openChat(true);renderChat()}]]);return}
+  if(m.k==='inv'){
+    if(!friends[u]||typeof m.c!=='string')return;
+    invIn[u]={n:String(m.n||'').slice(0,16),c:m.c.slice(0,64),t:Date.now()};
+    badges();if(chatOpen()&&tab==='friends'&&!dmWith)renderChat();invToast(u)}}
+function sStart(){
+  if(typeof Peer==='undefined'||sDead)return;
+  let pr;try{pr=new Peer(pid(uid))}catch(e){console.error(e);setTimeout(sStart,15000);return}
+  sPeer=pr;sReady=false;
+  pr.on('open',()=>{sReady=true;sTick();clearInterval(sPoll);sPoll=setInterval(sTick,25000)});
+  pr.on('connection',c=>{
+    const mt=/^pn-u-([a-z0-9]+)$/i.exec(c.peer||'');if(!mt){try{c.close()}catch{}return}
+    const u=mt[1];c.on('open',()=>sAttach(c,u))});
+  pr.on('disconnected',()=>{try{pr.reconnect()}catch{}});
+  pr.on('error',e=>{
+    if(e&&e.type==='unavailable-id'){sReady=false;try{pr.destroy()}catch{}setTimeout(sStart,20000);return}
+    if(e&&e.type==='peer-unavailable'){const mt=/pn-u-([a-z0-9]+)/i.exec(e.message||'');if(mt){sPend.delete(mt[1]);sSetOn(mt[1],false)}return}
+    console.warn('social p2p',e)});
+  pr.on('close',()=>{sReady=false;if(!sDead)setTimeout(sStart,8000)})}
+addEventListener('pagehide',()=>{sDead=true;try{sPeer&&sPeer.destroy()}catch{}});
 /* chat */
 const chatOpen=()=>$('#chat').classList.contains('open'),pair=u=>[uid,u].sort().join('_');
 function stopDM(){if(dmRef){dmRef.off();dmRef=null}}
@@ -779,18 +895,18 @@ function addMsg(m){
   const body=$('#chBody'),ph=body.querySelector('.mut');if(ph)ph.remove();
   const r=el('div','msg'),w=el('div','mb'),h=el('div','mh'),nm=el('b',null,m.u===uid?'You':(m.n||'Guest'));
   nm.style.color='hsl('+hue(m.u||m.n)+',55%,38%)';
-  h.append(nm,el('span','mt',new Date(m.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})));
+  h.append(nm,el('span','mt',new Date(m.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+(m.q?' ⏳':'')));
   w.append(h,el('div','mx',String(m.x||'')));r.append(av(m.u,m.n,''),w);body.append(r);body.scrollTop=body.scrollHeight}
 function friendsList(body){
   const ic=Object.keys(invIn);
   if(ic.length){body.append(el('h4',null,'Invites'));
     ic.forEach(u=>{const p=profs[u]||{name:(invIn[u]||{}).n},r=el('div','fr-row');r.append(av(u,p.name,''),el('span','tt',(p.name||'Guest')+' invited you'));
-      const ok=el('button','btn','Join');ok.onclick=()=>joinInvite(u);const no=el('button','btn','✕');no.style.background='#888';no.onclick=()=>fb(db.ref('users/'+uid+'/invites/'+u).remove());
+      const ok=el('button','btn','Join');ok.onclick=()=>joinInvite(u);const no=el('button','btn','✕');no.style.background='#888';no.onclick=()=>declineInv(u);
       r.append(ok,no);body.append(r)})}
   const rq=Object.keys(reqIn);
   if(rq.length){body.append(el('h4',null,'Requests'));
     rq.forEach(u=>{const p=profs[u]||{name:(reqIn[u]||{}).n},r=el('div','fr-row');r.append(av(u,p.name,''),el('span','tt',p.name||'Guest'));
-      const ok=el('button','btn','Accept');ok.onclick=()=>accept(u);const no=el('button','btn','✕');no.style.background='#888';no.onclick=()=>fb(db.ref('users/'+uid+'/requests/'+u).remove());
+      const ok=el('button','btn','Accept');ok.onclick=()=>accept(u);const no=el('button','btn','✕');no.style.background='#888';no.onclick=()=>decline(u);
       r.append(ok,no);body.append(r)})}
   const lkb=el('button','btn','🔗 Copy invite link');lkb.style.cssText='width:100%;margin:8px 0';lkb.onclick=copyInvite;body.append(lkb);
   const fl=Object.keys(friends);body.append(el('h4',null,'Friends ('+fl.length+')'));
@@ -804,9 +920,12 @@ function renderChat(){
   document.querySelectorAll('#chat .tab').forEach(t=>t.classList.toggle('sel',t.dataset.t===tab&&!dmWith));
   $('#chBack').hidden=!dmWith;$('#chTitle').textContent=dmWith?((profs[dmWith]||{}).name||'Friend'):'Chat';
   $('#chInput').hidden=!(tab==='lobby'||dmWith);
-  if(!db){body.append(el('p','mut','Attiva la sincronizzazione per chattare e aggiungere amici.'));const lk0=el('button','btn','🔗 Copy invite link');lk0.onclick=copyInvite;body.append(lk0);$('#chInput').hidden=true;return}
-  if(!SYNC&&(dmWith||tab==='friends')){dmWith=null;$('#chInput').hidden=true;body.append(el('p','mut','Amici e chat private richiedono la sincronizzazione. La chat della lobby funziona dal vivo nella tua stanza!'));const lk2=el('button','btn','🔗 Copy invite link');lk2.onclick=copyInvite;body.append(lk2);return}
-  if(dmWith){const u=dmWith;loadProfiles([u]);
+  if(!SYNC&&typeof Peer==='undefined'&&(dmWith||tab==='friends')){dmWith=null;$('#chInput').hidden=true;body.append(el('p','mut','Amici e chat private senza sincronizzazione richiedono la libreria peer-to-peer (PeerJS), che non si è caricata. Controlla la connessione o i blocchi del browser.'));return}
+  if(!db&&!dmWith&&tab==='lobby'){$('#chInput').hidden=true;body.append(el('p','mut','Attiva le stanze live o la sincronizzazione per chattare nella lobby.'));return}
+  if(dmWith&&!SYNC){const u=dmWith,h=sHist(u);h.forEach(addMsg);dmHead();
+    if(!h.length)body.append(el('p','mut','Say hi to '+((profs[u]||{}).name||'your friend')+'!'));
+  }
+  else if(dmWith){const u=dmWith;loadProfiles([u]);
     dmRef=db.ref('dms/'+pair(u)+'/msgs').limitToLast(100);
     dmRef.on('child_added',s=>{const m=s.val();if(m&&dmWith===u)addMsg(m)});
     if(!body.children.length)body.append(el('p','mut','Say hi to '+((profs[u]||{}).name||'your friend')+'!'));
@@ -816,7 +935,9 @@ function openChat(v){$('#chat').classList.toggle('open',v);if(v){unread=0;badges
 $('#chatBtn').onclick=()=>openChat(!chatOpen());$('#chClose').onclick=()=>openChat(false);
 document.querySelectorAll('#chat .tab').forEach(t=>t.onclick=()=>{tab=t.dataset.t;dmWith=null;renderChat()});
 $('#chBack').onclick=()=>{dmWith=null;renderChat()};
-function sendChat(){const t=$('#chText').value.trim().slice(0,300);if(!t||!db)return;$('#chText').value='';
+function sendChat(){const t=$('#chText').value.trim().slice(0,300);
+  if(t&&dmWith&&!SYNC){$('#chText').value='';sSendDM(dmWith,t);return}
+  if(!t||!db)return;$('#chText').value='';
   fb(db.ref(dmWith?'dms/'+pair(dmWith)+'/msgs':'rooms/'+room+'/chat').push({u:uid,n:myName,t:Date.now(),x:t}))}
 $('#chSend').onclick=sendChat;$('#chText').onkeydown=e=>{if(e.key==='Enter')sendChat()};
 startSocial();
@@ -837,7 +958,7 @@ $('#syncSave').onclick=()=>{
   localStorage.setItem('pn_fbcfg',JSON.stringify(c));location.reload()};
 $('#invLink').onclick=copyInvite;
 if(SYNC)$('#p2pRow').style.display='none';else{$('#p2pOn').checked=p2pPref();$('#p2pOn').onchange=e=>LS.set('pn_p2p',e.target.checked)}
-$('#gChat').style.display=db?'':'none';$('#gChat').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
+$('#gChat').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
 const joinM=/[#&]join=([^&]+)/.exec(location.hash);let joinCode='';
 try{joinCode=joinM?decodeURIComponent(joinM[1]).trim().toLowerCase().slice(0,64):''}catch{}
 if(joinM)history.replaceState(null,'',location.pathname+location.search);
