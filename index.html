@@ -2292,6 +2292,31 @@ const w=setInterval(()=>{if(document.body.classList.contains('entered')&&db&&roo
 .fxl.me{border-color:var(--accent);background:#fff3f4}.fxl b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fxBtn{position:fixed;top:14px;left:52px;z-index:60;width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);background:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0}
 body:not(.entered) #fxBtn{display:none}
+/* minigame transitions */
+.fxd{animation:fxIn .22s ease}.fxd .tc{animation:fxPop .3s cubic-bezier(.2,.8,.2,1)}
+.fxd.out{animation:fxOut .18s ease forwards;pointer-events:none}.fxd.out .tc{animation:fxPopOut .18s ease forwards}
+@keyframes fxIn{from{opacity:0}}@keyframes fxOut{to{opacity:0}}
+@keyframes fxPop{from{opacity:0;transform:translateY(14px) scale(.92)}}@keyframes fxPopOut{to{opacity:0;transform:translateY(10px) scale(.95)}}
+.fxd button{transition:transform .12s,background .2s,color .2s,box-shadow .2s}
+.fxd button:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 3px 0 rgba(0,0,0,.2)}
+.fxd button:not(:disabled):active{transform:scale(.95);box-shadow:none}
+.fxg button.pop{animation:fxCell .35s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes fxCell{from{transform:scale(.2) rotate(-25deg);opacity:0}}
+.fxg button.win{background:#fff3a0;animation:fxWin .7s ease infinite alternate}
+@keyframes fxWin{to{transform:scale(1.1);background:#ffd94d}}
+.fxm.winm{animation:fxBounce .6s cubic-bezier(.2,.9,.3,1.4);color:#1e9e4a;font-size:22px}
+.fxm.resm{animation:fxIn .4s ease}
+@keyframes fxBounce{from{transform:scale(.3);opacity:0}60%{transform:scale(1.2)}}
+.fxm.rv{animation:fxFlip .55s ease}@keyframes fxFlip{from{transform:rotateX(90deg);opacity:0}}
+h2.shake{animation:fxShake .6s ease}@keyframes fxShake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.fxl{animation:fxRow .32s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*45ms)}
+@keyframes fxRow{from{opacity:0;transform:translateX(-14px)}}
+.fade{animation:fxIn .25s ease}
+.fxr{transition:background .25s,transform .1s}.fxr:active{transform:scale(.97)}.fxr.go{animation:fxPulse .35s ease}
+@keyframes fxPulse{50%{transform:scale(1.04)}}
+@keyframes fxFall{to{transform:translateY(105vh) rotate(720deg)}}
+#fxBtn{transition:transform .2s cubic-bezier(.2,.8,.2,1)}#fxBtn:hover{transform:scale(1.12) rotate(-8deg)}
+@media(prefers-reduced-motion:reduce){.fxd,.fxd *,.fxl{animation:none!important;transition:none!important}}
 /* Halloween skins */
 body.fx-web .note::after{content:'🕸️';position:absolute;top:-10px;right:-8px;font-size:26px;pointer-events:none}
 body.fx-pumpkin .note{box-shadow:0 0 14px 3px #ff7a18,2px 4px 10px rgba(0,0,0,.2);border:2px solid #ff7a18}
@@ -2305,7 +2330,7 @@ const now=()=>Date.now();
 const live=()=>!!(db&&room&&document.body.classList.contains('entered'));
 const rl=ms=>{const n=Math.max(0,Math.ceil(ms/60000));return n>=2880?Math.round(n/1440)+' days':n>=120?Math.round(n/60)+' hours':n+' min'};
 function dlg(title,build,onClose){const o=el('div','fxd'),tc=el('div','tc');let shut=false;
-  const close=()=>{if(shut)return;shut=true;o.remove();if(onClose)try{onClose()}catch{}};
+  const close=()=>{if(shut)return;shut=true;o.classList.add('out');setTimeout(()=>o.remove(),180);if(onClose)try{onClose()}catch{}};
   tc.append(el('h2',null,title));o.append(tc);o.onclick=e=>{if(e.target===o)close()};document.body.append(o);build(tc,close);return close}
 const row=(...a)=>{const r=el('div','tr');a.forEach(([t,f,c])=>{const b=el('button',c||null,t);b.onclick=f;r.append(b)});return r};
 const askText=(title,ph,type)=>new Promise(res=>{let d=false;const fin=v=>{if(!d){d=true;res(v)}};
@@ -2409,9 +2434,9 @@ raUi();
 const GN={ttt:'Tic-Tac-Toe',rps:'Rock-Paper-Scissors'};
 const gp=()=>'rooms/'+room+'/games';
 const wr=(id,o)=>fb(db.ref(gp()+'/'+id).set(o));
-let G={},gOn=false,gO=null,gT=null;const dis=new Set(),awarded=new Set(),resolved=new Set();
+let G={},gOn=false,gO=null,gT=null;const dis=new Set(),awarded=new Set(),resolved=new Set(),prevB=new Map(),seenRd=new Map(),shook=new Set();
 const gbox=()=>{if(gO&&document.body.contains(gO))return gT;gO=el('div','fxd');gT=el('div','tc');gO.append(gT);document.body.append(gO);return gT};
-const gclose=()=>{if(gO){gO.remove();gO=null;gT=null}};
+const gclose=()=>{if(gO){const o=gO;gO=null;gT=null;o.classList.add('out');setTimeout(()=>o.remove(),180)}};
 const dayKey=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
 function award(n,why){const c=LS.get('pn_fx_cap',{d:'',n:0}),cap=c.d===dayKey()?c:{d:dayKey(),n:0},give=Math.max(0,Math.min(n,100-cap.n));
   cap.n+=give;LS.set('pn_fx_cap',cap);if(give&&window.pnPolis)pnPolis.earn(give);toast(give?'🎮 +'+give+' Polis ('+why+')':'🎮 Daily game Polis limit reached (100).')}
@@ -2419,32 +2444,38 @@ function createGame(g,bu,bn){if(!live())return;
   if(Object.entries(G).some(([id,x])=>x&&(x.a===uid||x.b===uid)&&now()-x.t<1200000&&!dis.has(id))){toast('Finish your current game first.');return}
   const id=now().toString(36)+Math.random().toString(36).slice(2,5);
   wr(id,{g,a:uid,an:myName,b:bu,bn,st:'inv',t:now(),bd:'---------',tu:'a',sa:0,sb:0,rd:1});toast('Challenge sent to '+bn+'.')}
-const tttWin=b=>{for(const[x,y,z]of[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])if(b[x]!=='-'&&b[x]===b[y]&&b[y]===b[z])return b[x];return null};
+const LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const tttLine=b=>LINES.find(([x,y,z])=>b[x]!=='-'&&b[x]===b[y]&&b[y]===b[z])||null;
+const tttWin=b=>{const l=tttLine(b);return l?b[l[0]]:null};
 const BEAT={r:'s',s:'p',p:'r'},RPS={r:'✊',p:'✋',s:'✌️'};
+function confetti(){const c=el('div');c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:150;overflow:hidden';
+  for(let i=0;i<36;i++){const p=el('i');p.style.cssText='position:absolute;top:-14px;left:'+Math.random()*100+'%;width:8px;height:12px;background:hsl('+Math.random()*360+',85%,60%);transform:rotate('+Math.random()*360+'deg);animation:fxFall '+(1.4+Math.random()*1.2)+'s ease-in '+Math.random()*.4+'s forwards';c.append(p)}
+  document.body.append(c);setTimeout(()=>c.remove(),3200)}
 function dismiss(id,g){dis.add(id);if(g&&g.a===uid)try{db.ref(gp()+'/'+id).remove()}catch{}gclose()}
 function renderGame(id,g){
   const me=g.a===uid?'a':'b',oth=me==='a'?'b':'a',on=(me==='a'?g.bn:g.an)||'Guest',tc=gbox();tc.textContent='';
   tc.append(el('h2',null,(GN[g.g]||'Game')+' · vs '+on));
   const msg=t=>{const d=el('div','fxm',t);tc.append(d);return d};
   if(g.st==='inv'){
-    if(me==='b'){msg(on+' challenges you!');tc.append(row(['Decline',()=>{wr(id,{...g,st:'no',t:now()});dis.add(id);gclose()}],['Accept',()=>wr(id,{...g,st:'play',t:now()}),'go']))}
+    if(me==='b'){msg(on+' challenges you!');if(!shook.has(id)){shook.add(id);tc.firstChild.classList.add('shake')}tc.append(row(['Decline',()=>{wr(id,{...g,st:'no',t:now()});dis.add(id);gclose()}],['Accept',()=>wr(id,{...g,st:'play',t:now()}),'go']))}
     else{msg('Waiting for '+on+' to accept...');tc.append(row(['Cancel',()=>dismiss(id,g)]))}return}
   if(g.st==='no'){msg(me==='a'?on+' declined.':'Declined.');tc.append(row(['Close',()=>dismiss(id,g),'go']));return}
   const done=g.st==='done';
   if(g.g==='ttt'){
     const bd=String(g.bd||'---------').split('');
     msg(done?'':(g.tu===me?'Your turn ('+(me==='a'?'✕':'◯')+')':'Waiting for '+on+'...'));
-    const grid=el('div','fxg');bd.forEach((c,i)=>{const b=el('button',null,c==='-'?'':c==='a'?'✕':'◯');b.disabled=done||g.tu!==me||c!=='-';
+    const grid=el('div','fxg'),wl=done&&g.w&&g.w!=='d'?tttLine(bd):null,pv=prevB.get(id)||[];bd.forEach((c,i)=>{const b=el('button',(c!=='-'&&pv[i]!==c?'pop':'')+(wl&&wl.includes(i)?' win':''),c==='-'?'':c==='a'?'✕':'◯');b.disabled=done||g.tu!==me||c!=='-';
       b.onclick=()=>{const nb=bd.slice();nb[i]=me;const w=tttWin(nb),n={...g,bd:nb.join(''),t:now()};
-        if(w){n.st='done';n.w=w}else if(!nb.includes('-')){n.st='done';n.w='d'}else n.tu=oth;wr(id,n)};grid.append(b)});tc.append(grid)}
+        if(w){n.st='done';n.w=w}else if(!nb.includes('-')){n.st='done';n.w='d'}else n.tu=oth;wr(id,n)};grid.append(b)});prevB.set(id,bd);tc.append(grid)}
   else{
     msg('Best of 3 · You '+(me==='a'?g.sa:g.sb)+' - '+(me==='a'?g.sb:g.sa)+' '+on);
-    if(g.lr){const mine=g.lr['p'+me],th=g.lr['p'+oth];msg('Last round: '+RPS[mine]+' vs '+RPS[th]+' - '+(g.lr.r==='d'?'draw':g.lr.r===me?'you won it':on+' won it'))}
+    if(g.lr){const mine=g.lr['p'+me],th=g.lr['p'+oth];const d=msg('Last round: '+RPS[mine]+' vs '+RPS[th]+' - '+(g.lr.r==='d'?'draw':g.lr.r===me?'you won it':on+' won it'));if(seenRd.get(id)!==g.rd)d.classList.add('rv')}
+    seenRd.set(id,g.rd);
     const picked=g['p'+me];
     if(!done)msg(picked?'Waiting for '+on+'...':'Pick one:');
     const r=el('div','tr');['r','p','s'].forEach(k=>{const b=el('button',null,RPS[k]);b.style.fontSize='30px';b.disabled=done||!!picked;b.onclick=()=>fb(db.ref(gp()+'/'+id+'/p'+me).set(k));r.append(b)});tc.append(r)}
-  if(done){const w=g.w;msg(w==='d'?'Draw!':w===me?'You win! 🎉':on+' wins.');
-    if(!awarded.has(id)){awarded.add(id);if(w==='d')award(5,'draw');else if(w===me){award(20,'win');LS.set('pn_fx_w',(LS.get('pn_fx_w',0)||0)+1);publishLb()}}
+  if(done){const w=g.w;msg(w==='d'?'Draw!':w===me?'You win! 🎉':on+' wins.').classList.add(w===me?'winm':'resm');
+    if(!awarded.has(id)){awarded.add(id);if(w==='d')award(5,'draw');else if(w===me){award(20,'win');confetti();LS.set('pn_fx_w',(LS.get('pn_fx_w',0)||0)+1);publishLb()}}
     tc.append(row(['Close',()=>dismiss(id,g),'go']))}
   else tc.append(row(['Forfeit',()=>wr(id,{...g,st:'done',w:oth,t:now()})]))}
 function syncGame(){
@@ -2478,7 +2509,7 @@ function openMenu(){let tab='play',met='p';
   dlg('Games & leaderboard',(tc,close)=>{
     const tabs=el('div','tabs'),body=el('div');tc.append(tabs,body,row(['Close',close]));
     const draw=()=>{tabs.textContent='';[['play','Play'],['lb','Leaderboard']].forEach(([k,t])=>{const b=el('button',tab===k?'sel':null,t);b.onclick=()=>{tab=k;draw()};tabs.append(b)});
-      body.textContent='';lbView=null;
+      body.textContent='';lbView=null;body.classList.remove('fade');void body.offsetWidth;body.classList.add('fade');
       if(tab==='play'){
         const others=Object.values(lastPres||{}).filter(u=>u&&u.uid&&u.uid!==uid),seen=new Set();
         const list=others.filter(u=>!seen.has(u.uid)&&seen.add(u.uid));
@@ -2496,7 +2527,7 @@ function openMenu(){let tab='play',met='p';
           const asc=!METRICS.find(m=>m[0]===met)[2],unit=met==='r'?' ms':'';
           const rows=Object.entries(LB).filter(([,v])=>v&&now()-v.t<2592000000&&Number.isFinite(v[met])&&v[met]>0).sort((x,y)=>asc?x[1][met]-y[1][met]:y[1][met]-x[1][met]);
           if(!rows.length){out.append(el('div','fxs','Nobody on the board yet.'));return}
-          rows.slice(0,10).forEach(([u,v],i)=>{const r=el('div','fxl'+(u===uid?' me':''));r.append(el('span',null,['🥇','🥈','🥉'][i]||(i+1)+'.'),el('b',null,String(v.n||'Guest').slice(0,16)),el('span',null,v[met]+unit));out.append(r)});
+          rows.slice(0,10).forEach(([u,v],i)=>{const r=el('div','fxl'+(u===uid?' me':''));r.style.setProperty('--i',i);r.append(el('span',null,['🥇','🥈','🥉'][i]||(i+1)+'.'),el('b',null,String(v.n||'Guest').slice(0,16)),el('span',null,v[met]+unit));out.append(r)});
           const mi=rows.findIndex(([u])=>u===uid);if(mi>=10)out.append(el('div','fxs','Your rank: #'+(mi+1)))};
         paint();lbView=paint}};
     draw()},()=>{lbView=null})}
