@@ -377,7 +377,7 @@ main #tools input,main #tools select{border-radius:0}
           <h2>Add a friend</h2>
           <div class="fme" id="fMe"></div>
           <div class="fme" id="fCode"></div>
-          <div class="fsearch"><input id="fSearch" type="text" maxlength="16" placeholder="Friend code or username" autocomplete="off"><button class="fgo" id="fGo">Search</button></div>
+          <div class="fsearch"><input id="fSearch" type="text" maxlength="24" placeholder="Friend code (7 characters) or username" autocomplete="off"><button class="fgo" id="fGo">Search</button></div>
           <div id="fResult"></div>
           <p class="fnote" id="fNote"></p>
           <p class="fnote" id="fConn"></p>
@@ -587,7 +587,12 @@ const bpath=()=>'rooms/'+room+(board==='main'?'':'/boards/'+board);
 const lk=p=>p+room+(board==='main'?'':'_'+board);
 const ANCH=500,PW=()=>document.documentElement.clientWidth;
 const safeImg=s=>typeof s==='string'&&s.length<400000&&/^data:image\/(webp|png|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(s);
-const uid=LS.get('pn_uid',null)||(()=>{const u=[...crypto.getRandomValues(new Uint8Array(12))].map(b=>b.toString(36).padStart(2,'0')).join('').slice(0,16);LS.set('pn_uid',u);return u})();
+const UID_RE=/^[a-hj-km-np-z2-9]{7}$/;
+const genUid=()=>{const A='abcdefghjkmnpqrstuvwxyz23456789';for(;;){const u=[...crypto.getRandomValues(new Uint8Array(7))].map(b=>A[b%31]).join('');if(/\d/.test(u)&&/[a-z]/.test(u))return u}};
+const uid=(()=>{let u=LS.get('pn_uid',null);if(typeof u==='string'&&UID_RE.test(u))return u;
+  u=genUid();LS.set('pn_uid',u);
+  try{Object.keys(localStorage).filter(k=>/^pn_s_(fr|rin|rout|q|dm_)/.test(k)).forEach(k=>localStorage.removeItem(k))}catch{}
+  return u})();
 const myProf=LS.get('pn_prof',null)||{name:LS.get('pn_name','')||'Guest '+Math.floor(10+Math.random()*90),bio:'',pfp:'',bc:'#f0455a'};
 myName=myProf.name;const profs={[uid]:myProf};
 if(FIREBASE_CONFIG&&typeof firebase!=='undefined'){try{firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database()}catch(e){console.error(e)}}
@@ -1248,7 +1253,7 @@ function lookupP2PNow(k){return new Promise(res=>{
 async function fSearch(){
   if(fvBusy)return;
   const raw=$('#fSearch').value,code=raw.toLowerCase().replace(/[^a-z0-9]/g,'');
-  if(/^[a-z0-9]{10,24}$/.test(code)&&/\d/.test(code)&&(raw.includes('-')||code.length===16)){
+  if(UID_RE.test(code)&&/\d/.test(code)){
     if(code===uid){fvResults=[];fvMsg="That's you! Share your friend code with others.";renderFView();return}
     if(friends[code]){fvResults=[];fvMsg='You are already friends.';renderFView();return}
     fvBusy=true;fvResults=null;fvMsg='Checking code…';renderFView();
@@ -1280,8 +1285,8 @@ async function fSearch(){
   fvBusy=false;fvResults=out;renderFView()}
 /* render */
 const fprof=u=>{if(!profs[u]){const x=(sOut[u]&&sOut[u].p)||(reqIn[u]&&reqIn[u].p);if(x)profs[u]=x}return profs[u]||{}};
-const fmtCode=u=>String(u).toUpperCase().replace(/(.{4})(?=.)/g,'$1-');
-const fname=u=>fprof(u).name||(reqIn[u]&&reqIn[u].n)||(sOut[u]?'Code '+fmtCode(u).slice(0,4)+'…':'Guest');
+const fmtCode=u=>String(u).toUpperCase();
+const fname=u=>fprof(u).name||(reqIn[u]&&reqIn[u].n)||(sOut[u]?'Code '+fmtCode(u):'Guest');
 const fbtn=(t,f,c,title)=>{const b=el('button','fbt'+(c?' '+c:''),t);if(title)b.title=title;b.onclick=f;return b};
 const fwho=(u,cls)=>{const d=el('div','fwho');fprof(u);d.append(av(u,fname(u),cls||''),el('span','fnm',fname(u)));return d};
 const fcell=(...n)=>{const td=el('td');td.append(...n);return td};
