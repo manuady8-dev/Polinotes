@@ -13,7 +13,7 @@
 :root{--accent:#f0455a;--text:#2b2b2b;--line:rgba(0,0,0,.07);--bg:#fdfdfd;--ease:cubic-bezier(.2,.8,.2,1)}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{font-family:'Fira Code',monospace;color:var(--text);background:var(--bg);background-attachment:fixed;min-height:100vh;padding:24px 16px 80px;transition:color .4s}
+body{position:relative;font-family:'Fira Code',monospace;color:var(--text);background:var(--bg);background-attachment:fixed;min-height:100vh;padding:24px 16px 80px;transition:color .4s}
 .lines::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(to bottom,transparent 0 15px,var(--line) 15px 16px)}
 main{position:relative;z-index:1;max-width:1000px;margin:0 auto;text-align:center}
 h1,.gate h1{display:inline-block;margin:28px 0 10px;padding:8px 22px;font:800 28px 'Rubik',sans-serif;letter-spacing:1px;color:var(--accent);background:#fff;border:3px solid var(--accent);box-shadow:4px 4px 0 rgba(0,0,0,.12);transition:color .4s,border-color .4s}
@@ -33,9 +33,10 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 .btn:hover{filter:brightness(1.1)}.btn:active{transform:scale(.94)}
 #add{margin-left:auto}
 /* board */
-#wrap{position:relative}
-#board{position:relative;min-height:520px}
-.note{position:absolute;width:200px;min-height:120px;padding:8px 12px 12px;text-align:left;border-radius:4px;font-size:12px;box-shadow:2px 4px 10px rgba(0,0,0,.18);color:#222;transform:rotate(var(--r,0deg));transition:box-shadow .2s,transform .2s;z-index:1}
+#wrap{min-height:520px}
+#board,#stickers,#cursors{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+#board{z-index:5}#stickers{z-index:6}#cursors{z-index:30}
+.note{pointer-events:auto;position:absolute;width:200px;min-height:120px;padding:8px 12px 12px;text-align:left;border-radius:4px;font-size:12px;box-shadow:2px 4px 10px rgba(0,0,0,.18);color:#222;transform:rotate(var(--r,0deg));transition:box-shadow .2s,transform .2s;z-index:1}
 .note.pinned{z-index:3}.note.drag{z-index:9;box-shadow:6px 12px 24px rgba(0,0,0,.3);transform:rotate(0) scale(1.04);transition:none}
 .note.new{animation:pop .45s var(--ease)}
 @keyframes pop{from{opacity:0;transform:scale(.6) rotate(-8deg)}}
@@ -58,10 +59,10 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 /* gear + settings */
 #gear{position:fixed;top:14px;right:14px;z-index:20;width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);background:#fff;font-size:15px;line-height:1;cursor:pointer;padding:0;transition:transform .6s var(--ease)}
 #gear:hover{transform:rotate(90deg)}body.open #gear{transform:rotate(180deg)}
-#overlay,#drawOv{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0);backdrop-filter:blur(0);visibility:hidden;transition:all .35s var(--ease)}
-#overlay.open,#drawOv.open{visibility:visible;background:rgba(0,0,0,.35);backdrop-filter:blur(4px)}
+#overlay,#drawOv,#pOv{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0);backdrop-filter:blur(0);visibility:hidden;transition:all .35s var(--ease)}
+#overlay.open,#drawOv.open,#pOv.open{visibility:visible;background:rgba(0,0,0,.35);backdrop-filter:blur(4px)}
 .panel{width:min(100%,480px);max-height:85vh;overflow:auto;padding:20px;background:#fff;color:#222;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.3);opacity:0;transform:translateY(24px) scale(.94);transition:all .4s var(--ease)}
-#overlay.open .panel,#drawOv.open .panel{opacity:1;transform:none}
+#overlay.open .panel,#drawOv.open .panel,#pOv.open .panel{opacity:1;transform:none}
 .panel header{display:flex;justify-content:space-between;align-items:center}
 .panel h2{margin:0;font:800 18px 'Rubik',sans-serif}.panel h3{margin:16px 0 8px;font-size:13px}
 #close{border:0;background:none;font-size:20px;cursor:pointer;transition:transform .3s}#close:hover{transform:rotate(90deg)}
@@ -73,6 +74,46 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 .custom{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px}
 .custom input[type=color]{width:36px;height:30px;border:0;padding:0;background:none}
 .tools{display:flex;gap:8px;flex-wrap:wrap}.tools .btn{background:#222}
+/* social */
+#pOv{z-index:60}
+.av{cursor:pointer}.av.xs{width:16px;height:16px;font-size:9px;border-width:1px;box-shadow:none}
+.av.on,.av.off{position:relative}.av.off{opacity:.5}
+.av.on::after{content:"";position:absolute;right:-3px;bottom:-3px;width:9px;height:9px;border-radius:50%;background:#2ecc71;border:2px solid #fff}
+.av.fr{box-shadow:0 0 0 2px #ff6b81}
+.strip{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:-8px auto 16px;width:max-content;max-width:92vw;padding:3px 10px;border-radius:16px;background:rgba(255,255,255,.6);color:#222;font-size:11px}
+.gate .strip{margin:0}
+#chatBtn{position:fixed;top:14px;left:14px;z-index:20;width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);background:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0;transition:transform .3s var(--ease)}
+#chatBtn:hover{transform:scale(1.12)}
+#chatBtn i,#chat .tab i{font:700 10px/16px sans-serif;font-style:normal;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e03a3a;color:#fff;text-align:center}
+#chatBtn i{position:absolute;top:-7px;right:-7px}#chat .tab i{display:inline-block;margin-left:4px}
+#chatBtn i[hidden],#chat .tab i[hidden]{display:none}
+#chat{position:fixed;left:0;top:0;bottom:0;width:min(92vw,340px);z-index:40;display:flex;flex-direction:column;background:#fff;color:#222;box-shadow:6px 0 30px rgba(0,0,0,.25);transform:translateX(-105%);transition:transform .45s var(--ease)}
+#chat.open{transform:none}
+#chat header{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid #eee}
+#chat header b{font:800 14px 'Rubik',sans-serif;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#chBack,#chClose{border:0;background:none;cursor:pointer;font-size:16px}
+.tabs{display:flex;gap:4px}
+#chat .tab{border:1px solid #ddd;border-radius:8px;padding:2px 8px;font-size:11px;background:#fff;cursor:pointer}
+#chat .tab.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+#chBody{flex:1;overflow:auto;padding:8px 0}
+#chBody h4{margin:10px 12px 4px;font-size:11px;opacity:.6}
+#chBody .mut{margin:10px 12px}
+.msg{display:flex;gap:8px;padding:4px 12px;font-size:12px}.mb{min-width:0}
+.mh{display:flex;gap:6px;align-items:baseline}.mt{font-size:9px;opacity:.5}
+.mx{word-break:break-word;white-space:pre-wrap}
+#chInput{display:flex;gap:6px;padding:8px;border-top:1px solid #eee}
+#chInput[hidden]{display:none}
+#chInput input{flex:1;min-width:0;font:12px 'Fira Code',monospace;border:1px solid #ccc;border-radius:8px;padding:6px 8px}
+.fr-row{display:flex;align-items:center;gap:8px;padding:5px 12px;font-size:12px}.fr-row .btn{padding:3px 8px;font-size:10px}
+.pcard{padding:0!important;overflow:hidden;position:relative;width:min(100%,340px)}
+#pBanner{height:96px;background:#f0455a}
+.pbody{padding:0 18px 18px}
+.pfp{display:grid;place-items:center;width:76px;height:76px;margin-top:-38px;border-radius:50%;border:4px solid #fff;color:#fff;font:800 28px 'Rubik',sans-serif;background:#888;position:relative}
+#pName{margin:8px 0 2px;font:800 18px 'Rubik',sans-serif}
+#pBio{margin:0 0 10px;font-size:12px;opacity:.8;white-space:pre-wrap;word-break:break-word}
+#pClose{position:absolute;top:8px;right:10px;border:0;border-radius:50%;width:26px;height:26px;background:rgba(0,0,0,.4);color:#fff;cursor:pointer}
+#pEdit input[type=text],#pEdit input:not([type]),#pEdit textarea{width:100%;margin:6px 0;padding:6px;font:12px 'Fira Code',monospace;border:1px solid #ccc;border-radius:8px}
+#pEdit textarea{height:60px;resize:none}
 /* extras */
 #tools{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:min(92vw,720px);margin:0 auto 14px;padding:6px 10px;border-radius:14px;background:rgba(255,255,255,.6);color:#222}
 #tools select,#tools input[type=search]{font:11px 'Fira Code',monospace;border:1px solid #ccc;border-radius:8px;padding:4px 8px;background:#fff;color:#222;min-width:0}
@@ -93,13 +134,11 @@ body.dk .sub{background:rgba(0,0,0,.35)}
 #toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,80px);opacity:0;z-index:60;display:flex;gap:12px;align-items:center;padding:8px 14px;background:#222;color:#fff;border-radius:10px;font-size:12px;transition:all .35s var(--ease);pointer-events:none}
 #toast.show{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 #toast button{border:0;background:none;color:#ffd166;font:inherit;cursor:pointer;text-decoration:underline}
-#cursors{position:absolute;inset:0;pointer-events:none;z-index:30}
 .cur{position:absolute;left:0;top:0;transition:transform .09s linear}
 .cur span{position:absolute;left:14px;top:12px;font-size:10px;color:#fff;padding:1px 6px;border-radius:8px;white-space:nowrap}
 #dv{width:100%;max-width:320px;aspect-ratio:1;border:2px dashed #ccc;border-radius:10px;touch-action:none;cursor:crosshair;background:#fff;display:block;margin:10px auto 0}
 .drow{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
 /* stickers */
-#stickers{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .sk{position:absolute;pointer-events:auto;touch-action:none;cursor:grab;user-select:none;filter:drop-shadow(0 3px 5px rgba(0,0,0,.3));transition:filter .2s,transform .2s}
 .sk.new{animation:pop .45s var(--ease)}
 .sk.drag{cursor:grabbing;transform:scale(1.05);filter:drop-shadow(0 10px 14px rgba(0,0,0,.35));transition:none}
@@ -138,6 +177,7 @@ body.dk .sub{background:rgba(0,0,0,.35)}
     <small id="syncRow"></small>
     <div id="syncBox" hidden><textarea id="syncTxt" placeholder="Paste your firebaseConfig here (empty = remove)"></textarea><button class="btn" id="syncSave" style="width:100%">Save &amp; reload</button></div>
   </div>
+  <div id="gFriends" class="strip" hidden></div>
 </div>
 
 <button id="gear" aria-label="Settings">⚙️</button>
@@ -146,6 +186,7 @@ body.dk .sub{background:rgba(0,0,0,.35)}
   <h1>POLI-NOTES</h1><br>
   <p class="sub">Our private corner for thoughts and reminders</p>
   <div id="online" aria-live="polite"></div>
+  <div id="fBar" class="strip" hidden></div>
   <section class="composer">
     <textarea id="text" placeholder="Write something fun or a reminder here..."></textarea>
     <div class="row">
@@ -171,15 +212,36 @@ body.dk .sub{background:rgba(0,0,0,.35)}
     <button class="chip sel" data-f="all">All</button>
     <button class="dot c-red" data-f="c-red" aria-label="Red"></button><button class="dot c-blue" data-f="c-blue" aria-label="Blue"></button><button class="dot c-green" data-f="c-green" aria-label="Green"></button>
   </div>
-  <div id="wrap"><section id="board"></section><div id="stickers"></div></div>
-  <div id="cursors"></div>
+  <div id="wrap"></div>
 </main>
 
+<section id="board"></section><div id="stickers"></div><div id="cursors"></div>
+<button id="chatBtn" aria-label="Chat">💬<i id="chatBadge" hidden></i></button>
+<aside id="chat" aria-label="Chat">
+  <header><button id="chBack" hidden aria-label="Back">←</button><b id="chTitle">Chat</b>
+    <span class="tabs"><button class="tab sel" data-t="lobby">Lobby</button><button class="tab" data-t="friends">Friends<i id="reqBadge" hidden></i></button></span>
+    <button id="chClose" aria-label="Close">✕</button></header>
+  <div id="chBody"></div>
+  <div id="chInput"><input id="chText" maxlength="300" placeholder="Say something..." autocomplete="off"><button class="btn" id="chSend">Send</button></div>
+</aside>
+<div id="pOv"><div class="panel pcard" role="dialog" aria-label="Profile">
+  <div id="pBanner"></div>
+  <button id="pClose" aria-label="Close">✕</button>
+  <div class="pbody"><span id="pPfp" class="pfp"></span><h2 id="pName"></h2><p id="pBio"></p>
+    <div id="pActs" class="drow"></div>
+    <div id="pEdit" hidden>
+      <input id="eName" maxlength="16" placeholder="Name"><textarea id="eBio" maxlength="120" placeholder="Bio (max 120 characters)"></textarea>
+      <div class="drow"><button class="btn" id="ePfp" style="background:#222">Photo</button><button class="btn" id="eBan" style="background:#222">Banner</button><input type="color" id="eCol" value="#f0455a" title="Banner color"></div>
+      <input type="file" id="ePfpF" accept="image/*" hidden><input type="file" id="eBanF" accept="image/*" hidden>
+      <div class="drow"><button class="btn" id="eSave">Save</button><button class="btn" id="eCancel" style="background:#888">Cancel</button></div>
+    </div>
+  </div>
+</div></div>
 <div id="toast"></div>
 <div id="drawOv"><div class="panel" role="dialog" aria-label="Draw a sticker">
   <header><h2>Draw a sticker</h2><button id="dClose" aria-label="Close" style="border:0;background:none;font-size:20px;cursor:pointer">✕</button></header>
   <canvas id="dv" width="320" height="320"></canvas>
-  <div class="drow"><input type="color" id="dp" value="#222222"><input type="range" id="ds" min="2" max="24" value="6"><button class="btn" id="dClr" style="background:#222">Clear</button><button class="btn" id="dAdd" style="margin-left:auto">Add sticker</button></div>
+  <div class="drow"><input type="color" id="dp" value="#222222"><input type="range" id="ds" min="2" max="24" value="6"><button class="chip" id="dEr">🧽 Eraser</button><button class="btn" id="dClr" style="background:#222">Clear</button><button class="btn" id="dAdd" style="margin-left:auto">Add sticker</button></div>
 </div></div>
 <div id="overlay">
   <div class="panel" role="dialog" aria-label="Settings">
@@ -202,6 +264,7 @@ body.dk .sub{background:rgba(0,0,0,.35)}
     <div class="tools">
       <button class="btn" id="exp">Export</button>
       <button class="btn" id="impBtn">Import</button><input type="file" id="imp" accept=".json" hidden>
+      <button class="btn" id="myProf">My profile</button>
       <button class="btn" id="logout">Log out</button>
     </div>
   </div>
@@ -271,7 +334,7 @@ const open_=v=>{$('#overlay').classList.toggle('open',v);document.body.classList
 $('#gear').onclick=()=>open_(!$('#overlay').classList.contains('open'));
 $('#close').onclick=()=>open_(false);
 $('#overlay').onclick=e=>{if(e.target.id==='overlay')open_(false)};
-addEventListener('keydown',e=>{if(e.key==='Escape'){open_(false);$('#drawOv').classList.remove('open')}});
+addEventListener('keydown',e=>{if(e.key==='Escape'){open_(false);$('#drawOv').classList.remove('open');pOv.classList.remove('open');openChat(false)}});
 const mq=matchMedia('(prefers-color-scheme: dark)'),DARK=THEMES.classic.find(t=>t.id==='dark');
 function autoTheme(){applyTheme(LS.get('pn_auto',false)&&mq.matches?DARK:LS.get('pn_theme',THEMES.classic[0]),1)}
 mq.addEventListener('change',autoTheme);autoTheme();
@@ -287,21 +350,30 @@ const myId=Math.random().toString(36).slice(2,9);let myName='Guest';
 const hue=id=>[...String(id)].reduce((a,c)=>a+c.charCodeAt(0)*37,0)%360;
 const bpath=()=>'rooms/'+room+(board==='main'?'':'/boards/'+board);
 const lk=p=>p+room+(board==='main'?'':'_'+board);
+const ANCH=500,PW=()=>document.documentElement.clientWidth;
+const safeImg=s=>typeof s==='string'&&s.length<400000&&/^data:image\/(webp|png|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(s);
+const uid=LS.get('pn_uid',null)||(()=>{const u=[...crypto.getRandomValues(new Uint8Array(12))].map(b=>b.toString(36).padStart(2,'0')).join('').slice(0,16);LS.set('pn_uid',u);return u})();
+const myProf=LS.get('pn_prof',null)||{name:LS.get('pn_name','')||'Guest '+Math.floor(10+Math.random()*90),bio:'',pfp:'',bc:'#f0455a'};
+myName=myProf.name;const profs={[uid]:myProf};
+if(FIREBASE_CONFIG&&typeof firebase!=='undefined'){try{firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database()}catch(e){console.error(e)}}
 
 /* lobby */
+let lastPres={};
 function showOnline(o){
-  const list=Object.entries(o||{}),box=$('#online');box.innerHTML='';
+  lastPres=o||{};const list=Object.entries(lastPres),box=$('#online');box.innerHTML='';
   box.append(el('span','live'),el('span',null,'Lobby: '+list.length+' online'));
-  list.forEach(([id,u])=>{const name=(u&&u.name)||'Guest',a=el('span','av'+(id===myId?' me':''),name[0].toUpperCase());
-    a.style.background='hsl('+hue(id)+',60%,48%)';a.title=name+(id===myId?' (you)':'');box.append(a)});
+  list.forEach(([id,u])=>{u=u||{};const fr=u.uid&&friends[u.uid],a=av(u.uid,u.name||'Guest','');
+    if(id===myId)a.classList.add('me');if(fr)a.classList.add('fr');
+    a.title=(u.name||'Guest')+(id===myId?' (you)':'')+(fr?' - friend':'');box.append(a)});
   const ty=list.filter(([id,u])=>id!==myId&&u&&u.typing&&Date.now()-u.typing<5000).map(([,u])=>u.name||'Guest');
   if(ty.length)box.append(el('span','typing','✍️ '+ty.join(', ')+(ty.length>1?' are':' is')+' typing...'));
   if(!db)box.append(el('span',null,'(sync off)'));
+  loadProfiles(list.map(([,u])=>u&&u.uid));
 }
 function trackPresence(){
-  if(!db){showOnline({[myId]:{name:myName}});return}
+  if(!db){showOnline({[myId]:{name:myName,uid}});return}
   prRef=db.ref('rooms/'+room+'/presence');
-  db.ref('.info/connected').on('value',s=>{if(s.val()){const me=prRef.child(myId);me.onDisconnect().remove();me.set({name:myName,t:Date.now()})}});
+  db.ref('.info/connected').on('value',s=>{if(s.val()){const me=prRef.child(myId);me.onDisconnect().remove();me.set({name:myName,uid,t:Date.now()})}});
   prRef.on('value',s=>showOnline(s.val()));
 }
 let tyT=0,tyClr;
@@ -329,11 +401,10 @@ function renderCursors(o){
     if(!e){e=el('div','cur');const h=hue(id);
       e.innerHTML='<svg width="16" height="16" viewBox="0 0 16 16"><path d="M1 1l5 13 2-5 5-2z" fill="hsl('+h+',70%,50%)" stroke="#fff" stroke-width="1.2"/></svg>';
       const l=el('span');l.style.background='hsl('+h+',70%,45%)';e.append(l);box.append(e);curEls[id]=e}
-    e.lastChild.textContent=c.name||'Guest';e.style.transform='translate('+c.x+'px,'+c.y+'px)'})}
+    e.lastChild.textContent=c.name||'Guest';e.style.transform='translate('+(PW()/2+c.x)+'px,'+c.y+'px)'})}
 let curT=0;
 addEventListener('pointermove',ev=>{const n=Date.now();if(!curRef||n-curT<70)return;curT=n;
-  const r=$('main').getBoundingClientRect();
-  curRef.child(myId).set({x:Math.round(ev.clientX-r.left),y:Math.round(ev.clientY-r.top),name:myName,t:n})});
+  curRef.child(myId).set({x:Math.round(ev.pageX-PW()/2),y:Math.round(ev.pageY),name:myName,t:n,u:uid})});
 document.addEventListener('pointerleave',()=>curRef&&curRef.child(myId).remove());
 
 /* boards */
@@ -359,7 +430,7 @@ function bind(){
     ref=db.ref(B+'/notes');stRef=db.ref(B+'/stickers');trRef=db.ref(B+'/trash');curRef=db.ref(B+'/cursors');
     curRef.child(myId).onDisconnect().remove();
     ref.on('value',s=>{const v=s.val()||{};
-      if(loaded&&LS.get('pn_snd',true)&&Object.values(v).some(n=>n&&!notes[n.id]&&n.aid&&n.aid!==myId))ping();
+      if(loaded&&LS.get('pn_snd',true)&&Object.values(v).some(n=>n&&!notes[n.id]&&n.uid&&n.uid!==uid))ping();
       notes=v;loaded=true;render()});
     stRef.on('value',s=>{stickers=s.val()||{};renderStickers()});
     trRef.on('value',s=>{trash=s.val()||{};renderTrash()});
@@ -375,15 +446,12 @@ async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncod
 async function enter(code){
   code=code.trim().toLowerCase();
   if(!code){const b=$('.gate .box');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');return}
-  myName=($('#name').value.trim()||LS.get('pn_name','')||'Guest '+Math.floor(10+Math.random()*90)).slice(0,16);LS.set('pn_name',myName);
+  const nn=$('#name').value.trim().slice(0,16);if(nn&&nn!==myProf.name){myProf.name=nn;saveProf()}myName=myProf.name;
   room=await sha(code);LS.set('pn_code',code);
   board=LS.get('pn_board_'+room,'main');
-  if(FIREBASE_CONFIG&&typeof firebase!=='undefined'){
-    if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
-    db=firebase.database();setBoards({});
-    db.ref('rooms/'+room+'/boardlist').on('value',s=>setBoards(s.val()));
-  }else setBoards(LS.get('pn_bl_'+room,{}));
-  bind();trackPresence();
+  if(db){setBoards({});db.ref('rooms/'+room+'/boardlist').on('value',s=>setBoards(s.val()))}
+  else setBoards(LS.get('pn_bl_'+room,{}));
+  bind();trackPresence();startChat();
   $('#gate').classList.add('out');
 }
 
@@ -409,13 +477,139 @@ function renderTrash(){
   const l=Object.values(trash).sort((a,b)=>b.t-a.t);
   if(!l.length){box.append(el('p','mut','Nothing deleted yet.'));return}
   l.forEach(t=>{const r=el('div','tr');
-    if(t.kind==='sticker'){const i=el('img');i.src=t.data.src;r.append(i)}
+    if(t.kind==='sticker'){if(safeImg(t.data.src)){const i=el('img');i.src=t.data.src;r.append(i)}}
     else r.append(el('span','tt',(t.data.text||(t.data.items||[]).map(x=>x.t).join(', ')||'Note').slice(0,40)));
     const b=el('button','btn','Restore');b.onclick=()=>restore(t.id);r.append(b);box.append(r)})}
 $('#clrTr').onclick=()=>{Object.keys(trash).forEach(id=>trRef&&trRef.child(id).remove());trash={};LS.set(lk('pn_tr_'),trash);renderTrash()};
+/* ===== PROFILE / FRIENDS / CHAT ===== */
+let friends={},reqIn={},fOn={},unread=0,enterT=0,tab='lobby',dmWith=null,chL=null,dmRef=null,pView=null,pendPfp=null,pendBan=null;
+const watched=new Set(),lobbyMsgs=[],pOv=$('#pOv');
+const rulesErr=()=>toast('Database rules need updating (see setup steps)');
+const fb=p=>{if(p&&p.catch)p.catch(rulesErr);return p};
+function saveProf(){LS.set('pn_prof',myProf);myName=myProf.name;profs[uid]=myProf;
+  if(db){fb(db.ref('users/'+uid+'/p').set(myProf));if(prRef)prRef.child(myId+'/name').set(myName)}}
+function av(u,name,cls){
+  const a=el('span','av '+(cls||''),(name||'?')[0].toUpperCase()),p=profs[u];a.title=name||'';
+  if(p&&safeImg(p.pfp)){a.style.background='url('+p.pfp+') center/cover';a.textContent=''}
+  else a.style.background='hsl('+hue(u||name||'?')+',60%,48%)';
+  if(u)a.onclick=e=>{e.stopPropagation();openProfile(u)};
+  return a}
+async function loadProfiles(ids){
+  if(!db)return;const need=[...new Set(ids)].filter(u=>u&&!profs[u]);if(!need.length)return;
+  await Promise.all(need.map(u=>db.ref('users/'+u+'/p').once('value').then(s=>{profs[u]=s.val()||{name:'Guest'}}).catch(()=>{profs[u]={name:'Guest'}})));
+  refreshUI()}
+function refreshUI(){showOnline(lastPres);render();renderStrips();if(chatOpen())renderChat()}
+function renderStrips(){
+  ['#gFriends','#fBar'].forEach(sel=>{const box=$(sel);box.innerHTML='';const ids=Object.keys(friends);box.hidden=!ids.length;if(!ids.length)return;
+    box.append(el('span',null,'Friends'));
+    ids.forEach(f=>{const p=profs[f]||{},a=av(f,p.name||'Friend',fOn[f]?'on':'off');a.title=(p.name||'Friend')+(fOn[f]?' (online)':' (offline)');box.append(a)})})}
+function badges(){const n=Object.keys(reqIn).length;$('#reqBadge').hidden=!n;$('#reqBadge').textContent=n;
+  const t=unread+n;$('#chatBadge').hidden=!t;$('#chatBadge').textContent=t}
+const accept=u=>{fb(db.ref('users/'+uid+'/friends/'+u).set({t:Date.now()}));fb(db.ref('users/'+u+'/friends/'+uid).set({t:Date.now()}));fb(db.ref('users/'+uid+'/requests/'+u).remove())};
+function startSocial(){
+  renderStrips();badges();
+  if(!db)return;
+  db.ref('users/'+uid+'/p').once('value').then(s=>{if(!s.exists())fb(db.ref('users/'+uid+'/p').set(myProf))}).catch(rulesErr);
+  db.ref('.info/connected').on('value',s=>{if(s.val()){const st=db.ref('users/'+uid+'/status');st.onDisconnect().set(false);st.set(true)}});
+  const friendsTab=()=>chatOpen()&&tab==='friends'&&!dmWith&&renderChat();
+  db.ref('users/'+uid+'/friends').on('value',s=>{friends=s.val()||{};
+    Object.keys(friends).forEach(f=>{if(!watched.has(f)){watched.add(f);db.ref('users/'+f+'/status').on('value',x=>{fOn[f]=!!x.val();renderStrips();friendsTab()})}});
+    loadProfiles(Object.keys(friends));renderStrips();showOnline(lastPres);friendsTab()});
+  db.ref('users/'+uid+'/requests').on('value',s=>{reqIn=s.val()||{};loadProfiles(Object.keys(reqIn));badges();friendsTab()})}
+/* profile card */
+function setBanner(c,img){$('#pBanner').style.background=safeImg(img)?'url('+img+') center/cover':(/^#[0-9a-f]{6}$/i.test(c||'')?c:'#f0455a')}
+function setPfp(p,u){const pf=$('#pPfp');pf.textContent=(p.name||'?')[0].toUpperCase();
+  pf.style.background=safeImg(p.pfp)?'url('+p.pfp+') center/cover':'hsl('+hue(u)+',60%,48%)';if(safeImg(p.pfp))pf.textContent=''}
+async function openProfile(u){
+  if(!u)return;pView=u;const me=u===uid;await loadProfiles([u]);const p=profs[u]||{name:'Guest'};
+  $('#pEdit').hidden=true;$('#pName').textContent=p.name||'Guest';
+  $('#pBio').textContent=p.bio||(me?'No bio yet - tap Edit profile.':'No bio yet.');
+  setPfp(p,u);setBanner(p.bc,me?LS.get('pn_banner',''):'');
+  if(!me&&db)db.ref('users/'+u+'/banner').once('value').then(s=>{if(pView===u)setBanner(p.bc,s.val())}).catch(()=>{});
+  pOv.classList.add('open');await actions(u)}
+async function actions(u){
+  const box=$('#pActs');box.innerHTML='';
+  const B=(t,f,bg)=>{const b=el('button','btn',t);if(bg)b.style.background=bg;b.onclick=f;box.append(b)};
+  const close=()=>pOv.classList.remove('open');
+  if(u===uid){B('✏️ Edit profile',editProf);return}
+  if(!db){box.append(el('span','mut','Turn on sync to use friends.'));return}
+  if(friends[u]){B('💬 Message',()=>{close();openChat(true);tab='friends';dmWith=u;renderChat()});
+    B('Remove friend',()=>{fb(db.ref('users/'+uid+'/friends/'+u).remove());fb(db.ref('users/'+u+'/friends/'+uid).remove());close()},'#888')}
+  else if(reqIn[u]){B('✓ Accept',()=>{accept(u);close()});B('Decline',()=>{fb(db.ref('users/'+uid+'/requests/'+u).remove());close()},'#888')}
+  else{const s=await db.ref('users/'+u+'/requests/'+uid).once('value').catch(()=>null);
+    if(pView!==u)return;
+    if(s&&s.exists())B('Request sent ✓ (cancel)',()=>{fb(db.ref('users/'+u+'/requests/'+uid).remove());close()},'#888');
+    else B('➕ Add friend',()=>{fb(db.ref('users/'+u+'/requests/'+uid).set({n:myName,t:Date.now()}));toast('Friend request sent');close()})}}
+function cropImg(file,w,h,q){return new Promise(res=>{const im=new Image();
+  im.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;const k=Math.max(w/im.width,h/im.height),dw=im.width*k,dh=im.height*k;
+    c.getContext('2d').drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);res(c.toDataURL('image/webp',q))};
+  im.onerror=()=>res(null);im.src=URL.createObjectURL(file)})}
+function editProf(){pendPfp=pendBan=null;$('#eName').value=myProf.name;$('#eBio').value=myProf.bio||'';$('#eCol').value=myProf.bc||'#f0455a';
+  $('#pEdit').hidden=false;$('#pActs').innerHTML=''}
+$('#ePfp').onclick=()=>$('#ePfpF').click();$('#eBan').onclick=()=>$('#eBanF').click();
+$('#ePfpF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;pendPfp=await cropImg(f,128,128,.8);if(pendPfp)setPfp({pfp:pendPfp,name:myProf.name},uid)};
+$('#eBanF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;pendBan=await cropImg(f,480,160,.75);if(pendBan)setBanner(null,pendBan)};
+$('#eCol').oninput=e=>{if(!pendBan)setBanner(e.target.value,'')};
+$('#eSave').onclick=()=>{
+  myProf.name=($('#eName').value.trim()||myProf.name).slice(0,16);myProf.bio=$('#eBio').value.trim().slice(0,120);myProf.bc=$('#eCol').value;
+  if(pendPfp)myProf.pfp=pendPfp;
+  if(pendBan){LS.set('pn_banner',pendBan);if(db)fb(db.ref('users/'+uid+'/banner').set(pendBan))}
+  saveProf();refreshUI();openProfile(uid)};
+$('#eCancel').onclick=()=>openProfile(uid);
+$('#pClose').onclick=()=>pOv.classList.remove('open');
+pOv.onclick=e=>{if(e.target===pOv)pOv.classList.remove('open')};
+$('#myProf').onclick=()=>{open_(false);openProfile(uid)};
+/* chat */
+const chatOpen=()=>$('#chat').classList.contains('open'),pair=u=>[uid,u].sort().join('_');
+function stopDM(){if(dmRef){dmRef.off();dmRef=null}}
+function startChat(){
+  enterT=Date.now();lobbyMsgs.length=0;if(chL)chL.off();
+  if(!db){renderChat();return}
+  chL=db.ref('rooms/'+room+'/chat').limitToLast(100);
+  chL.on('child_added',s=>{const m=s.val();if(!m)return;lobbyMsgs.push(m);if(lobbyMsgs.length>200)lobbyMsgs.shift();loadProfiles([m.u]);
+    if(chatOpen()&&tab==='lobby'&&!dmWith)addMsg(m);
+    else if(m.t>enterT&&m.u!==uid){unread++;badges();if(LS.get('pn_snd',true))ping()}})}
+function addMsg(m){
+  const body=$('#chBody'),ph=body.querySelector('.mut');if(ph)ph.remove();
+  const r=el('div','msg'),w=el('div','mb'),h=el('div','mh'),nm=el('b',null,m.u===uid?'You':(m.n||'Guest'));
+  nm.style.color='hsl('+hue(m.u||m.n)+',55%,38%)';
+  h.append(nm,el('span','mt',new Date(m.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})));
+  w.append(h,el('div','mx',String(m.x||'')));r.append(av(m.u,m.n,''),w);body.append(r);body.scrollTop=body.scrollHeight}
+function friendsList(body){
+  const rq=Object.keys(reqIn);
+  if(rq.length){body.append(el('h4',null,'Requests'));
+    rq.forEach(u=>{const p=profs[u]||{name:(reqIn[u]||{}).n},r=el('div','fr-row');r.append(av(u,p.name,''),el('span','tt',p.name||'Guest'));
+      const ok=el('button','btn','Accept');ok.onclick=()=>accept(u);const no=el('button','btn','✕');no.style.background='#888';no.onclick=()=>fb(db.ref('users/'+uid+'/requests/'+u).remove());
+      r.append(ok,no);body.append(r)})}
+  const fl=Object.keys(friends);body.append(el('h4',null,'Friends ('+fl.length+')'));
+  if(!fl.length)body.append(el('p','mut','No friends yet. Click someone in the lobby to add them.'));
+  fl.sort((a,b)=>(fOn[b]?1:0)-(fOn[a]?1:0)).forEach(u=>{const p=profs[u]||{},r=el('div','fr-row');
+    r.append(av(u,p.name||'Friend',fOn[u]?'on':'off'),el('span','tt',(p.name||'Friend')+(fOn[u]?'':' (offline)')));
+    const m=el('button','btn','💬');m.onclick=()=>{dmWith=u;renderChat()};r.append(m);body.append(r)})}
+function renderChat(){
+  const body=$('#chBody');body.innerHTML='';stopDM();
+  document.querySelectorAll('#chat .tab').forEach(t=>t.classList.toggle('sel',t.dataset.t===tab&&!dmWith));
+  $('#chBack').hidden=!dmWith;$('#chTitle').textContent=dmWith?((profs[dmWith]||{}).name||'Friend'):'Chat';
+  $('#chInput').hidden=!(tab==='lobby'||dmWith);
+  if(!db){body.append(el('p','mut','Turn on sync to chat and add friends.'));$('#chInput').hidden=true;return}
+  if(dmWith){const u=dmWith;loadProfiles([u]);
+    dmRef=db.ref('dms/'+pair(u)+'/msgs').limitToLast(100);
+    dmRef.on('child_added',s=>{const m=s.val();if(m&&dmWith===u)addMsg(m)});
+    if(!body.children.length)body.append(el('p','mut','Say hi to '+((profs[u]||{}).name||'your friend')+'!'));
+  }else if(tab==='lobby'){if(lobbyMsgs.length)lobbyMsgs.forEach(addMsg);else body.append(el('p','mut','No messages yet. Say hi!'))}
+  else friendsList(body)}
+function openChat(v){$('#chat').classList.toggle('open',v);if(v){unread=0;badges();renderChat()}else stopDM()}
+$('#chatBtn').onclick=()=>openChat(!chatOpen());$('#chClose').onclick=()=>openChat(false);
+document.querySelectorAll('#chat .tab').forEach(t=>t.onclick=()=>{tab=t.dataset.t;dmWith=null;renderChat()});
+$('#chBack').onclick=()=>{dmWith=null;renderChat()};
+function sendChat(){const t=$('#chText').value.trim().slice(0,300);if(!t||!db)return;$('#chText').value='';
+  fb(db.ref(dmWith?'dms/'+pair(dmWith)+'/msgs':'rooms/'+room+'/chat').push({u:uid,n:myName,t:Date.now(),x:t}))}
+$('#chSend').onclick=sendChat;$('#chText').onkeydown=e=>{if(e.key==='Enter')sendChat()};
+startSocial();
+let rsT;addEventListener('resize',()=>{clearTimeout(rsT);rsT=setTimeout(()=>{render();renderStickers()},150)});
 $('#enter').onclick=()=>enter($('#code').value);
 ['#code','#name'].forEach(i=>$(i).onkeydown=e=>{if(e.key==='Enter')enter($('#code').value)});
-$('#name').value=LS.get('pn_name','');
+$('#name').value=myProf.name;
 $('#logout').onclick=()=>{localStorage.removeItem('pn_code');if(ref)ref.off();location.reload()};
 /* sync setup (gate) */
 $('#syncRow').innerHTML='Sync: <b>'+(FIREBASE_CONFIG?'ON':'OFF')+'</b> (<a id="syncLink">setup</a>)';
@@ -435,10 +629,10 @@ $('#listBtn').onclick=e=>{listMode=!listMode;e.target.classList.toggle('on',list
   $('#text').placeholder=listMode?'One item per line...':'Write something fun or a reminder here...'};
 function add(){
   const text=$('#text').value.trim();if(!text)return;
-  const i=Object.keys(notes).length,cols=Math.max(1,Math.floor($('#board').clientWidth/216));
+  const i=Object.keys(notes).length;
   const n={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),color,pinned:false,reacts:{},
-    author:myName,aid:myId,exp:+$('#exp').value?Date.now()+(+$('#exp').value):0,
-    due:$('#due').value||'',x:(i%cols)*216+8,y:Math.floor(i/cols)*200+8,
+    author:myName,aid:myId,uid,exp:+$('#exp').value?Date.now()+(+$('#exp').value):0,
+    due:$('#due').value||'',cx:(i%4)*216-428,ty:8+Math.floor(i/4)*200,
     type:listMode?'list':'note',text:listMode?'':text,
     items:listMode?text.split('\n').filter(Boolean).map(t=>({t,d:false})):[]};
   if(n.due&&'Notification'in window&&Notification.permission==='default')Notification.requestPermission();
@@ -462,47 +656,56 @@ function confetti(from){
     p.animate([{transform:'translate(0,0) rotate(0)',opacity:1},{transform:`translate(${Math.cos(a)*d}px,${Math.sin(a)*d+90}px) rotate(${Math.random()*720}deg)`,opacity:0}],{duration:900+Math.random()*500,easing:'cubic-bezier(.2,.8,.4,1)'}).onfinish=()=>p.remove()}
 }
 const fired=new Set(JSON.parse(sessionStorage.getItem('pn_fired')||'[]'));
+function fitPage(){let m=0;document.querySelectorAll('#board .note,#stickers .sk').forEach(e=>m=Math.max(m,e.offsetTop+e.offsetHeight));
+  document.body.style.minHeight=m+140>innerHeight?m+140+'px':''}
+const mineN=n=>!n.uid||n.uid===uid;
 function render(){
   const b=$('#board');b.innerHTML='';
   Object.values(notes).forEach(n=>{if(n&&n.exp&&n.exp<Date.now()){delete notes[n.id];ref?ref.child(n.id).remove():persist()}});
   const list=Object.values(notes);
-  if(!list.length){b.append(el('p','empty','No notes yet. Write the first one!'));return}
-  let maxY=0;
+  $('#wrap').innerHTML='';if(!list.length)$('#wrap').append(el('p','empty','No notes yet. Write the first one!'));
   list.forEach((n,idx)=>{
-    n.reacts=n.reacts||{};n.items=n.items||[];
-    const w=Math.max(0,b.clientWidth-208),x=Math.min(n.x||0,w),y=n.y||0;maxY=Math.max(maxY,y);
+    n.reacts=n.reacts||{};n.items=n.items||[];const mine=mineN(n);
+    const cx=n.cx!=null?n.cx:(n.x||0)-500,ty=n.ty!=null?n.ty:(n.y||0);
     const isDue=n.due&&new Date(n.due)<=new Date();
     const hay=((n.text||'')+' '+n.items.map(i=>i.t).join(' ')+' '+(n.author||'')).toLowerCase();
     const dim=!((flt==='all'||n.color===flt)&&(!q||hay.includes(q)));
     const c=el('div','note '+n.color+(n.pinned?' pinned':'')+(isDue?' due':'')+(dim?' dim':'')+(seen.has(n.id)?'':' new'));
-    seen.add(n.id);c.style.left=x+'px';c.style.top=y+'px';c.style.setProperty('--r',((idx%3)-1)*1.2+'deg');
-    const bar=el('div','bar'),g=el('span','grip','⠿'),pin=el('button','pin','📌'),rm=el('button',null,'🗑️');
-    pin.title='Pin to top';pin.onclick=()=>{n.pinned=!n.pinned;put(n)};rm.onclick=()=>del(n.id);
-    const au=el('span','au',(n.author||'?')[0].toUpperCase());au.title='by '+(n.author||'unknown');au.style.background='hsl('+hue(n.author||'?')+',55%,45%)';
-    bar.append(au,g,pin,rm);c.append(bar);
+    seen.add(n.id);c.style.left=Math.max(0,Math.min(PW()/2+cx,PW()-208))+'px';c.style.top=Math.max(0,ANCH+ty)+'px';
+    c.style.setProperty('--r',((idx%3)-1)*1.2+'deg');
+    const bar=el('div','bar'),g=el('span','grip','⠿'),au=av(n.uid,n.author||'?','xs');au.title='by '+(n.author||'unknown');
+    bar.append(au,g);
+    if(mine){const pin=el('button','pin','📌'),rm=el('button',null,'🗑️');pin.title='Pin to top';
+      pin.onclick=()=>{n.pinned=!n.pinned;put(n)};rm.onclick=()=>del(n.id);bar.append(pin,rm)}
+    else if(n.pinned)bar.append(el('span',null,'📌'));
+    c.append(bar);
     if(n.type==='list'){
-      n.items.forEach((it,k)=>{const l=el('label','item'+(it.d?' d':'')),cb=el('input');cb.type='checkbox';cb.checked=!!it.d;
+      n.items.forEach(it=>{const l=el('label','item'+(it.d?' d':'')),cb=el('input');cb.type='checkbox';cb.checked=!!it.d;
         cb.onchange=()=>{it.d=cb.checked;put(n);if(n.items.every(z=>z.d))setTimeout(()=>{const f=document.querySelector('[data-id="'+n.id+'"]');if(f)confetti(f)},60)};
         l.append(cb,el('span',null,it.t));c.append(l)});
     }else{
-      const t=el('div','txt',n.text);t.contentEditable='true';
-      t.onblur=()=>{const v=t.textContent.trim();if(v&&v!==n.text){n.text=v;put(n)}};c.append(t);
+      const t=el('div','txt',n.text);
+      if(mine){t.contentEditable='true';t.onblur=()=>{const v=t.textContent.trim();if(v&&v!==n.text){n.text=v;put(n)}}}
+      else t.title='Only '+(n.author||'the author')+' can edit this note';
+      c.append(t);
     }
     c.dataset.id=n.id;
-    if(n.due){const d=el('div','due-b','⏰ '+new Date(n.due).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}));c.append(d)}
+    if(n.due)c.append(el('div','due-b','⏰ '+new Date(n.due).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})));
     if(n.exp)c.append(el('div','due-b','⏳ until '+new Date(n.exp).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})));
     const rc=el('div','reacts');
     ['❤️','😂','👍'].forEach(e=>{const r=el('button',null,e+(n.reacts[e]?' '+n.reacts[e]:''));r.onclick=()=>{n.reacts[e]=(n.reacts[e]||0)+1;put(n)};rc.append(r)});
     c.append(rc);
-    /* drag */
+    /* drag: anywhere on the screen */
     g.onpointerdown=ev=>{ev.preventDefault();g.setPointerCapture(ev.pointerId);c.classList.add('drag');
-      const sx=ev.clientX-c.offsetLeft,sy=ev.clientY-c.offsetTop;
-      g.onpointermove=m=>{c.style.left=Math.max(0,Math.min(b.clientWidth-208,m.clientX-sx))+'px';c.style.top=Math.max(0,m.clientY-sy)+'px'};
+      const sx=ev.pageX-c.offsetLeft,sy=ev.pageY-c.offsetTop;
+      g.onpointermove=m=>{const t=Math.max(0,m.pageY-sy);
+        c.style.left=Math.max(0,Math.min(PW()-c.offsetWidth,m.pageX-sx))+'px';c.style.top=t+'px';
+        const h=t+c.offsetHeight+140;if(h>(parseInt(document.body.style.minHeight)||0)&&h>innerHeight)document.body.style.minHeight=h+'px'};
       g.onpointerup=()=>{g.onpointermove=g.onpointerup=null;c.classList.remove('drag');
-        n.x=parseInt(c.style.left);n.y=parseInt(c.style.top);put(n)}};
+        n.cx=Math.round(c.offsetLeft-PW()/2);n.ty=Math.round(c.offsetTop-ANCH);delete n.x;delete n.y;put(n)}};
     b.append(c);
   });
-  b.style.minHeight=Math.max(520,maxY+260)+'px';
+  fitPage();
 }
 /* reminders */
 setInterval(()=>{let hit=false;
@@ -522,9 +725,8 @@ function toSticker(file){return new Promise(res=>{const im=new Image();
     res(out)};
   im.onerror=()=>res(null);im.src=URL.createObjectURL(file)})}
 function addSticker(src,w=140){
-  const W=$('#stickers').clientWidth;
   putSt({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),src,w,
-    x:Math.round(30+Math.random()*Math.max(1,W-w-90)),y:Math.round(30+Math.random()*200)})}
+    cx:Math.round(-300+Math.random()*420),ty:Math.round(30+Math.random()*260)})}
 $('#stBtn').onclick=()=>{const t=$('#stTray');t.hidden=!t.hidden;$('#stBtn').classList.toggle('sel',!t.hidden)};
 $('#upBtn').onclick=()=>$('#stFile').click();
 $('#stFile').onchange=async e=>{
@@ -536,22 +738,24 @@ function emojiSrc(e){const c=document.createElement('canvas');c.width=c.height=1
   x.fillText(e,80,88);return c.toDataURL('image/webp',.9)}
 EMOJI.forEach(e=>{const b=el('button',null,e);b.onclick=()=>addSticker(emojiSrc(e),90);$('#emo').append(b)});
 /* draw */
-const dv=$('#dv'),dx=dv.getContext('2d');dx.lineCap=dx.lineJoin='round';let drawing=false,drew=false;
+const dv=$('#dv'),dx=dv.getContext('2d');dx.lineCap=dx.lineJoin='round';let drawing=false,drew=false,erasing=false;
 const dpt=e=>{const r=dv.getBoundingClientRect();return{x:(e.clientX-r.left)*dv.width/r.width,y:(e.clientY-r.top)*dv.height/r.height}};
 dv.onpointerdown=e=>{drawing=drew=true;dv.setPointerCapture(e.pointerId);const p=dpt(e);
-  dx.strokeStyle=$('#dp').value;dx.lineWidth=+$('#ds').value;dx.beginPath();dx.moveTo(p.x,p.y);dx.lineTo(p.x+.01,p.y);dx.stroke()};
+  dx.globalCompositeOperation=erasing?'destination-out':'source-over';dx.strokeStyle=$('#dp').value;dx.lineWidth=+$('#ds').value*(erasing?2:1);dx.beginPath();dx.moveTo(p.x,p.y);dx.lineTo(p.x+.01,p.y);dx.stroke()};
 dv.onpointermove=e=>{if(!drawing)return;const p=dpt(e);dx.lineTo(p.x,p.y);dx.stroke()};
 dv.onpointerup=dv.onpointercancel=()=>{drawing=false};
-$('#drawBtn').onclick=()=>{dx.clearRect(0,0,dv.width,dv.height);drew=false;$('#drawOv').classList.add('open')};
+$('#dEr').onclick=()=>{erasing=!erasing;$('#dEr').classList.toggle('sel',erasing)};
+$('#drawBtn').onclick=()=>{erasing=false;$('#dEr').classList.remove('sel');dx.clearRect(0,0,dv.width,dv.height);drew=false;$('#drawOv').classList.add('open')};
 $('#dClr').onclick=()=>{dx.clearRect(0,0,dv.width,dv.height);drew=false};
 $('#dClose').onclick=()=>$('#drawOv').classList.remove('open');
 $('#drawOv').onclick=e=>{if(e.target.id==='drawOv')e.currentTarget.classList.remove('open')};
 $('#dAdd').onclick=()=>{if(drew)addSticker(dv.toDataURL('image/webp',.9),160);$('#drawOv').classList.remove('open')};
 function renderStickers(){
   const box=$('#stickers');box.innerHTML='';
-  Object.values(stickers).forEach(s=>{
+  Object.values(stickers).forEach(s=>{if(!safeImg(s.src))return;
     const e=el('div','sk'+(stSeen.has(s.id)?'':' new'));stSeen.add(s.id);
-    e.style.left=Math.max(0,Math.min(s.x||0,box.clientWidth-s.w))+'px';e.style.top=(s.y||0)+'px';e.style.width=s.w+'px';
+    const cx=s.cx!=null?s.cx:(s.x||0)-500,ty=s.ty!=null?s.ty:(s.y||0);
+    e.style.left=Math.max(0,Math.min(PW()/2+cx,PW()-s.w))+'px';e.style.top=Math.max(0,ANCH+ty)+'px';e.style.width=s.w+'px';
     const im=el('img');im.src=s.src;im.alt='sticker';
     const x=el('button','x','✕');x.setAttribute('aria-label','Remove sticker');
     x.onpointerdown=ev=>ev.stopPropagation();x.onclick=()=>delSt(s.id);
@@ -561,13 +765,12 @@ function renderStickers(){
       rz.onpointermove=m=>{e.style.width=Math.max(48,Math.min(480,w0+m.clientX-sx))+'px'};
       rz.onpointerup=()=>{rz.onpointermove=rz.onpointerup=null;s.w=e.offsetWidth;putSt(s)}};
     e.onpointerdown=ev=>{ev.preventDefault();e.setPointerCapture(ev.pointerId);e.classList.add('drag');
-      const sx=ev.clientX-e.offsetLeft,sy=ev.clientY-e.offsetTop;
-      e.onpointermove=m=>{
-        e.style.left=Math.max(0,Math.min(box.clientWidth-e.offsetWidth,m.clientX-sx))+'px';
-        e.style.top=Math.max(0,Math.min(box.clientHeight-e.offsetHeight,m.clientY-sy))+'px'};
+      const sx=ev.pageX-e.offsetLeft,sy=ev.pageY-e.offsetTop;
+      e.onpointermove=m=>{e.style.left=Math.max(0,Math.min(PW()-e.offsetWidth,m.pageX-sx))+'px';e.style.top=Math.max(0,m.pageY-sy)+'px'};
       e.onpointerup=()=>{e.onpointermove=e.onpointerup=null;e.classList.remove('drag');
-        s.x=parseInt(e.style.left);s.y=parseInt(e.style.top);putSt(s)}};
+        s.cx=Math.round(e.offsetLeft-PW()/2);s.ty=Math.round(e.offsetTop-ANCH);delete s.x;delete s.y;putSt(s)}};
     e.append(im,x,rz);box.append(e)});
+  fitPage();
 }
 
 /* ===== BACKUP ===== */
