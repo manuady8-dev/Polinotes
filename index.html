@@ -1092,20 +1092,28 @@ function sOn(u,m){
     if(!friends[u]||typeof m.c!=='string')return;
     invIn[u]={n:String(m.n||'').slice(0,16),c:m.c.slice(0,64),t:Date.now()};
     badges();if(chatOpen()&&tab==='friends'&&!dmWith)renderChat();invToast(u)}}
+let sGen=0,sRetryT=null;
+function sRetry(ms){clearTimeout(sRetryT);sRetryT=setTimeout(sStart,ms)}
 function sStart(){
   if(typeof Peer==='undefined'||sDead)return;
-  let pr;try{pr=new Peer(pid(uid))}catch(e){console.error(e);setTimeout(sStart,15000);return}
-  sPeer=pr;sReady=false;
-  pr.on('open',()=>{sReady=true;sTick();clearInterval(sPoll);sPoll=setInterval(sTick,10000)});
+  clearTimeout(sRetryT);
+  if(sPeer&&sReady&&!sPeer.destroyed)return;
+  const gen=++sGen,cur=()=>gen===sGen;
+  if(sPeer){const old=sPeer;sPeer=null;try{old.destroy()}catch{}}
+  sReady=false;
+  let pr;try{pr=new Peer(pid(uid))}catch(e){console.error(e);sRetry(15000);return}
+  sPeer=pr;
+  pr.on('open',()=>{if(!cur())return;sReady=true;sTick();clearInterval(sPoll);sPoll=setInterval(sTick,10000)});
   pr.on('connection',c=>{
     const mt=/^pn-u-([a-z0-9]+)$/i.exec(c.peer||'');if(!mt){try{c.close()}catch{}return}
     const u=mt[1];c.on('open',()=>sAttach(c,u))});
-  pr.on('disconnected',()=>{try{pr.reconnect()}catch{}});
+  pr.on('disconnected',()=>{if(cur())try{pr.reconnect()}catch{}});
   pr.on('error',e=>{
-    if(e&&e.type==='unavailable-id'){sReady=false;try{pr.destroy()}catch{}setTimeout(sStart,20000);return}
+    if(!cur())return;
+    if(e&&e.type==='unavailable-id'){sReady=false;try{pr.destroy()}catch{}sRetry(5000);return}
     if(e&&e.type==='peer-unavailable'){const mt=/pn-u-([a-z0-9]+)/i.exec(e.message||'');if(mt){sPend.delete(mt[1]);sSetOn(mt[1],false)}return}
     console.warn('social p2p',e)});
-  pr.on('close',()=>{sReady=false;if(!sDead)setTimeout(sStart,8000)})}
+  pr.on('close',()=>{if(!cur())return;sReady=false;if(!sDead)sRetry(4000)})}
 addEventListener('pagehide',()=>{sDead=true;try{sPeer&&sPeer.destroy()}catch{}});
 /* chat */
 const chatOpen=()=>$('#chat').classList.contains('open'),pair=u=>[uid,u].sort().join('_');
@@ -1218,7 +1226,10 @@ function nameSync(){
   }catch(e){console.warn('nameSync',e)}}
 addEventListener('pagehide',()=>{clearTimeout(nTimer);try{nPeer&&nPeer.destroy()}catch{}});
 /* search */
-function lookupP2P(k){return new Promise(res=>{
+async function lookupP2P(k){
+  for(let i=0;i<40&&!(sPeer&&sReady);i++){if(!sPeer&&typeof Peer!=='undefined')sStart();await new Promise(r=>setTimeout(r,300))}
+  return lookupP2PNow(k)}
+function lookupP2PNow(k){return new Promise(res=>{
   if(typeof Peer==='undefined'){res({err:'The peer-to-peer library failed to load. Check your connection or any content blockers.'});return}
   if(!sPeer||!sReady){res({err:'Not connected yet. Try again in a few seconds.'});return}
   const target='pn-n-'+k;let c,done=false,t;
