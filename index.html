@@ -385,6 +385,7 @@ main #tools input,main #tools select{border-radius:0}
           <div class="nm-trial">🎁 You have <b>1 free trial</b> to change your name. After the trial, each name change will cost <b>100 Polis</b>.</div>
           <div class="nm-warn">⚠️ Warning: once your free trial is used, 100 Polis will be charged for every name change. Choose your name carefully!</div>
           <input id="code" type="password" placeholder="Access code" autocomplete="off">
+          <div id="rpwRow"><input id="rpw" type="password" placeholder="Room password (optional, makes the room private)" autocomplete="new-password" maxlength="64"><small style="margin:-4px 0 10px">🔒 Private room: only people who type the same code <b>and</b> the same password end up together. A wrong password simply lands in a different, empty room.</small></div>
           <button class="btn" id="enter" style="width:100%">Enter</button>
           <small>Anyone with the same code sees the same notes.</small>
           <small id="syncRow"></small>
@@ -603,7 +604,7 @@ $('#auto').checked=LS.get('pn_auto',false);$('#auto').onchange=e=>{LS.set('pn_au
 $('#snd').checked=LS.get('pn_snd',true);$('#snd').onchange=e=>LS.set('pn_snd',e.target.checked);
 
 /* ===== ACCESS + DATA ===== */
-let room,notes={},ref=null,color='c-red',listMode=false;
+let room,notes={},ref=null,color='c-red',listMode=false,privRoom=false;
 let stRef=null,stickers={},trRef=null,trash={},curRef=null,prRef=null,db=null,loaded=false;
 let board='main',boardList={main:{name:'Main'}};
 const stSeen=new Set(),seen=new Set(),offs=[];
@@ -634,7 +635,7 @@ if(FIREBASE_CONFIG&&typeof firebase!=='undefined'){try{firebase.initializeApp(FI
 let lastPres={};
 function showOnline(o){
   lastPres=o||{};const list=Object.entries(lastPres),box=$('#online');box.innerHTML='';
-  box.append(el('span','live'),el('span',null,'Lobby: '+list.length+' online'));
+  box.append(el('span','live'),el('span',null,(privRoom?'🔒 ':'')+'Lobby: '+list.length+' online'));
   list.forEach(([id,u])=>{u=u||{};const fr=u.uid&&friends[u.uid],a=av(u.uid,u.name||'Guest','');
     if(id===myId)a.classList.add('me');if(fr)a.classList.add('fr');
     a.title=(u.name||'Guest')+(id===myId?' (you)':'')+(fr?' - friend':'');box.append(a)});
@@ -824,16 +825,20 @@ function makeP2P(room){
   return api}
 
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,32)}
-async function enter(code){
-  code=code.trim().toLowerCase();
+async function enter(code,pw){
+  code=code.trim().toLowerCase();pw=String(pw||'').slice(0,64);
   if(!code){const b=$('.gate .box');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');return}
   const eb=$('#enter');eb.classList.add('go');eb.textContent='Entering…';
   const okN=await tryRename($('#name').value);
   if(!okN){eb.classList.remove('go');eb.textContent='Enter';return}
   myName=myProf.name;
-  room=await sha(code);
-  if(window.pnRoomGate&&!(await pnRoomGate(room,code))){eb.classList.remove('go');eb.textContent='Enter';room=undefined;return}
-  LS.set('pn_code',code);inRoom=true;
+  /* private room without sync: the password is part of the room key (and of the p2p hub id),
+     so strangers without it can't even find the room */
+  privRoom=!SYNC&&p2pPref()&&!!pw;
+  room=await sha(privRoom?code+'\u0000pw:'+pw:code);
+  if(window.pnRoomGate&&!(await pnRoomGate(room,code))){eb.classList.remove('go');eb.textContent='Enter';room=undefined;privRoom=false;return}
+  LS.set('pn_code',code);if(privRoom)LS.set('pn_rpw',pw);else try{localStorage.removeItem('pn_rpw')}catch{}
+  inRoom=true;
   board=LS.get('pn_board_'+room,'main');
   if(!db&&p2pPref()){db=makeP2P(room);
     db.onConnect=()=>{db.ref('users/'+uid+'/p').set(myProf);myBanner().then(bn=>{if(bn)db.ref('users/'+uid+'/banner').set(bn)})};
@@ -1484,8 +1489,8 @@ function menuTab(t){
 document.querySelectorAll('.rtab').forEach(b=>b.onclick=()=>menuTab(b.dataset.p));
 $('#gear').addEventListener('click',()=>{if($('#overlay').classList.contains('open')){const m=document.querySelector('#overlay .rmenu');m&&m.classList.remove('leaving');menuTab('players')}});
 let rsT;addEventListener('resize',()=>{clearTimeout(rsT);rsT=setTimeout(()=>{render();renderStickers()},150)});
-$('#enter').onclick=()=>enter($('#code').value);
-['#code','#name'].forEach(i=>$(i).onkeydown=e=>{if(e.key==='Enter')enter($('#code').value)});
+$('#enter').onclick=()=>enter($('#code').value,$('#rpw').value);
+['#code','#name','#rpw'].forEach(i=>$(i).onkeydown=e=>{if(e.key==='Enter')enter($('#code').value,$('#rpw').value)});
 $('#name').value=myProf.name;
 /* ===== NAME CHANGE: 1 free trial, then 100 Polis (with confirmation) ===== */
 const NAME_COST=100,nameFreeLeft=()=>!LS.get('pn_name_free_used',false);
@@ -1540,7 +1545,7 @@ $('#logout').onclick=()=>{
   const m=document.querySelector('#overlay .rmenu');if(m)m.classList.add('leaving');
   const c=el('div');c.id='curtain';c.append(el('span',null,'Leaving lobby…'));document.body.append(c);
   setTimeout(()=>c.classList.add('on'),120);
-  setTimeout(()=>{localStorage.removeItem('pn_code');if(ref)ref.off();location.reload()},950)};
+  setTimeout(()=>{localStorage.removeItem('pn_code');localStorage.removeItem('pn_rpw');if(ref)ref.off();location.reload()},950)};
 /* sync setup (gate) */
 $('#syncRow').innerHTML='Sincronizzazione: <b>'+(FIREBASE_CONFIG?'ON':'OFF')+'</b> (<a id="syncLink">setup</a>)';
 $('#syncLink').onclick=()=>{$('#syncBox').hidden=!$('#syncBox').hidden};
@@ -1551,6 +1556,7 @@ $('#syncSave').onclick=()=>{
   const c={};[...t.matchAll(/["']?(\w+)["']?\s*:\s*["']([^"']*)["']/g)].forEach(m=>c[m[1]]=m[2]);
   if(!cfgOk(c)){alert('Config incomplete: it needs real apiKey and databaseURL values.');return}
   localStorage.setItem('pn_fbcfg',JSON.stringify(c));location.reload()};
+if(SYNC)$('#rpwRow').style.display='none';
 if(SYNC)$('#p2pRow').style.display='none';else{$('#p2pOn').checked=p2pPref();$('#p2pOn').onchange=e=>LS.set('pn_p2p',e.target.checked)}
 /* home nav: Play / About / Friends */
 function gView(v){
@@ -1562,7 +1568,7 @@ $('#navAbout').onclick=()=>gView('about');
 $('#navFriends').onclick=()=>{gView('friends');renderFView()};
 $('#gChat').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
 const saved=LS.get('pn_code',null);
-if(saved)document.addEventListener('DOMContentLoaded',()=>enter(saved));
+if(saved)document.addEventListener('DOMContentLoaded',()=>enter(saved,LS.get('pn_rpw','')));
 
 /* ===== COMPOSER ===== */
 document.querySelectorAll('.composer .dot').forEach(d=>d.onclick=()=>{color=d.dataset.c;
@@ -2443,7 +2449,7 @@ function raUi(){const p=$('#paSettings');if(!p||$('#raBox'))return;
     try{await db.ref('rooms/'+room+'/invites/'+tok).set({t:now(),exp:now()+86400000,by:uid})}catch(e){rulesErr(e);return}
     const link=location.origin+location.pathname+'#join='+encodeURIComponent(LS.get('pn_code',''))+'&inv='+tok;
     try{await navigator.clipboard.writeText(link);msg('Link copied (valid 24 h, one person only): '+link)}catch{msg('Invite link (24 h, one person only): '+link)}};
-  async function load(){if(!SYNC||!db||!room){msg('Password and invite rooms need Firebase sync, which is off.');$('#raSave').disabled=$('#raInv').disabled=$('#raMode').disabled=true;return}
+  async function load(){if(!SYNC||!db||!room){msg(privRoom?'🔒 This is a private room: only people with the same access code and password can find it. (Single-use invite links need Firebase sync.)':'This room is open. For a private room, quit the lobby and enter again with a room password.');$('#raSave').disabled=$('#raInv').disabled=$('#raMode').disabled=true;return}
     const m=(await meta().once('value')).val()||{};RAM=m;$('#raMode').value=m.m||'open';
     const own=!m.o||m.o===uid;$('#raSave').disabled=$('#raInv').disabled=$('#raMode').disabled=!own;
     msg(!m.o?'Nobody owns this room yet: whoever saves a setting first becomes the owner.':own?'You are the owner of this room.':'Only the room owner can change this.')}
