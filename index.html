@@ -826,7 +826,9 @@ async function enter(code){
   const okN=await tryRename($('#name').value);
   if(!okN){eb.classList.remove('go');eb.textContent='Enter';return}
   myName=myProf.name;
-  room=await sha(code);LS.set('pn_code',code);inRoom=true;
+  room=await sha(code);
+  if(window.pnRoomGate&&!(await pnRoomGate(room,code))){eb.classList.remove('go');eb.textContent='Enter';room=undefined;return}
+  LS.set('pn_code',code);inRoom=true;
   board=LS.get('pn_board_'+room,'main');
   if(!db&&p2pPref()){db=makeP2P(room);
     db.onConnect=()=>{db.ref('users/'+uid+'/p').set(myProf);myBanner().then(bn=>{if(bn)db.ref('users/'+uid+'/banner').set(bn)})};
@@ -1228,7 +1230,7 @@ function startChat(){
   enterT=Date.now();lobbyMsgs.length=0;if(chL)chL.off();
   if(!db){renderChat();return}
   chL=db.ref('rooms/'+room+'/chat').limitToLast(100);
-  chL.on('child_added',s=>{const m=s.val();if(!m)return;lobbyMsgs.push(m);if(lobbyMsgs.length>200)lobbyMsgs.shift();loadProfiles([m.u]);
+  chL.on('child_added',s=>{const m=s.val();if(!m)return;m.k=s.key;lobbyMsgs.push(m);if(lobbyMsgs.length>200)lobbyMsgs.shift();loadProfiles([m.u]);
     if(chatOpen()&&tab==='lobby'&&!dmWith)addMsg(m);
     else if(m.t>enterT&&m.u!==uid){unread++;badges();if(LS.get('pn_snd',true))ping()}})}
 function addMsg(m){
@@ -1262,7 +1264,7 @@ function renderChat(){
   }
   else if(dmWith){const u=dmWith;loadProfiles([u]);
     dmRef=db.ref('dms/'+pair(u)+'/msgs').limitToLast(100);
-    dmRef.on('child_added',s=>{const m=s.val();if(m&&dmWith===u)addMsg(m)});
+    dmRef.on('child_added',s=>{const m=s.val();if(m&&dmWith===u){m.k=s.key;addMsg(m)}});
     if(!body.children.length)body.append(el('p','mut','Say hi to '+((profs[u]||{}).name||'your friend')+'!'));
   }else if(tab==='lobby'){if(lobbyMsgs.length)lobbyMsgs.forEach(addMsg);else body.append(el('p','mut','No messages yet. Say hi!'))}
   else friendsList(body)}
@@ -1270,7 +1272,7 @@ function openChat(v){$('#chat').classList.toggle('open',v);if(v){unread=0;badges
 $('#chatBtn').onclick=()=>openChat(!chatOpen());$('#chClose').onclick=()=>openChat(false);
 document.querySelectorAll('#chat .tab').forEach(t=>t.onclick=()=>{tab=t.dataset.t;dmWith=null;renderChat()});
 $('#chBack').onclick=()=>{dmWith=null;renderChat()};
-function sendChat(){const t=$('#chText').value.trim().slice(0,300);
+function sendChat(){if(window.pnMuted&&pnMuted())return;const t=$('#chText').value.trim().slice(0,300);
   if(t&&dmWith&&!SYNC){$('#chText').value='';sSendDM(dmWith,t);return}
   if(!t||!db)return;$('#chText').value='';
   fb(db.ref(dmWith?'dms/'+pair(dmWith)+'/msgs':'rooms/'+room+'/chat').push({u:uid,n:myName,t:Date.now(),x:t}))}
@@ -1464,9 +1466,10 @@ function renderPlayers(){
     row.append(a,nm);
     const v=el('button','rb','View');v.onclick=()=>openProfile(u.uid);if(u.uid)row.append(v);
     const fb_=playerBtn(u.uid);if(fb_)row.append(fb_);
-    if(window.__owner&&!me&&u.uid&&window.pnMod){const kb=el('button','rb','Kick'),bb=el('button','rb','Ban');
-      [kb,bb].forEach(b=>{b.style.minWidth='64px';b.style.borderColor='#c0283c';b.style.color='#c0283c'});
-      kb.onclick=()=>pnMod.kick(u.uid,u.name||'Guest');bb.onclick=()=>pnMod.banDlg(u.uid,u.name||'Guest');row.append(kb,bb)}
+    if(!me&&u.uid&&window.pnFx){const pb=el('button','rb','Play');pb.style.minWidth='64px';pb.onclick=()=>pnFx.challenge(u.uid,u.name||'Guest');row.append(pb)}
+    if(window.__owner&&!me&&u.uid&&window.pnMod){const kb=el('button','rb','Kick'),bb=el('button','rb','Ban'),mb=el('button','rb','Mute');
+      [kb,bb,mb].forEach(b=>{b.style.minWidth='64px';b.style.borderColor='#c0283c';b.style.color='#c0283c'});
+      kb.onclick=()=>pnMod.kick(u.uid,u.name||'Guest');bb.onclick=()=>pnMod.banDlg(u.uid,u.name||'Guest');mb.onclick=()=>pnFx.muteDlg(u.uid,u.name||'Guest');row.append(mb,kb,bb)}
     box.append(row)});
   box.scrollTop=sc}
 function menuTab(t){
@@ -1554,7 +1557,7 @@ $('#navAbout').onclick=()=>gView('about');
 $('#navFriends').onclick=()=>{gView('friends');renderFView()};
 $('#gChat').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
 const saved=LS.get('pn_code',null);
-if(saved)enter(saved);
+if(saved)document.addEventListener('DOMContentLoaded',()=>enter(saved));
 
 /* ===== COMPOSER ===== */
 document.querySelectorAll('.composer .dot').forEach(d=>d.onclick=()=>{color=d.dataset.c;
@@ -1796,20 +1799,26 @@ const card=(i,n,d,l)=>{const c=document.createElement('div');c.className='gmC';c
 
 /* --- Polis shop --- */
 IC.s=SV('<path d="M5 8h14l-1 12H6z" fill="currentColor"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2.2"/>','');
-const SK=[['⭐','Star',180],['🔥','Fire',180],['🎓','Graduate',240],['📚','Books',240],['🚀','Rocket',300],['🐱','Cat',300],['🐶','Dog',300],['👻','Ghost',360],['🌈','Rainbow',450],['🦄','Unicorn',600],['👑','Crown',750],['💎','Gem',900]];
+const HWON=(()=>{const d=new Date(),m=d.getMonth();return m==9||(m==10&&d.getDate()<=7)})();
+const HWK=new Set(['p-pumpkin','p-haunted','p-witch','p-blood','s🎃','s🦇','s🕸️','s💀','s🧛','s🧟','fx_web','fx_pumpkin','fr_hw','nc_hw']);
+const SK=[['⭐','Star',180],['🔥','Fire',180],['🎓','Graduate',240],['📚','Books',240],['🚀','Rocket',300],['🐱','Cat',300],['🐶','Dog',300],['👻','Ghost',360],['🌈','Rainbow',450],['🦄','Unicorn',600],['👑','Crown',750],['💎','Gem',900],['🎃','Pumpkin',250],['🦇','Bat',250],['🕸️','Spider web',250],['💀','Skull',300],['🧛','Vampire',400],['🧟','Zombie',400]];
 const TP=[{id:'p-aurora',name:'Aurora',bg:'linear-gradient(135deg,#0f2027,#2c5364,#00c9a7)',accent:'#00c9a7',line:'rgba(255,255,255,.1)',dark:1,p:1600},
  {id:'p-sunset',name:'Sunset',bg:'linear-gradient(135deg,#ff512f,#dd2476)',accent:'#ff512f',line:'rgba(255,255,255,.15)',dark:1,p:1600},
  {id:'p-sakura',name:'Sakura',bg:'linear-gradient(135deg,#ffe3ec,#ffb3c9)',accent:'#e0457b',line:'rgba(0,0,0,.05)',dark:0,p:1600},
  {id:'p-midnight',name:'Midnight',bg:'linear-gradient(160deg,#0b0b2b,#1b1b5e)',accent:'#8b7bff',line:'rgba(255,255,255,.08)',dark:1,p:2000},
  {id:'p-gold',name:'Gold',bg:'linear-gradient(135deg,#fff7d6,#f5c542)',accent:'#b8860b',line:'rgba(0,0,0,.06)',dark:0,p:2000},
- {id:'p-matrix',name:'Matrix',bg:'#041a0c',accent:'#2bff75',line:'rgba(43,255,117,.1)',dark:1,p:2400}];
+ {id:'p-matrix',name:'Matrix',bg:'#041a0c',accent:'#2bff75',line:'rgba(43,255,117,.1)',dark:1,p:2400},
+ {id:'p-pumpkin',name:'🎃 Pumpkin Night',bg:'linear-gradient(160deg,#1a0b2e,#3b1450 55%,#ff7a18)',accent:'#ff7a18',line:'rgba(255,255,255,.08)',dark:1,p:1800},
+ {id:'p-haunted',name:'👻 Haunted Mansion',bg:'linear-gradient(160deg,#0d0d14,#2a2a3c 60%,#5b4b7a)',accent:'#b9a7ff',line:'rgba(255,255,255,.07)',dark:1,p:1800},
+ {id:'p-witch',name:'🧪 Witch Brew',bg:'radial-gradient(circle at 30% 20%,#7cff4d 0,transparent 40%),radial-gradient(circle at 80% 80%,#b84dff 0,transparent 45%),#1b0f2b',accent:'#7cff4d',line:'rgba(255,255,255,.07)',dark:1,p:2000},
+ {id:'p-blood',name:'🌑 Blood Moon',bg:'radial-gradient(circle at 75% 20%,#ff3b3b 0,#8b0a1a 14%,transparent 15%),linear-gradient(160deg,#12060a,#2b0a14)',accent:'#ff4d5e',line:'rgba(255,255,255,.06)',dark:1,p:2200}];
 const RX=[['🔥','Fire',450],['🎉','Party',450],['😍','Heart eyes',450],['👀','Eyes',450],['🤯','Mind blown',600],['💯','100',600]];
 window.pnReacts=()=>RX.filter(r=>S.own['r'+r[0]]).map(r=>r[0]);
 window.pnPolis={earn:n=>earn(n),ex:()=>Object.values(EX).flat().map(x=>x.k),own:()=>S.own,eq:()=>S.eq||{},st:()=>S.st||0,bal:()=>S.c,spend:n=>{if(!(S.c>=n))return false;S.c-=n;save();coins();return true}};
-const EXD={fr:[['gold','Gold frame',500],['red','Ruby frame',500],['blue','Ocean frame',500],['rb','Rainbow frame',900]],nc:[['red','Red name',300],['blue','Blue name',300],['gold','Gold name',400],['rb','Rainbow name',700]],fx:[['glow','Glow notes',600],['tilt','Wobbly notes',500],['shadow','Bold shadow',400],['rb','Rainbow edge',800]],wk:[['neon','Neon notes',1500],['fire','Fire name',1200],['galaxy','Galaxy frame',1500],['ice','Ice notes',1200],['sun','Sun name',1000],['candy','Candy frame',1200]]};
-const FRS={gold:'0 0 0 4px #f5c542',red:'0 0 0 4px #e03a3a',blue:'0 0 0 4px #3a82c4',rb:'0 0 0 3px #f55,0 0 0 6px #fc3,0 0 0 9px #58f'};
-const NCS={red:'color:#ff5a5a',blue:'color:#3a82c4',gold:'color:#d4a017',rb:'background:linear-gradient(90deg,#f55,#fc3,#5e8,#58f,#c4c);-webkit-background-clip:text;background-clip:text;color:transparent'};
-const FXS={glow:'box-shadow:0 0 12px 3px #f0455a',tilt:'transform:rotate(-4deg);box-shadow:2px 4px 8px rgba(0,0,0,.25)',shadow:'box-shadow:6px 7px 0 rgba(0,0,0,.35)',rb:'border:3px solid;border-image:linear-gradient(135deg,#f55,#fc3,#5e8,#58f,#c4c) 1'};
+const EXD={fr:[['gold','Gold frame',500],['red','Ruby frame',500],['blue','Ocean frame',500],['rb','Rainbow frame',900],['hw','🎃 Pumpkin frame',800]],nc:[['red','Red name',300],['blue','Blue name',300],['gold','Gold name',400],['rb','Rainbow name',700],['hw','🎃 Halloween name',600]],fx:[['glow','Glow notes',600],['tilt','Wobbly notes',500],['shadow','Bold shadow',400],['rb','Rainbow edge',800],['web','🕸️ Spider webs',700],['pumpkin','🎃 Pumpkin glow',700]],wk:[['neon','Neon notes',1500],['fire','Fire name',1200],['galaxy','Galaxy frame',1500],['ice','Ice notes',1200],['sun','Sun name',1000],['candy','Candy frame',1200]]};
+const FRS={gold:'0 0 0 4px #f5c542',red:'0 0 0 4px #e03a3a',blue:'0 0 0 4px #3a82c4',rb:'0 0 0 3px #f55,0 0 0 6px #fc3,0 0 0 9px #58f',hw:'0 0 0 4px #ff7a18,0 0 0 7px #2a1038'};
+const NCS={red:'color:#ff5a5a',blue:'color:#3a82c4',gold:'color:#d4a017',rb:'background:linear-gradient(90deg,#f55,#fc3,#5e8,#58f,#c4c);-webkit-background-clip:text;background-clip:text;color:transparent',hw:'color:#ff7a18;text-shadow:0 0 6px #7a1fa2'};
+const FXS={glow:'box-shadow:0 0 12px 3px #f0455a',tilt:'transform:rotate(-4deg);box-shadow:2px 4px 8px rgba(0,0,0,.25)',shadow:'box-shadow:6px 7px 0 rgba(0,0,0,.35)',rb:'border:3px solid;border-image:linear-gradient(135deg,#f55,#fc3,#5e8,#58f,#c4c) 1',web:'box-shadow:2px 4px 8px rgba(0,0,0,.25);outline:2px dashed #888',pumpkin:'box-shadow:0 0 12px 3px #ff7a18'};
 const WKB={neon:'linear-gradient(135deg,#0ff,#f0f)',fire:'linear-gradient(135deg,#f33,#ff7a18)',galaxy:'linear-gradient(135deg,#1b1b5e,#7b5cff)',ice:'linear-gradient(135deg,#9be7ff,#fff)',sun:'linear-gradient(135deg,#ffd400,#fa0)',candy:'linear-gradient(135deg,#ff9ad5,#9bf6ff)'};
 const PVW=(c,id)=>c=='wk'?'<div style="width:72px;height:46px;margin:8px auto 12px;border-radius:6px;background:'+WKB[id]+'"></div>':c=='fr'?'<div style="width:44px;height:44px;margin:8px auto 14px;border-radius:50%;background:#f0455a;color:#fff;font:800 20px Rubik,sans-serif;display:grid;place-items:center;box-shadow:'+FRS[id]+'">P</div>':c=='nc'?'<div style="font:800 20px Rubik,sans-serif;margin:10px 0;'+NCS[id]+'">Your name</div>':'<div style="width:72px;height:46px;margin:8px auto 12px;background:#8cc8f5;color:#222;border-radius:3px;font:11px sans-serif;padding:5px;'+FXS[id]+'">Note</div>';
 const EX={};Object.keys(EXD).forEach(c=>EX[c]=EXD[c].map(([id,n,p])=>({k:c+'_'+id,n,p,pv:PVW(c,id)})));
@@ -1821,10 +1830,10 @@ let drawStk=()=>{};
   drawStk=()=>{row.textContent='';try{const p=pView===uid?myProf:(profs[pView]||{});(Array.isArray(p.stk)?p.stk:[]).slice(0,5).forEach(e=>{const x=document.createElement('span');x.textContent=String(e).slice(0,8);row.append(x)})}catch{}};
   new MutationObserver(drawStk).observe(pn,{childList:true,characterData:true,subtree:true})}}
 function shop(L){
- L.innerHTML='<div class="row" style="margin:0 0 6px">'+Object.keys(CATS).map(c=>`<button class="chip ${c==CAT?'on':''}" data-c="${c}">${CATS[c]}</button>`).join('')+`</div><div style="font-size:13px;opacity:.7;margin-bottom:10px">${HINT[CAT]}</div><div class="gmG" id="gmS"></div>`;
+ L.innerHTML='<div class="row" style="margin:0 0 6px">'+Object.keys(CATS).map(c=>`<button class="chip ${c==CAT?'on':''}" data-c="${c}">${CATS[c]}</button>`).join('')+`</div><div style="font-size:13px;opacity:.7;margin-bottom:10px">${HINT[CAT]}${HWON?' 🎃 Halloween specials are on sale until Nov 7!':''}</div><div class="gmG" id="gmS"></div>`;
  L.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{CAT=b.dataset.c;shop(L)});
  const big=e=>`<div style="font-size:34px">${e}</div>`,G=L.querySelector('#gmS');
- (CAT=='st'?SK.map(([e,n,p])=>({k:'s'+e,n,p,e,pv:big(e)})):CAT=='th'?TP.map(t=>({k:t.id,n:t.name,p:t.p,t,pv:`<div style="height:40px;border-radius:8px;background:${t.bg}"></div>`})):CAT in EX?(CAT=='wk'?EX.wk.filter((x,i)=>S.own[x.k]||Math.floor(i/2)==Math.floor(Date.now()/604800000)%3):EX[CAT]):RX.map(([e,n,p])=>({k:'r'+e,n,p,e,pv:big(e)}))).forEach(it=>{
+ (CAT=='st'?SK.map(([e,n,p])=>({k:'s'+e,n,p,e,pv:big(e)})):CAT=='th'?TP.map(t=>({k:t.id,n:t.name,p:t.p,t,pv:`<div style="height:40px;border-radius:8px;background:${t.bg}"></div>`})):CAT in EX?(CAT=='wk'?EX.wk.filter((x,i)=>S.own[x.k]||Math.floor(i/2)==Math.floor(Date.now()/604800000)%3):EX[CAT]):RX.map(([e,n,p])=>({k:'r'+e,n,p,e,pv:big(e)}))).filter(it=>!HWK.has(it.k)||HWON||S.own[it.k]).forEach(it=>{
   const own=S.own[it.k],eq=CAT=='st'&&(myProf.stk||[]).includes(it.e);
   const c=card(it.pv,it.n,own?'Owned':CO+' '+it.p,own?(CAT=='st'?(eq?'Unequip':'Equip'):CAT=='th'?'Apply':CAT in EX?((S.eq||{})[CAT]==it.k?'Unequip':'Equip'):'Owned'):'Buy'),b=c.querySelector('button');
   if(own&&CAT=='rx')b.disabled=true;
@@ -1892,6 +1901,7 @@ setInterval(()=>{const n=Date.now();if(document.visibilityState==='visible'&&n-a
  if(++cnt%10==0)save();if(cnt%3==0)paint()},1000);
 addEventListener('pagehide',save);
 if(S.dd!==today())setTimeout(()=>toast('Daily reward available!'),2000);
+if(HWON&&localStorage.getItem('pn_hw_d')!==today()){try{localStorage.setItem('pn_hw_d',today())}catch{}setTimeout(()=>toast('🎃 Halloween items are in the Polis shop!'),5000)}
 }catch(e){console.warn('games',e)}})();
 </script>
 
@@ -2005,23 +2015,23 @@ const myUid=()=>uid;
 /* ---------- ban screen ---------- */
 let banned=false,banT=null;
 const two=n=>String(n).padStart(2,'0');
-const fmtLeft=ms=>{let s=Math.max(0,Math.ceil(ms/1000));const d=Math.floor(s/86400);s-=d*86400;const h=Math.floor(s/3600);s-=h*3600;const m=Math.floor(s/60);s-=m*60;
-  return (d?d+(IT?'g ':'d '):'')+two(h)+':'+two(m)+':'+two(s)};
+const fmtLeft=(ms,en)=>{let s=Math.max(0,Math.ceil(ms/1000));const d=Math.floor(s/86400);s-=d*86400;const h=Math.floor(s/3600);s-=h*3600;const m=Math.floor(s/60);s-=m*60;
+  return (d?d+(IT&&!en?'g ':'d '):'')+two(h)+':'+two(m)+':'+two(s)};
 function clearBan(reload){try{localStorage.removeItem('pn_ban')}catch{}
   try{if(SYNC&&db)db.ref('bans/'+uid).remove().catch(()=>{})}catch{}
   if(reload)location.reload()}
 function showBan(b){
   if(banned)return;banned=true;document.documentElement.classList.add('banned');
   const o=document.createElement('div');o.id='banScr';
-  const bx=el('div','bx'),h=el('h1',null,T('SEI STATO BANNATO','YOU ARE BANNED'));
-  const dur=el('div',null,T('Non puoi accedere a Poli-Notes per:','You cannot access Poli-Notes for:'));
-  const big=el('div','big',b.n+' '+unitName(b.k,b.n));
-  const until=el('div',null,T('Il ban termina il ','Your ban ends on ')+new Date(b.until).toLocaleString(navigator.language||'en-GB'));
+  const bx=el('div','bx'),h=el('h1',null,'YOU ARE BANNED');
+  const dur=el('div',null,'You cannot access Poli-Notes for:');
+  const big=el('div','big',b.n+' '+(UN_EN[b.k][b.n==1?0:1]));
+  const until=el('div',null,'Your ban ends on '+new Date(b.until).toLocaleString('en-GB'));
   const left=el('small');
   bx.append(h,dur,big,until,left);
-  if(b.r){const r=el('div','rs');r.append(el('b',null,T('Motivo: ','Reason: ')),document.createTextNode(String(b.r).slice(0,80)));bx.append(r)}
+  if(b.r){const r=el('div','rs');r.append(el('b',null,'Reason: '),document.createTextNode(String(b.r).slice(0,80)));bx.append(r)}
   o.append(bx);document.body.append(o);
-  const tick=()=>{const ms=b.until-Date.now();if(ms<=0){clearInterval(banT);clearBan(true);return}left.textContent=T('Tempo rimanente: ','Time left: ')+fmtLeft(ms)};
+  const tick=()=>{const ms=b.until-Date.now();if(ms<=0){clearInterval(banT);clearBan(true);return}left.textContent='Time left: '+fmtLeft(ms,1)};
   tick();banT=setInterval(tick,1000)}
 function applyBan(b){
   if(!b||!(b.until>Date.now())||!Number.isFinite(b.until))return;
@@ -2040,7 +2050,7 @@ const watchBan=path=>{if(!db)return;
     else if(banned||LS.get('pn_ban',null)){if(path==='bans/'+uid||(!v&&banned))clearBan(true)}},()=>{})};
 function doKicked(){
   try{sessionStorage.setItem('pn_kicked','1')}catch{}
-  const c=el('div');c.id='curtain';c.append(el('span',null,T('Sei stato cacciato dalla Lobby…','You were kicked from the Lobby…')));document.body.append(c);
+  const c=el('div');c.id='curtain';c.append(el('span',null,'You were kicked from the Lobby…'));document.body.append(c);
   setTimeout(()=>c.classList.add('on'),50);
   localStorage.removeItem('pn_code');
   setTimeout(()=>{try{if(ref)ref.off()}catch{}location.reload()},1300)}
@@ -2057,7 +2067,7 @@ setInterval(()=>{if(document.body.classList.contains('entered')&&db&&room)watchK
 /* ---------- on load ---------- */
 {const b=LS.get('pn_ban',null);
  if(b&&b.until>Date.now())applyBan(b);else if(b)localStorage.removeItem('pn_ban');
- try{if(sessionStorage.getItem('pn_kicked')){sessionStorage.removeItem('pn_kicked');setTimeout(()=>toast(T('Sei stato cacciato dalla Lobby.','You were kicked from the Lobby.')),700)}}catch{}}
+ try{if(sessionStorage.getItem('pn_kicked')){sessionStorage.removeItem('pn_kicked');setTimeout(()=>toast('You were kicked from the Lobby.'),700)}}catch{}}
 
 /* ---------- owner side ---------- */
 const online=()=>Object.values(lastPres||{}).filter(u=>u&&u.uid);
@@ -2112,7 +2122,7 @@ function banDlg(tu,name){
     ban(tu,name,n,sel.value,o.querySelector('#br').value.trim());o.remove()}}
 
 /* console commands (called from run()) */
-window.pnMod={kick:(u,n)=>{const r=kick(u,n);return r},banDlg,
+window.pnMod={h:{resolve,guard,addDur,unitKey,unitName,T,UNITS},kick:(u,n)=>{const r=kick(u,n);return r},banDlg,
  cmd(c,v){
   const body=v.replace(/^\/?\S+\s*/,'');
   if(c==='kick'){const t=resolve(body),g=guard(t);if(g)return g;return kick(t.uid,t.name)}
@@ -2162,7 +2172,7 @@ window.pnGift=(id,n,from,msg)=>{try{n=Number(n);if(typeof id!=='string'||id.leng
 if(SYNC&&db){db.ref('users/'+uid+'/gifts').on('child_added',s=>{const g=s.val()||{},k=s.key;setTimeout(()=>{pnGift(k,g.n,g.f,g.m);s.ref.remove()},3000)})}
 function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,n=parseInt(b,10);
  switch(c){
- case 'help':return '/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/kick <player>   (throws them out of the Lobby)\n/ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\n/unban <friend code>\n/bans   (active bans)\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
+ case 'help':return '/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/kick <player>   (throws them out of the Lobby)\n/ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\n/unban <friend code>\n/bans   (active bans)\n/mute <player> <N> <unit> [reason]   (lobby chat only)\n/unmute <player|friend code>\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
  case 'polis':if(!P||isNaN(n)||n<0)return 'Usage: /polis add|take|set N';
   if(a=='add')P.earn(n);else if(a=='take')P.earn(-Math.min(n,P.bal()));else if(a=='set')P.earn(n-P.bal());else return 'Usage: /polis add|take|set N';
   return 'Balance: '+P.bal()+' Polis';
@@ -2181,7 +2191,7 @@ function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,
  case 'unlock':if(!P)return 'n/a';P.ex().forEach(k=>P.own()[k]=1);P.spend(0);return 'All cosmetics unlocked.';
  case 'tutorial':localStorage.removeItem('pn_tut');return 'The tutorial will show again on your next visit.';
  case 'whoami':return 'uid: '+uid+'\nname: '+myProf.name;
- case 'kick':case 'ban':case 'unban':case 'bans':return window.pnMod?pnMod.cmd(c,v):'n/a';
+ case 'kick':case 'ban':case 'unban':case 'bans':case 'mute':case 'unmute':return window.pnMod?pnMod.cmd(c,v):'n/a';
  case 'lock':unlocked=false;window.__owner=0;$('#ownOv')&&$('#ownOv').remove();try{renderPlayers()}catch{}return '';
  default:return 'Unknown command. Type /help'}}
 function con(){if($('#ownOv'))return;const o=document.createElement('div');o.id='ownOv';
@@ -2255,5 +2265,248 @@ const w=setInterval(()=>{if(document.body.classList.contains('entered')&&db&&roo
  db.ref('rooms/'+room+'/polls').on('value',s=>drawPolls(s.val()))}},500);
 }catch(e){console.warn('extras3',e)}})();
 </script>
+<style>
+.prow{flex-wrap:wrap}.prow .pn{min-width:90px}
+/* chat reactions */
+.rcs{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;align-items:center}
+.rc{border:1px solid #ddd;background:#fff;color:#222;border-radius:10px;font-size:11px;line-height:18px;padding:0 6px;cursor:pointer}
+.rc.me{background:#ffe3e7;border-color:var(--accent)}.rc.add{opacity:.45}.rc.add:hover{opacity:1}
+.rp{display:inline-flex;gap:2px;background:#fff;border:1px solid #ddd;border-radius:10px;padding:0 3px}
+.rp button{border:0;background:none;font-size:15px;cursor:pointer;padding:0 2px}
+/* dialogs + games */
+.fxd{position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(25,38,48,.55);backdrop-filter:blur(3px)}
+.fxd .tc{width:min(100%,420px);max-height:92vh;overflow:auto;background:#fff;color:#222;border:2px solid #2b2b2b;box-shadow:8px 8px 0 rgba(0,0,0,.28);padding:18px;font:16px/1.4 'Source Sans 3',Arial,sans-serif;text-align:left}
+.fxd h2{margin:0 0 10px;font:800 20px 'Rubik',sans-serif;color:var(--accent)}
+.fxd input,.fxd select{width:100%;margin:5px 0;padding:8px;font:15px 'Source Sans 3',Arial,sans-serif;border:1px solid #b9b9b9;background:#fff;color:#222}
+.fxd .tr{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.fxd button{flex:1;min-height:42px;border:2px solid #2b2b2b;border-radius:2px;font:700 16px 'Source Sans 3',Arial,sans-serif;cursor:pointer;background:#fff;color:#222;padding:0 10px}
+.fxd button.go{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fxd button:disabled{opacity:.45;cursor:default}
+.fxd .fxm{margin:6px 0;font-weight:600}.fxd .fxs{font-size:13px;opacity:.7}
+.fxd .tabs{display:flex;gap:6px;margin-bottom:10px}.fxd .tabs button{min-height:34px;font-size:14px}.fxd .tabs button.sel{background:#2b2b2b;color:#fff}
+.fxg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px auto;max-width:240px}
+.fxg button{aspect-ratio:1;font-size:34px;padding:0;min-height:0}
+.fxr{width:100%;height:150px;font-size:20px!important;background:#e5e5e5!important}
+.fxr.wait{background:#ffb3b3!important}.fxr.go{background:#7bea8f!important}
+.fxl{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid #ddd;margin:4px 0;background:#fafafa}
+.fxl.me{border-color:var(--accent);background:#fff3f4}.fxl b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fxBtn{position:fixed;top:14px;left:52px;z-index:60;width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);background:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0}
+body:not(.entered) #fxBtn{display:none}
+/* Halloween skins */
+body.fx-web .note::after{content:'🕸️';position:absolute;top:-10px;right:-8px;font-size:26px;pointer-events:none}
+body.fx-pumpkin .note{box-shadow:0 0 14px 3px #ff7a18,2px 4px 10px rgba(0,0,0,.2);border:2px solid #ff7a18}
+body.fr-hw #pOv[data-me="1"] #pPfp{box-shadow:0 0 0 4px #ff7a18,0 0 0 8px #2a1038}
+body.nc-hw #pOv[data-me="1"] #pName{color:#ff7a18;text-shadow:0 0 8px #7a1fa2}
+</style>
+<script>
+/* ===== FEATURES: chat reactions, mute, room access, minigames, leaderboard ===== */
+(()=>{try{
+const now=()=>Date.now();
+const live=()=>!!(db&&room&&document.body.classList.contains('entered'));
+const rl=ms=>{const n=Math.max(0,Math.ceil(ms/60000));return n>=2880?Math.round(n/1440)+' days':n>=120?Math.round(n/60)+' hours':n+' min'};
+function dlg(title,build,onClose){const o=el('div','fxd'),tc=el('div','tc');let shut=false;
+  const close=()=>{if(shut)return;shut=true;o.remove();if(onClose)try{onClose()}catch{}};
+  tc.append(el('h2',null,title));o.append(tc);o.onclick=e=>{if(e.target===o)close()};document.body.append(o);build(tc,close);return close}
+const row=(...a)=>{const r=el('div','tr');a.forEach(([t,f,c])=>{const b=el('button',c||null,t);b.onclick=f;r.append(b)});return r};
+const askText=(title,ph,type)=>new Promise(res=>{let d=false;const fin=v=>{if(!d){d=true;res(v)}};
+  dlg(title,(tc,close)=>{const i=el('input');i.type=type||'text';i.placeholder=ph||'';
+    const ok=()=>{const v=i.value;close();fin(v)};i.onkeydown=e=>{if(e.key==='Enter')ok()};
+    tc.append(i,row(['Cancel',()=>{close();fin(null)}],['OK',ok,'go']));setTimeout(()=>i.focus(),30)},()=>fin(null))});
+const info=(title,text)=>new Promise(res=>dlg(title,(tc,close)=>{tc.append(el('div','fxm',text),row(['OK',close,'go']))},res));
+
+/* ---------- 1. chat reactions ---------- */
+const EM=['👍','❤️','😂','😮','😢','🔥'];
+let RC={},rcBase='',rcRef=null;
+const baseFor=()=>dmWith?(SYNC?'dms/'+pair(dmWith)+'/creact':''):(db&&room?'rooms/'+room+'/creact':'');
+function watchRc(){const b=baseFor();if(b===rcBase)return;
+  if(rcRef){try{rcRef.off()}catch{}rcRef=null}rcBase=b;RC={};if(!b||!db)return;
+  rcRef=db.ref(b);rcRef.on('value',s=>{RC=s.val()||{};document.querySelectorAll('#chBody .msg[data-k]').forEach(paintRc)})}
+function toggleRc(k,e,has){if(!rcBase||!db)return;const r=db.ref(rcBase+'/'+k+'/'+e+'/'+uid);fb(has?r.remove():r.set(1))}
+function paintRc(r){const k=r.dataset.k;if(!k)return;let bar=r.querySelector('.rcs');
+  if(!bar){bar=el('div','rcs');r.querySelector('.mb').append(bar)}
+  bar.textContent='';const m=RC[k]||{};
+  Object.keys(m).forEach(e=>{const us=Object.keys(m[e]||{});if(!us.length)return;
+    const b=el('button','rc'+(us.includes(uid)?' me':''),e+' '+us.length);b.onclick=()=>toggleRc(k,e,us.includes(uid));bar.append(b)});
+  const add=el('button','rc add','☺+');
+  add.onclick=()=>{const old=bar.querySelector('.rp');if(old){old.remove();return}
+    const p=el('span','rp');EM.forEach(e=>{const b=el('button',null,e);b.onclick=()=>{toggleRc(k,e,!!((RC[k]||{})[e]||{})[uid]);p.remove()};p.append(b)});bar.append(p)};
+  bar.append(add)}
+{const o=window.addMsg;window.addMsg=function(m){o.apply(this,arguments);
+  try{const r=$('#chBody').lastElementChild;if(r&&m&&m.k&&r.classList.contains('msg')){r.dataset.k=m.k;watchRc();paintRc(r)}}catch{}}}
+
+/* ---------- 2. temporary mute ---------- */
+let muteUntil=0,muteOn=false;
+window.pnMuted=()=>{if(muteUntil>now()){toast('You are muted for another '+rl(muteUntil-now())+'.');return true}return false};
+function watchMute(){if(muteOn||!db||!room)return;muteOn=true;
+  db.ref('rooms/'+room+'/mutes/'+uid).on('value',s=>{const v=s.val();muteUntil=v&&v.until>now()?v.until:0;
+    const i=$('#chText');if(i)i.placeholder=muteUntil?'You are muted until '+new Date(muteUntil).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'Say something...'})}
+function mute(tu,name,n,k,r){const h=pnMod.h,T=h.T;
+  if(!db||!room)return T('Entra prima in una stanza.','Enter a room first.');
+  if(tu===uid)return T('Non puoi farlo a te stesso.','You cannot do that to yourself.');
+  if(!Number.isInteger(n)||n<1||n>9999||!h.UNITS[k])return T('Durata non valida.','Invalid duration.');
+  const until=h.addDur(n,k);if(!Number.isFinite(until))return T('Durata troppo lunga.','Duration too long.');
+  const b={until,n,k,t:now(),by:uid};if(r)b.r=String(r).slice(0,80);
+  const ok=name+T(' mutato per ',' muted for ')+n+' '+h.unitName(k,n)+'.';
+  return Promise.resolve(db.ref('rooms/'+room+'/mutes/'+tu).set(b)).then(()=>{toast(ok);return ok}).catch(e=>{rulesErr(e);return 'ERROR: '+String(e&&e.message||e)})}
+{const _cmd=pnMod.cmd;pnMod.cmd=function(c,v){const h=pnMod.h,T=h.T,body=v.replace(/^\/?\S+\s*/,'');
+  if(c==='mute'){const m=/^(.+?)\s+(\d+)\s*([a-zA-Z]+)\b\s*(.*)$/.exec(body);
+    if(!m)return T('Uso: /mute <giocatore> <N> <minuti|ore|giorni|settimane|mesi|anni> [motivo]','Usage: /mute <player> <N> <minutes|hours|days|weeks|months|years> [reason]');
+    const k=h.unitKey(m[3]);if(!k)return T('Unità non valida.','Invalid unit.');
+    const t=h.resolve(m[1]),g=h.guard(t);if(g)return g;return mute(t.uid,t.name,parseInt(m[2],10),k,m[4].trim())}
+  if(c==='unmute'){const t=h.resolve(body),g=h.guard(t);if(g)return g;if(!db||!room)return T('Entra prima in una stanza.','Enter a room first.');
+    db.ref('rooms/'+room+'/mutes/'+t.uid).remove();return T('Mute rimosso da ','Mute removed from ')+t.name+'.'}
+  return _cmd.apply(this,arguments)}}
+function durDlg(title,defN,defK,go,cb){dlg(title,(tc,close)=>{
+  const n=el('input');n.type='number';n.min=1;n.max=9999;n.value=defN;
+  const u=el('select');[['m','Minutes'],['h','Hours'],['d','Days'],['w','Weeks'],['mo','Months'],['y','Years']].forEach(([v,t])=>{const o=el('option',null,t);o.value=v;u.append(o)});u.value=defK;
+  const r=el('input');r.maxLength=80;r.placeholder='Reason (optional)';const l=el('div');l.style.cssText='display:flex;gap:8px';n.style.flex='1';u.style.flex='1';l.append(n,u);
+  tc.append(l,r,row(['Cancel',close],[go,()=>{const v=parseInt(n.value,10);if(!(v>=1&&v<=9999)){toast('Invalid duration.');return}close();cb(v,u.value,r.value.trim())},'go']))})}
+
+/* ---------- 3. room access: password / invite ---------- */
+let INV='';
+{const hs=new URLSearchParams((location.hash||'').replace(/^#/,''));INV=(hs.get('inv')||'').replace(/[^a-z0-9]/gi,'').slice(0,40);
+ const j=hs.get('join');const c=document.getElementById('code');if(j&&c&&!c.value)c.value=j}
+const deny=()=>{try{localStorage.removeItem('pn_code')}catch{}};
+window.pnRoomGate=async(R,code)=>{
+  if(!SYNC||!db)return true;
+  let m;try{m=(await db.ref('rooms/'+R+'/meta').once('value')).val()}catch{return true}
+  if(!m||!m.m||m.m==='open'||m.o===uid)return true;
+  if(m.m==='pw'){const sv=LS.get('pn_rp_'+R,'');if(sv&&sv===m.pw)return true;
+    for(let i=0;i<3;i++){const p=await askText('Protected room','Room password','password');if(p==null)break;
+      if(await sha(R+':'+p)===m.pw){LS.set('pn_rp_'+R,m.pw);return true}toast('Wrong password.')}
+    deny();return false}
+  if(m.m==='inv'){
+    try{if((await db.ref('rooms/'+R+'/allow/'+uid).once('value')).exists())return true}catch{}
+    if(INV){try{const t=(await db.ref('rooms/'+R+'/invites/'+INV).once('value')).val();
+      if(t&&t.exp>now()){await db.ref('rooms/'+R+'/invites/'+INV).remove();await db.ref('rooms/'+R+'/allow/'+uid).set(1);
+        try{history.replaceState(null,'',location.pathname+location.search)}catch{}return true}}catch{}}
+    deny();await info('Invite only','This room is invite only. Ask the room owner for a (new) invite link.');return false}
+  return true};
+let RAM=null;
+function raUi(){const p=$('#paSettings');if(!p||$('#raBox'))return;
+  const h=el('h3',null,'Room access'),b=el('div');b.id='raBox';
+  b.innerHTML='<select id="raMode" class="chip" style="width:100%;margin:4px 0;padding:6px"><option value="open">Open - anyone with the access code</option><option value="pw">Password</option><option value="inv">Invite only (single-use links)</option></select><input id="raPw" type="password" placeholder="New room password" autocomplete="new-password" style="width:100%;margin:4px 0;padding:6px;border:1px solid #ccc"><div class="tools"><button class="btn" id="raSave">Save</button><button class="btn" id="raInv">Create invite link</button></div><div id="raMsg" style="font-size:13px;opacity:.8;margin-top:6px;word-break:break-all"></div>';
+  p.append(h,b);
+  const msg=t=>$('#raMsg').textContent=t,meta=()=>db.ref('rooms/'+room+'/meta');
+  $('#raSave').onclick=async()=>{if(!SYNC||!room)return;if(RAM&&RAM.o&&RAM.o!==uid){msg('Only the room owner can change this.');return}
+    const mode=$('#raMode').value,n={o:uid,m:mode};
+    if(mode==='pw'){const pw=$('#raPw').value;if(pw.length<4){msg('The password needs at least 4 characters.');return}n.pw=await sha(room+':'+pw);LS.set('pn_rp_'+room,n.pw)}
+    if(mode==='inv'){const ids=new Set(Object.values(lastPres||{}).map(u=>u&&u.uid).filter(Boolean));ids.forEach(u=>fb(db.ref('rooms/'+room+'/allow/'+u).set(1)))}
+    try{await meta().set(n);RAM=n;$('#raPw').value='';msg(mode==='open'?'Room is open.':mode==='pw'?'Password saved. People entering now must type it.':'Invite only. Everyone here now stays allowed; new people need an invite link.')}catch(e){rulesErr(e);msg('Could not save.')}};
+  $('#raInv').onclick=async()=>{if(!(RAM&&RAM.m==='inv')||RAM.o!==uid){msg('Choose "Invite only", press Save, then create links (owner only).');return}
+    const tok=[...crypto.getRandomValues(new Uint8Array(10))].map(x=>(x%36).toString(36)).join('');
+    try{await db.ref('rooms/'+room+'/invites/'+tok).set({t:now(),exp:now()+86400000,by:uid})}catch(e){rulesErr(e);return}
+    const link=location.origin+location.pathname+'#join='+encodeURIComponent(LS.get('pn_code',''))+'&inv='+tok;
+    try{await navigator.clipboard.writeText(link);msg('Link copied (valid 24 h, one person only): '+link)}catch{msg('Invite link (24 h, one person only): '+link)}};
+  async function load(){if(!SYNC||!db||!room){msg('Password and invite rooms need Firebase sync, which is off.');$('#raSave').disabled=$('#raInv').disabled=$('#raMode').disabled=true;return}
+    const m=(await meta().once('value')).val()||{};RAM=m;$('#raMode').value=m.m||'open';
+    const own=!m.o||m.o===uid;$('#raSave').disabled=$('#raInv').disabled=$('#raMode').disabled=!own;
+    msg(!m.o?'Nobody owns this room yet: whoever saves a setting first becomes the owner.':own?'You are the owner of this room.':'Only the room owner can change this.')}
+  $('#gear').addEventListener('click',()=>{if(live())load().catch(()=>{})})}
+raUi();
+
+/* ---------- 4. minigames ---------- */
+const GN={ttt:'Tic-Tac-Toe',rps:'Rock-Paper-Scissors'};
+const gp=()=>'rooms/'+room+'/games';
+const wr=(id,o)=>fb(db.ref(gp()+'/'+id).set(o));
+let G={},gOn=false,gO=null,gT=null;const dis=new Set(),awarded=new Set(),resolved=new Set();
+const gbox=()=>{if(gO&&document.body.contains(gO))return gT;gO=el('div','fxd');gT=el('div','tc');gO.append(gT);document.body.append(gO);return gT};
+const gclose=()=>{if(gO){gO.remove();gO=null;gT=null}};
+const dayKey=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
+function award(n,why){const c=LS.get('pn_fx_cap',{d:'',n:0}),cap=c.d===dayKey()?c:{d:dayKey(),n:0},give=Math.max(0,Math.min(n,100-cap.n));
+  cap.n+=give;LS.set('pn_fx_cap',cap);if(give&&window.pnPolis)pnPolis.earn(give);toast(give?'🎮 +'+give+' Polis ('+why+')':'🎮 Daily game Polis limit reached (100).')}
+function createGame(g,bu,bn){if(!live())return;
+  if(Object.entries(G).some(([id,x])=>x&&(x.a===uid||x.b===uid)&&now()-x.t<1200000&&!dis.has(id))){toast('Finish your current game first.');return}
+  const id=now().toString(36)+Math.random().toString(36).slice(2,5);
+  wr(id,{g,a:uid,an:myName,b:bu,bn,st:'inv',t:now(),bd:'---------',tu:'a',sa:0,sb:0,rd:1});toast('Challenge sent to '+bn+'.')}
+const tttWin=b=>{for(const[x,y,z]of[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]])if(b[x]!=='-'&&b[x]===b[y]&&b[y]===b[z])return b[x];return null};
+const BEAT={r:'s',s:'p',p:'r'},RPS={r:'✊',p:'✋',s:'✌️'};
+function dismiss(id,g){dis.add(id);if(g&&g.a===uid)try{db.ref(gp()+'/'+id).remove()}catch{}gclose()}
+function renderGame(id,g){
+  const me=g.a===uid?'a':'b',oth=me==='a'?'b':'a',on=(me==='a'?g.bn:g.an)||'Guest',tc=gbox();tc.textContent='';
+  tc.append(el('h2',null,(GN[g.g]||'Game')+' · vs '+on));
+  const msg=t=>{const d=el('div','fxm',t);tc.append(d);return d};
+  if(g.st==='inv'){
+    if(me==='b'){msg(on+' challenges you!');tc.append(row(['Decline',()=>{wr(id,{...g,st:'no',t:now()});dis.add(id);gclose()}],['Accept',()=>wr(id,{...g,st:'play',t:now()}),'go']))}
+    else{msg('Waiting for '+on+' to accept...');tc.append(row(['Cancel',()=>dismiss(id,g)]))}return}
+  if(g.st==='no'){msg(me==='a'?on+' declined.':'Declined.');tc.append(row(['Close',()=>dismiss(id,g),'go']));return}
+  const done=g.st==='done';
+  if(g.g==='ttt'){
+    const bd=String(g.bd||'---------').split('');
+    msg(done?'':(g.tu===me?'Your turn ('+(me==='a'?'✕':'◯')+')':'Waiting for '+on+'...'));
+    const grid=el('div','fxg');bd.forEach((c,i)=>{const b=el('button',null,c==='-'?'':c==='a'?'✕':'◯');b.disabled=done||g.tu!==me||c!=='-';
+      b.onclick=()=>{const nb=bd.slice();nb[i]=me;const w=tttWin(nb),n={...g,bd:nb.join(''),t:now()};
+        if(w){n.st='done';n.w=w}else if(!nb.includes('-')){n.st='done';n.w='d'}else n.tu=oth;wr(id,n)};grid.append(b)});tc.append(grid)}
+  else{
+    msg('Best of 3 · You '+(me==='a'?g.sa:g.sb)+' - '+(me==='a'?g.sb:g.sa)+' '+on);
+    if(g.lr){const mine=g.lr['p'+me],th=g.lr['p'+oth];msg('Last round: '+RPS[mine]+' vs '+RPS[th]+' - '+(g.lr.r==='d'?'draw':g.lr.r===me?'you won it':on+' won it'))}
+    const picked=g['p'+me];
+    if(!done)msg(picked?'Waiting for '+on+'...':'Pick one:');
+    const r=el('div','tr');['r','p','s'].forEach(k=>{const b=el('button',null,RPS[k]);b.style.fontSize='30px';b.disabled=done||!!picked;b.onclick=()=>fb(db.ref(gp()+'/'+id+'/p'+me).set(k));r.append(b)});tc.append(r)}
+  if(done){const w=g.w;msg(w==='d'?'Draw!':w===me?'You win! 🎉':on+' wins.');
+    if(!awarded.has(id)){awarded.add(id);if(w==='d')award(5,'draw');else if(w===me){award(20,'win');LS.set('pn_fx_w',(LS.get('pn_fx_w',0)||0)+1);publishLb()}}
+    tc.append(row(['Close',()=>dismiss(id,g),'go']))}
+  else tc.append(row(['Forfeit',()=>wr(id,{...g,st:'done',w:oth,t:now()})]))}
+function syncGame(){
+  const mine=Object.entries(G).filter(([id,g])=>g&&(g.a===uid||g.b===uid)&&now()-g.t<1200000&&!dis.has(id)).sort((x,y)=>y[1].t-x[1].t);
+  if(!mine.length){gclose();return}
+  const [id,g]=mine[0];
+  if(g.g==='rps'&&g.st==='play'&&g.a===uid&&g.pa&&g.pb&&!resolved.has(id+':'+g.rd)){resolved.add(id+':'+g.rd);
+    const r=g.pa===g.pb?'d':BEAT[g.pa]===g.pb?'a':'b',n={...g,sa:g.sa+(r==='a'?1:0),sb:g.sb+(r==='b'?1:0),lr:{pa:g.pa,pb:g.pb,r},rd:g.rd+1,t:now()};
+    delete n.pa;delete n.pb;if(n.sa>=2||n.sb>=2){n.st='done';n.w=n.sa>=2?'a':'b'}wr(id,n);return}
+  if(g.st==='inv'&&g.b===uid&&!gO){try{if(LS.get('pn_snd',true))ping()}catch{}}
+  renderGame(id,g)}
+function startGames(){if(gOn||!live())return;gOn=true;db.ref(gp()).on('value',s=>{G=s.val()||{};try{syncGame()}catch(e){console.warn(e)}})}
+function challenge(bu,bn){dlg('Challenge '+bn,(tc,close)=>{tc.append(el('div','fxm','Pick a game:'),
+  row(['Tic-Tac-Toe',()=>{close();createGame('ttt',bu,bn)}],['Rock-Paper-Scissors',()=>{close();createGame('rps',bu,bn)}]))})}
+function reaction(){let to=0;dlg('Reaction test',(tc,close)=>{
+  const b=el('button','fxr','Click to start'),best=()=>LS.get('pn_fx_rt',0),inf=el('div','fxs','Best: '+(best()?best()+' ms':'-'));let st=0,t0=0;
+  b.onclick=()=>{if(st===0||st===3){st=1;b.className='fxr wait';b.textContent='Wait for green...';to=setTimeout(()=>{st=2;t0=performance.now();b.className='fxr go';b.textContent='CLICK!'},1200+Math.random()*2800)}
+    else if(st===1){clearTimeout(to);st=3;b.className='fxr';b.textContent='Too soon! Click to retry'}
+    else{const ms=Math.round(performance.now()-t0);st=3;b.className='fxr';b.textContent=ms+' ms - click to retry';
+      if(!best()||ms<best()){LS.set('pn_fx_rt',ms);inf.textContent='New best: '+ms+' ms';publishLb()}}};
+  tc.append(b,inf,row(['Close',close]))},()=>clearTimeout(to))}
+
+/* ---------- 5. leaderboard ---------- */
+let LB={},lbOn=false,lbView=null;
+function publishLb(){if(!live()||!window.pnPolis)return;
+  const bd=window.pnBD&&pnBD.B&&pnBD.B.got?Object.keys(pnBD.B.got).length:0;
+  fb(db.ref('rooms/'+room+'/lb/'+uid).set({n:String(myName).slice(0,16),p:Math.max(0,pnPolis.bal()|0),b:bd,w:LS.get('pn_fx_w',0)||0,r:LS.get('pn_fx_rt',0)||0,t:now()}))}
+function startLb(){if(lbOn||!live())return;lbOn=true;db.ref('rooms/'+room+'/lb').on('value',s=>{LB=s.val()||{};if(lbView)lbView()});setTimeout(publishLb,1500)}
+const METRICS=[['p','Polis',1],['b','Badges',1],['w','Wins',1],['r','Reaction',0]];
+function openMenu(){let tab='play',met='p';
+  dlg('Games & leaderboard',(tc,close)=>{
+    const tabs=el('div','tabs'),body=el('div');tc.append(tabs,body,row(['Close',close]));
+    const draw=()=>{tabs.textContent='';[['play','Play'],['lb','Leaderboard']].forEach(([k,t])=>{const b=el('button',tab===k?'sel':null,t);b.onclick=()=>{tab=k;draw()};tabs.append(b)});
+      body.textContent='';lbView=null;
+      if(tab==='play'){
+        const others=Object.values(lastPres||{}).filter(u=>u&&u.uid&&u.uid!==uid),seen=new Set();
+        const list=others.filter(u=>!seen.has(u.uid)&&seen.add(u.uid));
+        body.append(el('div','fxm','Play with someone in the lobby'));
+        if(!list.length)body.append(el('div','fxs','Nobody else is here right now.'));
+        else{const sel=el('select');list.forEach(u=>{const o=el('option',null,u.name||'Guest');o.value=u.uid;sel.append(o)});
+          const go=g=>{const u=list.find(x=>x.uid===sel.value);if(u){close();createGame(g,u.uid,u.name||'Guest')}};
+          body.append(sel,row(['Tic-Tac-Toe',()=>go('ttt')],['Rock-Paper-Scissors',()=>go('rps')]))}
+        body.append(el('div','fxm','Solo'),row(['Reaction test',()=>{close();reaction()}]));
+        body.append(el('div','fxs','Wins pay 20 Polis (max 100 Polis per day from games).'))}
+      else{
+        const mr=el('div','tabs');METRICS.forEach(([k,t])=>{const b=el('button',met===k?'sel':null,t);b.onclick=()=>{met=k;paint()};mr.append(b)});body.append(mr);
+        const out=el('div');body.append(out);
+        const paint=()=>{mr.querySelectorAll('button').forEach((b,i)=>b.className=METRICS[i][0]===met?'sel':'');out.textContent='';
+          const asc=!METRICS.find(m=>m[0]===met)[2],unit=met==='r'?' ms':'';
+          const rows=Object.entries(LB).filter(([,v])=>v&&now()-v.t<2592000000&&Number.isFinite(v[met])&&v[met]>0).sort((x,y)=>asc?x[1][met]-y[1][met]:y[1][met]-x[1][met]);
+          if(!rows.length){out.append(el('div','fxs','Nobody on the board yet.'));return}
+          rows.slice(0,10).forEach(([u,v],i)=>{const r=el('div','fxl'+(u===uid?' me':''));r.append(el('span',null,['🥇','🥈','🥉'][i]||(i+1)+'.'),el('b',null,String(v.n||'Guest').slice(0,16)),el('span',null,v[met]+unit));out.append(r)});
+          const mi=rows.findIndex(([u])=>u===uid);if(mi>=10)out.append(el('div','fxs','Your rank: #'+(mi+1)))};
+        paint();lbView=paint}};
+    draw()},()=>{lbView=null})}
+const fxb=el('button',null,'🎮');fxb.id='fxBtn';fxb.title='Games & leaderboard';fxb.onclick=()=>{if(live())openMenu()};document.body.append(fxb);
+
+window.pnFx={challenge:(u,n)=>{if(live())challenge(u,n)},muteDlg:(u,n)=>durDlg('Mute: '+n,10,'m','Mute',(v,k,r)=>{const x=mute(u,n,v,k,r);if(x&&x.then)x.then(t=>toast(t));else toast(x)}),open:openMenu};
+setInterval(()=>{if(!live())return;watchMute();startGames();startLb()},800);
+setInterval(()=>{if(live())publishLb()},60000);
+}catch(e){console.warn('features',e)}})();
+</script>
+
 </body>
 </html>
