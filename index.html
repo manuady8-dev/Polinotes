@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f0455a">
 <title>Poli-Notes</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0455a'/%3E%3Crect x='22' y='26' width='56' height='48' fill='%23fff'/%3E%3Cpath d='M32 42h36M32 54h36M32 66h22' stroke='%23f0455a' stroke-width='5'/%3E%3C/svg%3E">
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@800&family=Fira+Code&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@800&family=Fira+Code&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -155,64 +155,211 @@ body.dk .sub{background:rgba(0,0,0,.35)}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(46,204,113,.6)}100%{box-shadow:0 0 0 8px rgba(46,204,113,0)}}
 .av{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font:800 11px 'Rubik',sans-serif;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);animation:pop .4s var(--ease)}
 .av.me{outline:2px solid #222;outline-offset:1px}
-/* gate */
-#syncBox textarea{width:100%;height:90px;margin-top:8px;padding:6px;font:10px monospace;border:1px solid #ccc;border-radius:6px}
-.gate a{color:var(--accent);cursor:pointer;text-decoration:underline}
-.gate{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center;background:var(--bg);transition:opacity .6s var(--ease),transform .6s var(--ease),visibility .6s}
-.gate.out{opacity:0;transform:scale(1.15);visibility:hidden;pointer-events:none}
-.gate .box{background:#fff;color:#222;padding:18px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);width:min(90vw,300px);animation:pop .6s var(--ease)}
-.gate input{width:100%;padding:9px;font:13px 'Fira Code',monospace;text-align:center;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;letter-spacing:2px}
-.gate small{display:block;margin-top:10px;font-size:10px;opacity:.6}
-.gate .upd{position:absolute;right:28px;top:50%;transform:translateY(-50%);width:230px;background:#fff;color:#222;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:14px 16px;text-align:left;animation:pop .6s var(--ease)}
-.gate .upd table{width:100%;border-collapse:collapse;font-size:12px}
-.gate .upd th{font:800 12px 'Rubik',sans-serif;letter-spacing:1px;text-transform:uppercase;color:var(--accent);padding:0 0 8px;border-bottom:2px solid var(--accent);text-align:left}
-.gate .upd td{padding:8px 0;border-bottom:1px solid rgba(0,0,0,.08);vertical-align:top;line-height:1.35}
-.gate .upd tr:last-child td{border-bottom:0;padding-bottom:0}
-.gate .upd td:first-child{width:22px}
-@media(max-width:980px){.gate{overflow:auto;justify-content:flex-start;padding-top:8vh}.gate .upd{position:static;transform:none;width:min(90vw,300px)}}
+/* gate (notebook home) */
+#syncBox textarea{width:100%;height:90px;margin-top:8px;padding:6px;font:10px monospace;border:1px solid #ccc;border-radius:2px}
+.gate{--rb:'Source Sans 3','Source Sans Pro','Segoe UI',Arial,sans-serif;position:fixed;inset:0;z-index:50;overflow:auto;color:#222;font-family:var(--rb);text-align:left;background-color:#fff;background-image:linear-gradient(rgba(74,134,196,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(74,134,196,.22) 1px,transparent 1px);background-size:26px 26px;transition:opacity .55s .2s var(--ease),visibility .8s}
+.gate.out{opacity:0;visibility:hidden;pointer-events:none}
+.gate .gbar{position:sticky;top:0;z-index:3;height:64px;background:#fff;border-bottom:1px solid #d6d6d6;box-shadow:0 3px 0 rgba(0,0,0,.05);animation:barIn .5s var(--ease) backwards;transition:transform .5s var(--ease)}
+.gate.out .gbar{transform:translateY(-100%)}
+.gate .gbar>div{max-width:1000px;height:100%;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:6px}
+.gate .glogo-s{display:flex;align-items:center;gap:9px;margin-right:16px;color:#1f3540;font:700 21px var(--rb);letter-spacing:.3px}
+.gate .glogo-s i{display:grid;place-items:center;width:34px;height:34px;background:#e03a3a;color:#fff;font:800 20px 'Rubik',sans-serif;font-style:normal;border-radius:4px;transform:rotate(-6deg);box-shadow:0 0 0 2px #fff inset,2px 2px 0 rgba(0,0,0,.18)}
+.gate .gnav a{display:inline-block;padding:20px 14px 17px;color:#666;font:600 17px var(--rb);text-decoration:none;border-bottom:3px solid transparent;cursor:pointer;transition:color .2s,border-color .25s,background .2s}
+.gate .gnav a:hover{color:var(--accent);background:rgba(0,0,0,.03)}.gate .gnav a.sel{color:var(--accent);border-bottom-color:var(--accent)}
+.gate .gbar .sp{flex:1}
+.gate .gbar .gbadge{color:#888;font:italic 400 14px var(--rb)}
+.gate .gmain{position:relative;z-index:1;max-width:1000px;min-height:calc(100vh - 64px);margin:0 auto;padding:40px 16px;display:flex;justify-content:space-between;align-items:flex-start;gap:28px;flex-wrap:wrap}
+.gate .glogo{margin-top:90px;max-width:480px;animation:logoIn .7s var(--ease) backwards;transition:transform .5s var(--ease),opacity .4s}
+.gate.out .glogo{transform:translateX(-80px) rotate(-5deg);opacity:0}
+.gate .glogo .lg{display:inline-block;padding:2px 18px 6px;background:#e03a3a;color:#fff;font:800 clamp(38px,6vw,62px)/1.1 'Rubik',sans-serif;letter-spacing:1px;border:5px solid #fff;outline:3px solid #b32323;transform:rotate(-3deg);text-shadow:2px 3px 0 #8f1717;box-shadow:4px 6px 0 rgba(0,0,0,.25)}
+.gate .glogo .tag{display:block;margin-top:16px;padding:10px 16px;background:rgba(40,52,60,.78);color:#fff;font:400 clamp(19px,3vw,27px)/1.2 var(--rb);border:0}
+.gate .gcol{width:min(100%,444px)}
+.gate .gview{display:none}
+.gate .gview.on{display:block;animation:viewIn .45s var(--ease) backwards;transition:transform .45s var(--ease),opacity .35s}
+.gate.out .gview.on{transform:translateY(-40px) scale(.95);opacity:0}
+.gate .gpanel{background:#fff;padding:16px 16px 18px;margin-bottom:16px;border:2px solid #2b2b2b;box-shadow:6px 6px 0 rgba(0,0,0,.13)}
+.gate .gpanel h2{margin:0 0 12px 2px;font:600 24px var(--rb);color:#222}
+.gate .gpanel input[type=text],.gate .gpanel input[type=password]{display:block;width:100%;height:47px;margin:0 0 10px;padding:0 14px;font:400 17px var(--rb);color:#222;text-align:left;letter-spacing:0;background:#fff;border:1px solid #b9b9b9;border-radius:0;transition:border-color .2s,box-shadow .2s}
+.gate .gpanel input::placeholder{color:#999}
+.gate .gpanel input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.gate .gpanel #enter{position:relative;display:block;height:46px;margin:6px 0 0;border:0;border-radius:2px;background:var(--accent);color:#fff;font:600 21px var(--rb);letter-spacing:.3px;cursor:pointer;overflow:hidden;box-shadow:0 4px 0 rgba(0,0,0,.25);transition:transform .12s,box-shadow .12s,filter .2s}
+.gate .gpanel #enter:hover{filter:brightness(1.08)}
+.gate .gpanel #enter:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.gate .gpanel #enter.go{pointer-events:none;transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25);background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.22) 0 14px,transparent 14px 28px);background-size:56px 100%;animation:stripes .5s linear infinite}
+.gate .gpanel small{display:block;margin-top:10px;font:400 14px var(--rb);color:#555;opacity:1}
+.gate .gpanel a{color:#1a74c4;cursor:pointer;text-decoration:underline}
+.gate .gpanel label{font:400 14px var(--rb)}
+.gate #gChat{margin-top:12px;padding:7px 14px;border:2px solid #2b2b2b;border-radius:2px;background:#fff;color:#222;font:600 15px var(--rb);cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.15);transition:transform .12s,box-shadow .12s,background .2s}
+.gate #gChat:hover{background:#f4f4f4}.gate #gChat:active{transform:translate(2px,2px);box-shadow:0 0 0}
+.gate .strip{margin:12px 0 0;width:auto;max-width:100%;justify-content:flex-start;border-radius:0;background:#f6f6f6;font:600 14px var(--rb)}
+.gate .upd{position:static;transform:none;width:auto;animation:none}
+.gate .upd table{width:100%;border-collapse:collapse;font:400 15px var(--rb)}
+.gate .upd th{padding:0 0 6px;border-bottom:2px solid var(--accent);color:var(--accent);font:700 16px var(--rb);letter-spacing:.5px;text-transform:uppercase;text-align:left}
+.gate .upd td{padding:7px 0;border-bottom:1px solid rgba(0,0,0,.09);vertical-align:top;line-height:1.3}
+.gate .upd tr:last-child td{border-bottom:0}.gate .upd td:first-child{width:24px}
+@media(max-width:860px){.gate .glogo{margin-top:12px}.gate .gnav a{padding:20px 9px 17px;font-size:15px}.gate .gbar .gbadge{display:none}}
 .shake{animation:shake .4s}@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@keyframes barIn{from{transform:translateY(-100%)}}
+@keyframes logoIn{from{opacity:0;transform:translateX(-50px) rotate(-4deg)}}
+@keyframes viewIn{from{opacity:0;transform:translateY(20px) rotate(.8deg)}}
+@keyframes stripes{to{background-position:56px 0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}}
+@keyframes dropIn{from{opacity:0;transform:translateY(-14px)}}
+@keyframes paneIn{from{opacity:0;transform:translateX(10px)}}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+body.entered main{animation:rise .7s .2s var(--ease) backwards}
+/* menu (Players / Settings) — pagina di quaderno */
+#overlay{z-index:40;padding:16px;font-family:'Source Sans 3','Source Sans Pro','Segoe UI',Arial,sans-serif}
+#overlay.open{background:rgba(25,38,48,.5);backdrop-filter:blur(3px)}
+.rmenu{--ink:#2b2b2b;display:grid;grid-template-columns:184px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"head head" "tabs pane" "btns btns";width:min(94vw,820px);height:min(88vh,700px);color:var(--ink);background-color:#fffdf8;background-image:linear-gradient(rgba(74,134,196,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(74,134,196,.16) 1px,transparent 1px);background-size:26px 26px;border:2px solid var(--ink);box-shadow:8px 8px 0 rgba(0,0,0,.28);opacity:0;transform:translateY(26px) rotate(-1.2deg) scale(.97);transition:opacity .3s var(--ease),transform .35s var(--ease)}
+#overlay.open .rmenu{opacity:1;transform:none}
+#overlay.open .rmenu.leaving{opacity:0;transform:translateY(46px) rotate(2deg) scale(.94);transition:opacity .35s,transform .4s var(--ease)}
+#overlay.open .rtabs{animation:dropIn .4s var(--ease) backwards}
+#overlay.open .rbtns{animation:fadeUp .45s .12s var(--ease) backwards}
+.rhead{grid-area:head;display:flex;align-items:center;gap:10px;padding:10px 16px;background:#fff;border-bottom:2px solid var(--ink)}
+.rhead i{display:grid;place-items:center;width:30px;height:30px;background:#e03a3a;color:#fff;font:800 18px 'Rubik',sans-serif;font-style:normal;border-radius:4px;transform:rotate(-6deg);box-shadow:0 0 0 2px #fff inset,2px 2px 0 rgba(0,0,0,.18)}
+.rhead b{font:800 20px 'Rubik',sans-serif;letter-spacing:1px;color:var(--accent)}
+.rhead span{margin-left:auto;font:italic 400 15px 'Source Sans 3','Source Sans Pro','Segoe UI',Arial,sans-serif;color:#777}
+.rtabs{grid-area:tabs;display:flex;flex-direction:column;gap:12px;padding:18px 14px;border-right:2px dashed rgba(0,0,0,.28)}
+.rtab{display:flex;align-items:center;gap:10px;height:50px;padding:0 14px;border:2px solid var(--ink);border-radius:2px;background:#fff;color:var(--ink);font:700 19px 'Source Sans 3','Source Sans Pro','Segoe UI',Arial,sans-serif;cursor:pointer;box-shadow:3px 3px 0 rgba(0,0,0,.18);transition:transform .2s var(--ease),background .2s,color .2s,box-shadow .2s}
+.rtab:hover{transform:translate(-1px,-1px) rotate(-1deg);box-shadow:4px 4px 0 rgba(0,0,0,.2)}
+.rtab.sel,.rtab.sel:hover{background:var(--accent);color:#fff;transform:rotate(-2deg);box-shadow:4px 4px 0 rgba(0,0,0,.28)}
+.rtab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rpane{grid-area:pane;min-height:0;overflow:auto;padding:16px 18px}
+.rpane:not([hidden]){animation:paneIn .3s var(--ease)}
+.rpane[hidden]{display:none}
+.rpane::-webkit-scrollbar{width:8px}.rpane::-webkit-scrollbar-thumb{background:rgba(0,0,0,.3);border-radius:4px}
+.prow{display:flex;align-items:center;gap:12px;min-height:58px;margin-bottom:10px;padding:6px 12px;background:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.13);font-size:19px;font-weight:600;transition:transform .2s var(--ease),box-shadow .2s,border-color .2s}
+.prow:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(0,0,0,.18)}
+.prow.anim{animation:fadeUp .38s var(--ease) backwards;animation-delay:calc(var(--i,0)*50ms)}
+.prow.inv{cursor:pointer;min-height:52px;border-style:dashed;background:#fff7f8;color:var(--accent)}
+.prow .av{flex:none;width:38px;height:38px;font-size:16px;border:2px solid var(--ink);box-shadow:none;border-radius:50%}
+.prow .av.on::after{right:-4px;bottom:-4px;width:12px;height:12px}
+.prow .pn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .pn small{margin-left:8px;font-size:15px;font-weight:400;color:#777}
+.rb{flex:none;min-width:98px;height:38px;padding:0 12px;border:2px solid var(--ink);border-radius:2px;background:#fff;color:var(--ink);font:700 16px 'Source Sans 3','Source Sans Pro','Segoe UI',Arial,sans-serif;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.2);transition:background .2s,color .2s,transform .12s,box-shadow .12s}
+.rb:hover{background:var(--accent);color:#fff}.rb:active{transform:translate(2px,2px);box-shadow:none}
+.rb.dis{background:#eee;color:#888;border-style:dashed}.rb.dis:hover{background:#e2e2e2;color:#555}
+.prow svg{flex:none;width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rset,.rpane.rset{margin:16px 18px;padding:14px 16px 18px;background:rgba(255,255,255,.95);border:2px solid var(--ink);box-shadow:4px 4px 0 rgba(0,0,0,.13);color:#222;font-size:16px}
+.rset h3{margin:18px 0 8px;font:700 15px 'Source Sans 3','Source Sans Pro','Segoe UI',Arial,sans-serif;text-transform:uppercase;letter-spacing:.5px;color:#333;border-bottom:2px solid var(--accent);padding-bottom:3px}
+.rset h3:first-child{margin-top:0}
+.rset .pref{font-size:16px}.rset .tools .btn,.rset .btn{border-radius:2px}
+.rbtns{grid-area:btns;display:flex;gap:14px;padding:12px 18px;background:#fff;border-top:2px solid var(--ink)}
+.rbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;height:52px;padding:0 14px;border:2px solid var(--ink);border-radius:2px;background:#fff;color:var(--ink);font:700 20px 'Source Sans 3','Source Sans Pro','Segoe UI',Arial,sans-serif;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.25);transition:background .2s,color .2s,transform .12s,box-shadow .12s,filter .2s}
+#resume{background:var(--accent);color:#fff}
+#logout:hover{background:#ffe9ec;color:#a82a3c}#resume:hover{filter:brightness(1.08)}
+.rbtn:active,.rbtn.press{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.rbtn kbd{display:grid;place-items:center;min-width:32px;height:26px;padding:0 6px;border:2px solid currentColor;border-radius:4px;font:700 13px 'Source Sans 3','Source Sans Pro','Segoe UI',Arial,sans-serif;transition:transform .3s var(--ease)}
+.rbtn:hover kbd{transform:rotate(-8deg) scale(1.08)}
+@media(max-width:620px){.rmenu{grid-template-columns:1fr;grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"head" "tabs" "pane" "btns";height:min(92vh,700px)}.rhead span{display:none}.rtabs{flex-direction:row;padding:10px 12px;border-right:0;border-bottom:2px dashed rgba(0,0,0,.28)}.rtab{flex:1;justify-content:center;height:44px;font-size:17px}.prow{font-size:17px;gap:8px;padding:6px 8px}.rb{min-width:72px;height:36px;font-size:15px;padding:0 8px}.rbtn{font-size:17px;height:48px}.rpane{padding:12px}.rset,.rpane.rset{margin:12px}}
+/* leaving the lobby */
+#curtain{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background-color:#fff;background-image:linear-gradient(rgba(74,134,196,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(74,134,196,.22) 1px,transparent 1px);background-size:26px 26px;opacity:0;transition:opacity .45s var(--ease)}
+#curtain.on{opacity:1}
+#curtain span{display:flex;align-items:center;gap:12px;font:800 22px 'Rubik',sans-serif;color:var(--accent);opacity:0;transform:translateY(12px);transition:opacity .4s .15s,transform .4s .15s var(--ease)}
+#curtain.on span{opacity:1;transform:none}
+#curtain span::before{content:"";width:22px;height:22px;border:3px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important;transition-delay:0s!important}}
+body:has(#gate:not(.out)) #chatBtn{display:none}
+.strip[hidden]{display:none}
 #pOv{z-index:70}
 #gChat i{font:700 10px/16px sans-serif;font-style:normal;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e03a3a;color:#fff;text-align:center;display:inline-block;margin-left:4px}#gChat i[hidden]{display:none}
+/* lobby (in-room page): stile classic come la home */
+.mlogo{display:inline-block;max-width:92vw;margin:22px 0 26px;text-align:left}
+.mlogo .lg{display:inline-block;padding:2px 18px 6px;background:#e03a3a;color:#fff;font:800 clamp(32px,6vw,54px)/1.1 'Rubik',sans-serif;letter-spacing:1px;border:5px solid #fff;outline:3px solid #b32323;transform:rotate(-3deg);text-shadow:2px 3px 0 #8f1717;box-shadow:4px 6px 0 rgba(0,0,0,.25)}
+.mlogo .tag{display:block;margin-top:14px;padding:8px 14px;background:rgba(40,52,60,.78);color:#fff;font:400 clamp(16px,2.6vw,22px)/1.2 'Source Sans 3','Segoe UI',Arial,sans-serif}
+main .composer{border:2px solid #2b2b2b;border-radius:0;box-shadow:6px 6px 0 rgba(0,0,0,.13)}
+main .composer textarea{border-radius:0}
+main .composer .btn,main #tools .chip{border-radius:2px}
+main #online{border:2px solid #2b2b2b;border-radius:0;background:#fff;box-shadow:3px 3px 0 rgba(0,0,0,.13)}
+main #tools{border:2px solid #2b2b2b;border-radius:0;background:#fff;box-shadow:3px 3px 0 rgba(0,0,0,.13)}
+main #tools input,main #tools select{border-radius:0}
+/* chat: stile "forum anni 2015", blu notte semitrasparente */
+#chatBtn{width:36px;height:36px;border-radius:9px;border:2px solid rgba(255,255,255,.85);background:#1e2f4d;color:#fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+#chatBtn:hover{transform:none;background:#2a4270}
+.ci{width:20px;height:20px;vertical-align:-4px}
+#gChat .ci{width:18px;height:18px;margin-right:4px;color:#1e2f4d}
+#chat{left:14px;top:60px;bottom:auto;width:min(92vw,400px);height:min(62vh,380px);background:rgba(18,32,58,.72);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.35);backdrop-filter:blur(2px);overflow:hidden;transform:translateX(-120%)}
+#chat.open{transform:none}
+#chat header{background:rgba(8,16,34,.55);border-bottom:1px solid rgba(255,255,255,.18);padding:6px 10px}
+#chat header b{font:700 15px 'Source Sans 3','Segoe UI',Arial,sans-serif;letter-spacing:.3px}
+#chBack,#chClose{color:#fff;font-size:15px}
+#chat .tab{border:0;border-radius:4px;padding:3px 10px;font:600 12px 'Source Sans 3','Segoe UI',Arial,sans-serif;background:rgba(255,255,255,.14);color:#dbe6f5}
+#chat .tab:hover{background:rgba(255,255,255,.24)}
+#chat .tab.sel{background:#3d7be0;color:#fff}
+#chBody{padding:6px 0;font:14px/1.35 'Source Sans 3','Segoe UI',Arial,sans-serif;text-shadow:0 1px 2px rgba(0,0,0,.85)}
+#chBody::-webkit-scrollbar{width:7px}#chBody::-webkit-scrollbar-thumb{background:rgba(255,255,255,.35);border-radius:4px}
+#chBody h4{color:#9fb6d8;opacity:1;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+#chBody .mut{color:#cdd8ea;opacity:1;font-size:13px}
+#chat .msg{display:block;padding:1px 10px;font-size:14px}
+#chat .msg .av{display:none}
+#chat .mb,#chat .mh,#chat .mx{display:inline}
+#chat .mh b{filter:brightness(2.3) saturate(1.4)}
+#chat .mh b::after{content:":";margin-right:5px}
+#chat .mt{display:none}
+#chat .fr-row{font-size:14px;color:#fff;padding:4px 10px}
+#chat .fr-row .btn{background:rgba(255,255,255,.18);color:#fff;border-radius:3px;font-size:12px;padding:3px 8px;text-shadow:none}
+#chat .fr-row .btn:hover{background:#3d7be0}
+#chat .fr-row .ci{width:16px;height:16px;vertical-align:-3px}
+#chBody>.btn{background:rgba(255,255,255,.16);border-radius:3px;font-size:13px;text-shadow:none;margin:6px 10px!important;width:calc(100% - 20px)!important}
+#chInput{background:rgba(8,16,34,.55);border-top:1px solid rgba(255,255,255,.18);padding:6px 8px}
+#chInput input{background:rgba(225,230,240,.9);color:#222;border:0;border-radius:3px;font:13px 'Source Sans 3','Segoe UI',Arial,sans-serif;padding:7px 9px}
+#chInput .btn{background:#3d7be0;border-radius:3px;font-size:13px}
 </style>
 </head>
 <body class="lines">
 
 <div class="gate" id="gate">
-  <h1>POLI-NOTES</h1>
-  <div class="box">
-    <input id="name" type="text" maxlength="16" placeholder="Your name (optional)" autocomplete="off">
-    <input id="code" type="password" placeholder="Access code" autocomplete="off">
-    <button class="btn" id="enter" style="width:100%">Enter</button>
-    <small id="joinNote" style="display:none;opacity:1;font-weight:700;color:var(--accent)"></small>
-    <small><a id="invLink">🔗 Copy invite link</a></small>
-    <small>Anyone with the same code sees the same notes.</small>
-    <small id="syncRow"></small>
-    <small id="p2pRow"><label style="cursor:pointer"><input type="checkbox" id="p2pOn" style="width:auto;padding:0;margin:0 5px 0 0;vertical-align:middle;letter-spacing:0"> Stanze live con gli amici (senza sincronizzazione)</label></small>
-    <div id="syncBox" hidden><textarea id="syncTxt" placeholder="Paste your firebaseConfig here (empty = remove)"></textarea><button class="btn" id="syncSave" style="width:100%">Save &amp; reload</button><a id="rulesLink" style="display:block;margin-top:6px;cursor:pointer;text-decoration:underline;font-size:11px">Show database rules to paste in Firebase</a></div>
+  <header class="gbar"><div>
+    <span class="glogo-s"><i>P</i>Poli-Notes</span>
+    <nav class="gnav"><a class="sel" id="navPlay" data-v="play">Play</a><a id="navAbout" data-v="about">About</a><a id="navFriends">Friends</a></nav>
+    <span class="sp"></span><span class="gbadge">Our private corner for thoughts and reminders</span>
+  </div></header>
+  <div class="gmain">
+    <div class="glogo"><span class="lg">POLI-NOTES</span><span class="tag">Our private corner for thoughts and reminders.</span></div>
+    <div class="gcol">
+      <div class="gview on" data-v="play">
+        <div class="gpanel box">
+          <h2>Join a room and start writing!</h2>
+          <input id="name" type="text" maxlength="16" placeholder="Your name (optional)" autocomplete="off">
+          <input id="code" type="password" placeholder="Access code" autocomplete="off">
+          <button class="btn" id="enter" style="width:100%">Enter</button>
+          <small id="joinNote" style="display:none;opacity:1;font-weight:700;color:#1a74c4"></small>
+          <small><a id="invLink">🔗 Copy invite link</a></small>
+          <small>Anyone with the same code sees the same notes.</small>
+          <small id="syncRow"></small>
+          <small id="p2pRow"><label style="cursor:pointer"><input type="checkbox" id="p2pOn" style="display:inline;width:auto;height:auto;padding:0;margin:0 5px 0 0;vertical-align:middle;border:0;box-shadow:none"> Live rooms with friends (no sync needed)</label></small>
+          <div id="syncBox" hidden><textarea id="syncTxt" placeholder="Paste your firebaseConfig here (empty = remove)"></textarea><button class="btn" id="syncSave" style="width:100%">Save &amp; reload</button><a id="rulesLink" style="display:block;margin-top:6px;cursor:pointer;text-decoration:underline;font-size:13px">Show database rules to paste in Firebase</a></div>
+          <div id="gFriends" class="strip" hidden></div>
+          <button id="gChat"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2h-8l-5 4v-4H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="currentColor"/><circle cx="8" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="12" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="16" cy="11" r="1.4" fill="#1e2f4d"/></svg> Friends chat <i id="gBadge" hidden></i></button>
+        </div>
+      </div>
+      <div class="gview" data-v="about">
+        <aside class="gpanel upd" id="gAbout" aria-label="Updates">
+          <table>
+            <thead><tr><th colspan="2">What's new</th></tr></thead>
+            <tbody>
+              <tr><td>✅</td><td>Notebook-style home with Play / About / Friends</td></tr>
+              <tr><td>✅</td><td>New in-room menu (players and settings)</td></tr>
+              <tr><td>✅</td><td>Smooth transitions when entering and leaving</td></tr>
+              <tr><td>✅</td><td>Friends and private chats also work without sync</td></tr>
+              <tr><td>✅</td><td>Added friends and chats</td></tr>
+              <tr><td>✅</td><td>Added customizable profiles</td></tr>
+              <tr><td>✅</td><td>Added invites (link or friend invite)</td></tr>
+              <tr><td>✅</td><td>Added live rooms with friends (peer-to-peer)</td></tr>
+            </tbody>
+          </table>
+        </aside>
+      </div>
+    </div>
   </div>
-  <div id="gFriends" class="strip" hidden></div>
-  <button class="chip" id="gChat">💬 Friends chat <i id="gBadge" hidden></i></button>
-  <aside class="upd" aria-label="Updates">
-    <table>
-      <thead><tr><th colspan="2">What's new</th></tr></thead>
-      <tbody>
-        <tr><td>✅</td><td>Added more space</td></tr>
-        <tr><td>✅</td><td>Added friends and chats</td></tr>
-        <tr><td>✅</td><td>Added customizable profiles</td></tr>
-        <tr><td>✅</td><td>Fixed some functions</td></tr>
-        <tr><td>✅</td><td>Added chat on the home screen</td></tr>
-        <tr><td>✅</td><td>Added invites (link or friend invite)</td></tr>
-        <tr><td>✅</td><td>Added live rooms with friends (peer-to-peer)</td></tr>
-      </tbody>
-    </table>
-  </aside>
 </div>
 
 <button id="gear" aria-label="Settings">⚙️</button>
 
 <main>
-  <h1>POLI-NOTES</h1><br>
-  <p class="sub">Our private corner for thoughts and reminders</p>
+  <div class="mlogo"><span class="lg">POLI-NOTES</span><span class="tag">Our private corner for thoughts and reminders.</span></div><br>
   <div id="online" aria-live="polite"></div>
   <div id="fBar" class="strip" hidden></div>
   <section class="composer">
@@ -244,7 +391,7 @@ body.dk .sub{background:rgba(0,0,0,.35)}
 </main>
 
 <section id="board"></section><div id="stickers"></div><div id="cursors"></div>
-<button id="chatBtn" aria-label="Chat">💬<i id="chatBadge" hidden></i></button>
+<button id="chatBtn" aria-label="Chat"><svg class="ci" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2h-8l-5 4v-4H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="currentColor"/><circle cx="8" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="12" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="16" cy="11" r="1.4" fill="#1e2f4d"/></svg><i id="chatBadge" hidden></i></button>
 <aside id="chat" aria-label="Chat">
   <header><button id="chBack" hidden aria-label="Back">←</button><b id="chTitle">Chat</b>
     <span class="tabs"><button class="tab sel" data-t="lobby">Lobby</button><button class="tab" data-t="friends">Friends<i id="reqBadge" hidden></i></button></span>
@@ -272,9 +419,15 @@ body.dk .sub{background:rgba(0,0,0,.35)}
   <div class="drow"><input type="color" id="dp" value="#222222"><input type="range" id="ds" min="2" max="24" value="6"><button class="chip" id="dEr">🧽 Eraser</button><button class="btn" id="dClr" style="background:#222">Clear</button><button class="btn" id="dAdd" style="margin-left:auto">Add sticker</button></div>
 </div></div>
 <div id="overlay">
-  <div class="panel" role="dialog" aria-label="Settings">
-    <header><h2>Settings</h2><button id="close" aria-label="Close">✕</button></header>
-    <h3>Classic</h3><div class="sws" id="g-classic"></div>
+  <div class="rmenu" role="dialog" aria-label="Menu">
+    <div class="rhead"><i>P</i><b>LOBBY</b><span>Who is here &amp; your settings</span></div>
+    <div class="rtabs">
+      <button class="rtab sel" data-p="players"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.7a3.4 3.4 0 010 6.3M18.5 14.4c2 .8 3 2.7 3 5.6"/></svg>Players</button>
+      <button class="rtab" data-p="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg>Settings</button>
+    </div>
+    <div class="rpane" id="paPlayers"></div>
+    <div class="rpane rset" id="paSettings" hidden>
+<h3>Classic</h3><div class="sws" id="g-classic"></div>
     <h3>Gradient</h3><div class="sws" id="g-gradient"></div>
     <h3>Tie-Dye</h3><div class="sws" id="g-tiedye"></div>
     <h3>Custom</h3>
@@ -290,10 +443,14 @@ body.dk .sub{background:rgba(0,0,0,.35)}
     <div id="trashList"></div>
     <h3>Backup &amp; access</h3>
     <div class="tools">
-      <button class="btn" id="exp">Export</button>
+      <button class="btn" id="expBtn">Export</button>
       <button class="btn" id="impBtn">Import</button><input type="file" id="imp" accept=".json" hidden>
       <button class="btn" id="myProf">My profile</button>
-      <button class="btn" id="logout">Log out</button>
+    </div>
+    </div>
+    <div class="rbtns">
+      <button class="rbtn" id="logout"><kbd>⏏</kbd><span>Quit Lobby</span></button>
+      <button class="rbtn" id="resume"><kbd>ESC</kbd><span>Resume</span></button>
     </div>
   </div>
 </div>
@@ -339,7 +496,6 @@ function applyTheme(t,tmp){
   r.setProperty('--text',t.dark?'#fff':'#2b2b2b');
   document.body.style.background=t.bg;document.body.style.backgroundAttachment='fixed';
   document.body.style.backgroundSize=t.bg.startsWith('url')?'cover':'';
-  $('#gate').style.background=t.bg;$('#gate').style.backgroundSize=t.bg.startsWith('url')?'cover':'';
   document.querySelectorAll('.sw').forEach(b=>b.classList.toggle('sel',b.dataset.id===t.id));
   document.body.classList.toggle('dk',!!t.dark);
   if(!tmp)LS.set('pn_theme',t);
@@ -360,7 +516,7 @@ $('#img').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image
   im.src=URL.createObjectURL(f)};
 const open_=v=>{$('#overlay').classList.toggle('open',v);document.body.classList.toggle('open',v)};
 $('#gear').onclick=()=>open_(!$('#overlay').classList.contains('open'));
-$('#close').onclick=()=>open_(false);
+$('#resume').onclick=()=>{const b=$('#resume');b.classList.add('press');setTimeout(()=>{open_(false);b.classList.remove('press')},150)};
 $('#overlay').onclick=e=>{if(e.target.id==='overlay')open_(false)};
 addEventListener('keydown',e=>{if(e.key==='Escape'){open_(false);$('#drawOv').classList.remove('open');pOv.classList.remove('open');openChat(false)}});
 const mq=matchMedia('(prefers-color-scheme: dark)'),DARK=THEMES.classic.find(t=>t.id==='dark');
@@ -395,8 +551,9 @@ function showOnline(o){
     a.title=(u.name||'Guest')+(id===myId?' (you)':'')+(fr?' - friend':'');box.append(a)});
   const ty=list.filter(([id,u])=>id!==myId&&u&&u.typing&&Date.now()-u.typing<5000).map(([,u])=>u.name||'Guest');
   if(ty.length)box.append(el('span','typing','✍️ '+ty.join(', ')+(ty.length>1?' are':' is')+' typing...'));
-  if(!SYNC){const st=db&&db.state;box.append(el('span',null,st?(st.connected?'(sincronizzazione off · live p2p)':'(sincronizzazione off · in attesa di amici)'):'(sincronizzazione off)'))}
+  if(!SYNC){const st=db&&db.state;box.append(el('span',null,st?(st.connected?'(sync off · live p2p)':'(sync off · waiting for friends)'):'(sync off)'))}
   loadProfiles(list.map(([,u])=>u&&u.uid));
+  renderPlayers();
 }
 function trackPresence(){
   if(!db){showOnline({[myId]:{name:myName,uid}});return}
@@ -578,6 +735,7 @@ async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncod
 async function enter(code){
   code=code.trim().toLowerCase();
   if(!code){const b=$('.gate .box');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');return}
+  const eb=$('#enter');eb.classList.add('go');eb.textContent='Entering…';
   const nn=$('#name').value.trim().slice(0,16);if(nn&&nn!==myProf.name){myProf.name=nn;saveProf()}myName=myProf.name;
   room=await sha(code);LS.set('pn_code',code);inRoom=true;
   board=LS.get('pn_board_'+room,'main');
@@ -587,7 +745,7 @@ async function enter(code){
   if(db){setBoards({});db.ref('rooms/'+room+'/boardlist').on('value',s=>setBoards(s.val()))}
   else setBoards(LS.get('pn_bl_'+room,{}));
   bind();trackPresence();startChat();
-  $('#gate').classList.add('out');
+  $('#gate').classList.add('out');document.body.classList.add('entered');
 }
 
 /* save / delete / history */
@@ -645,7 +803,7 @@ const rulesErr=e=>{console.error('Firebase error:',e);
     const t=$('#toast');t.innerHTML='';t.append(el('span',null,'Database rules need updating'));
     const b=el('button',null,'Show rules');b.onclick=()=>{showRules();t.classList.remove('show')};t.append(b);
     t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),10000)}
-  else toast('Errore di sincronizzazione: '+((e&&e.message)||e))};
+  else toast('Sync error: '+((e&&e.message)||e))};
 const fb=p=>{if(p&&p.catch)p.catch(rulesErr);return p};
 function saveProf(){LS.set('pn_prof',myProf);myName=myProf.name;profs[uid]=myProf;
   if(db){fb(db.ref('users/'+uid+'/p').set(myProf));if(prRef)prRef.child(myId+'/name').set(myName)}
@@ -704,12 +862,17 @@ function watchDM(f){if(dmWatch.has(f)||!db)return;dmWatch.add(f);
 /* invites */
 const curCode=()=>inRoom?LS.get('pn_code',''):$('#code').value.trim().toLowerCase();
 const inviteURL=c=>location.href.split('#')[0]+'#join='+encodeURIComponent(c);
+function copyText(t){
+  if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(t).then(()=>true,()=>false);
+  try{const a=document.createElement('textarea');a.value=t;a.setAttribute('readonly','');a.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.append(a);a.select();a.setSelectionRange(0,t.length);const ok=document.execCommand('copy');a.remove();return Promise.resolve(ok)}catch{return Promise.resolve(false)}}
 async function copyInvite(){const c=curCode();if(!c){toast('Type an access code first');return}
   const url=inviteURL(c);
   try{if(navigator.share&&/Mobi|Android/i.test(navigator.userAgent)){await navigator.share({title:'Poli-Notes',text:myName+' invited you to Poli-Notes',url});return}}catch{}
-  try{await navigator.clipboard.writeText(url);toast('Invite link copied')}catch{prompt('Copy this invite link:',url)}}
+  if(await copyText(url)){toast('Invite link copied');return}
+  const t=$('#toast');t.innerHTML='';const i=el('input');i.value=url;i.readOnly=true;i.style.cssText='width:min(70vw,320px);font:11px monospace;padding:3px 6px';i.onfocus=()=>i.select();
+  t.append(el('span',null,'Copy the link:'),i);t.classList.add('show');setTimeout(()=>{i.focus();i.select()},50);clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),15000)}
 function sendInvite(u){const c=curCode();if(!c){toast('Enter a room first (or type an access code)');return}
-  if(!SYNC){sSend(u,{k:'inv',n:myName,c});toast('Invito inviato a '+((profs[u]||{}).name||'un amico'));return}
+  if(!SYNC){sSend(u,{k:'inv',n:myName,c});toast('Invite sent to '+((profs[u]||{}).name||'your friend'));return}
   db.ref('users/'+u+'/invites/'+uid).set({n:myName,c,t:Date.now()}).then(()=>toast('Invite sent to '+((profs[u]||{}).name||'your friend'))).catch(rulesErr)}
 function joinInvite(u){const i=invIn[u];if(!i||!i.c)return;
   const go=()=>{LS.set('pn_code',String(i.c).trim().toLowerCase().slice(0,64));location.reload()};
@@ -771,10 +934,10 @@ $('#eCancel').onclick=()=>openProfile(uid);
 $('#pClose').onclick=()=>pOv.classList.remove('open');
 pOv.onclick=e=>{if(e.target===pOv)pOv.classList.remove('open')};
 $('#myProf').onclick=()=>{open_(false);openProfile(uid)};
-/* ===== AMICI E CHAT PRIVATE SENZA SINCRONIZZAZIONE (peer-to-peer) =====
-   Con Firebase spento gli amici vivono nel browser (localStorage) e ogni utente ha un peer
-   personale 'pn-u-<uid>'. Richieste, messaggi privati e inviti viaggiano direttamente tra i
-   browser; se l'amico è offline restano in coda e partono quando siete online insieme. */
+/* ===== FRIENDS AND PRIVATE CHATS WITHOUT SYNC (peer-to-peer) =====
+   With Firebase off, friends live in the browser (localStorage) and every user has a personal
+   peer 'pn-u-<uid>'. Requests, private messages and invites travel directly between browsers;
+   if a friend is offline they stay queued and are delivered when you are both online. */
 const pid=u=>'pn-u-'+u;
 let sOut={},sQ=[],sPeer=null,sReady=false,sPoll=null,sDead=false;
 const sConn=new Map(),sPend=new Set();
@@ -783,7 +946,7 @@ const sClean=p=>({name:String((p&&p.name)||'Guest').slice(0,16),bio:String((p&&p
 const sProf=()=>({name:myProf.name,bio:myProf.bio||'',bc:myProf.bc||'#f0455a',pfp:myProf.pfp||''});
 const sHist=u=>{const h=LS.get('pn_s_dm_'+pair(u),[]);return Array.isArray(h)?h:[]};
 const sSaveHist=(u,h)=>LS.set('pn_s_dm_'+pair(u),h.slice(-100));
-function refreshSoc(){renderStrips();badges();if(chatOpen())renderChat()}
+function refreshSoc(){renderStrips();badges();if(chatOpen())renderChat();renderPlayers()}
 function sLoad(){
   friends=LS.get('pn_s_fr',{});reqIn=LS.get('pn_s_rin',{});sOut=LS.get('pn_s_rout',{});sQ=LS.get('pn_s_q',[]);
   if(!Array.isArray(sQ))sQ=[];
@@ -852,7 +1015,7 @@ function sOn(u,m){
     if(!sOut[u]||friends[u])return;
     friends[u]={t:Date.now(),p:m.p?sClean(m.p):undefined};if(friends[u].p)profs[u]=friends[u].p;
     delete sOut[u];sSave();refreshSoc();showOnline(lastPres);
-    toast('🎉 '+((profs[u]||{}).name||'Un utente')+' ha accettato la tua richiesta');return}
+    toast('🎉 '+((profs[u]||{}).name||'Someone')+' accepted your friend request');return}
   if(m.k==='rm'){if(friends[u]){delete friends[u];delete fOn[u];sSave();refreshSoc();showOnline(lastPres)}return}
   if(m.k==='dm'){
     if(!friends[u]||typeof m.x!=='string'||typeof m.i!=='string')return;
@@ -897,6 +1060,7 @@ function addMsg(m){
   nm.style.color='hsl('+hue(m.u||m.n)+',55%,38%)';
   h.append(nm,el('span','mt',new Date(m.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+(m.q?' ⏳':'')));
   w.append(h,el('div','mx',String(m.x||'')));r.append(av(m.u,m.n,''),w);body.append(r);body.scrollTop=body.scrollHeight}
+const CHATICO='<svg class="ci" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2h-8l-5 4v-4H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="currentColor"/><circle cx="8" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="12" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="16" cy="11" r="1.4" fill="#1e2f4d"/></svg>';
 function friendsList(body){
   const ic=Object.keys(invIn);
   if(ic.length){body.append(el('h4',null,'Invites'));
@@ -913,15 +1077,15 @@ function friendsList(body){
   if(!fl.length)body.append(el('p','mut','No friends yet. Click someone in the lobby to add them.'));
   fl.sort((a,b)=>(fOn[b]?1:0)-(fOn[a]?1:0)).forEach(u=>{const p=profs[u]||{},r=el('div','fr-row');
     r.append(av(u,p.name||'Friend',fOn[u]?'on':'off'),el('span','tt',(p.name||'Friend')+(fOn[u]?'':' (offline)')));
-    const iv=el('button','btn','✉️');iv.title='Invite to my room';iv.onclick=()=>sendInvite(u);const m=el('button','btn','💬');m.onclick=()=>{dmWith=u;renderChat()};r.append(iv,m);body.append(r)})}
+    const iv=el('button','btn','✉️');iv.title='Invite to my room';iv.onclick=()=>sendInvite(u);const m=el('button','btn');m.innerHTML=CHATICO;m.onclick=()=>{dmWith=u;renderChat()};r.append(iv,m);body.append(r)})}
 function renderChat(){
   const body=$('#chBody');body.innerHTML='';stopDM();
   if(!inRoom)tab='friends';document.querySelector('#chat .tab[data-t=lobby]').style.display=inRoom?'':'none';
   document.querySelectorAll('#chat .tab').forEach(t=>t.classList.toggle('sel',t.dataset.t===tab&&!dmWith));
   $('#chBack').hidden=!dmWith;$('#chTitle').textContent=dmWith?((profs[dmWith]||{}).name||'Friend'):'Chat';
   $('#chInput').hidden=!(tab==='lobby'||dmWith);
-  if(!SYNC&&typeof Peer==='undefined'&&(dmWith||tab==='friends')){dmWith=null;$('#chInput').hidden=true;body.append(el('p','mut','Amici e chat private senza sincronizzazione richiedono la libreria peer-to-peer (PeerJS), che non si è caricata. Controlla la connessione o i blocchi del browser.'));return}
-  if(!db&&!dmWith&&tab==='lobby'){$('#chInput').hidden=true;body.append(el('p','mut','Attiva le stanze live o la sincronizzazione per chattare nella lobby.'));return}
+  if(!SYNC&&typeof Peer==='undefined'&&(dmWith||tab==='friends')){dmWith=null;$('#chInput').hidden=true;body.append(el('p','mut','Friends and private chats without sync need the peer-to-peer library (PeerJS), which failed to load. Check your connection or any content blockers.'));return}
+  if(!db&&!dmWith&&tab==='lobby'){$('#chInput').hidden=true;body.append(el('p','mut','Turn on live rooms or sync to chat in the lobby.'));return}
   if(dmWith&&!SYNC){const u=dmWith,h=sHist(u);h.forEach(addMsg);dmHead();
     if(!h.length)body.append(el('p','mut','Say hi to '+((profs[u]||{}).name||'your friend')+'!'));
   }
@@ -941,11 +1105,60 @@ function sendChat(){const t=$('#chText').value.trim().slice(0,300);
   fb(db.ref(dmWith?'dms/'+pair(dmWith)+'/msgs':'rooms/'+room+'/chat').push({u:uid,n:myName,t:Date.now(),x:t}))}
 $('#chSend').onclick=sendChat;$('#chText').onkeydown=e=>{if(e.key==='Enter')sendChat()};
 startSocial();
+
+/* ===== menu classico: scheda Players ===== */
+const sentReq=new Set();
+function playerBtn(u){
+  if(!u||u===uid)return null;
+  const b=el('button','rb','Add Friend');
+  if(friends[u]){b.textContent='Message';b.onclick=()=>{open_(false);tab='friends';dmWith=u;openChat(true);renderChat()};return b}
+  if(reqIn[u]){b.textContent='Accept';b.onclick=()=>{accept(u);renderPlayers()};return b}
+  if((!SYNC&&sOut[u])||sentReq.has(u)){b.textContent='Pending';b.classList.add('dis');b.title='Click to cancel';
+    b.onclick=()=>{if(SYNC){fb(db.ref('users/'+u+'/requests/'+uid).remove());sentReq.delete(u)}else sCancelReq(u);renderPlayers()};return b}
+  b.onclick=()=>{
+    if(SYNC){db.ref('users/'+u+'/requests/'+uid).set({n:myName,t:Date.now()}).then(()=>toast('Friend request sent')).catch(rulesErr);sentReq.add(u)}
+    else sRequest(u);
+    renderPlayers()};
+  return b}
+let rowAnim=false;
+function renderPlayers(){
+  const box=$('#paPlayers');if(!box)return;
+  const an=rowAnim;rowAnim=false;let ri=0;
+  const sc=box.scrollTop;box.innerHTML='';
+  const inv=el('div','prow inv'+(an?' anim':''));inv.style.setProperty('--i',ri++);
+  inv.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 6l9 7 9-7"/></svg>';
+  inv.append(el('span','pn','Invite friends to play'));inv.onclick=copyInvite;box.append(inv);
+  const list=Object.entries(lastPres||{});
+  if(!list.length){box.append(el('p','mut','Enter a room to see who is here.'));return}
+  list.sort((x,y)=>(x[0]===myId?-1:y[0]===myId?1:0)||String((x[1]||{}).name||'').localeCompare(String((y[1]||{}).name||'')));
+  list.forEach(([id,u])=>{u=u||{};
+    const row=el('div','prow'+(an?' anim':'')),me=id===myId,fr=u.uid&&friends[u.uid];row.style.setProperty('--i',ri++);
+    const a=av(u.uid,u.name||'Guest',fr&&fOn[u.uid]?'on':'');
+    const nm=el('span','pn',u.name||'Guest');
+    if(me)nm.append(el('small',null,'(you)'));else if(fr)nm.append(el('small',null,'friend'));
+    row.append(a,nm);
+    const v=el('button','rb','View');v.onclick=()=>openProfile(u.uid);if(u.uid)row.append(v);
+    const fb_=playerBtn(u.uid);if(fb_)row.append(fb_);
+    box.append(row)});
+  box.scrollTop=sc}
+function menuTab(t){
+  document.querySelectorAll('.rtab').forEach(b=>b.classList.toggle('sel',b.dataset.p===t));
+  $('#paPlayers').hidden=t!=='players';$('#paSettings').hidden=t!=='settings';
+  if(t==='players'){rowAnim=true;renderPlayers()}}
+document.querySelectorAll('.rtab').forEach(b=>b.onclick=()=>menuTab(b.dataset.p));
+$('#gear').addEventListener('click',()=>{if($('#overlay').classList.contains('open')){const m=document.querySelector('#overlay .rmenu');m&&m.classList.remove('leaving');menuTab('players')}});
 let rsT;addEventListener('resize',()=>{clearTimeout(rsT);rsT=setTimeout(()=>{render();renderStickers()},150)});
 $('#enter').onclick=()=>enter($('#code').value);
 ['#code','#name'].forEach(i=>$(i).onkeydown=e=>{if(e.key==='Enter')enter($('#code').value)});
 $('#name').value=myProf.name;
-$('#logout').onclick=()=>{localStorage.removeItem('pn_code');if(ref)ref.off();location.reload()};
+let quitting=false;
+$('#logout').onclick=()=>{
+  if(quitting)return;quitting=true;
+  $('#logout').classList.add('press');
+  const m=document.querySelector('#overlay .rmenu');if(m)m.classList.add('leaving');
+  const c=el('div');c.id='curtain';c.append(el('span',null,'Leaving lobby…'));document.body.append(c);
+  setTimeout(()=>c.classList.add('on'),120);
+  setTimeout(()=>{localStorage.removeItem('pn_code');if(ref)ref.off();location.reload()},950)};
 /* sync setup (gate) */
 $('#syncRow').innerHTML='Sincronizzazione: <b>'+(FIREBASE_CONFIG?'ON':'OFF')+'</b> (<a id="syncLink">setup</a>)';
 $('#syncLink').onclick=()=>{$('#syncBox').hidden=!$('#syncBox').hidden};
@@ -958,6 +1171,14 @@ $('#syncSave').onclick=()=>{
   localStorage.setItem('pn_fbcfg',JSON.stringify(c));location.reload()};
 $('#invLink').onclick=copyInvite;
 if(SYNC)$('#p2pRow').style.display='none';else{$('#p2pOn').checked=p2pPref();$('#p2pOn').onchange=e=>LS.set('pn_p2p',e.target.checked)}
+/* home nav: Play / About / Friends */
+function gView(v){
+  document.querySelectorAll('.gnav a[data-v]').forEach(a=>a.classList.toggle('sel',a.dataset.v===v));
+  document.querySelectorAll('.gview').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+  if(v==='play')setTimeout(()=>{try{$('#code').focus({preventScroll:true})}catch{}},80)}
+$('#navPlay').onclick=()=>gView('play');
+$('#navAbout').onclick=()=>gView('about');
+$('#navFriends').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
 $('#gChat').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
 const joinM=/[#&]join=([^&]+)/.exec(location.hash);let joinCode='';
 try{joinCode=joinM?decodeURIComponent(joinM[1]).trim().toLowerCase().slice(0,64):''}catch{}
@@ -1118,7 +1339,7 @@ function renderStickers(){
 }
 
 /* ===== BACKUP ===== */
-$('#exp').onclick=()=>{const a=el('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(Object.values(notes),null,1)],{type:'application/json'}));a.download='poli-notes-backup.json';a.click()};
+$('#expBtn').onclick=()=>{const a=el('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(Object.values(notes),null,1)],{type:'application/json'}));a.download='poli-notes-backup.json';a.click()};
 $('#impBtn').onclick=()=>$('#imp').click();
 $('#imp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{JSON.parse(r.result).forEach(n=>{if(n&&n.id)put(n)})}catch{alert('Invalid file')}};r.readAsText(f)};
