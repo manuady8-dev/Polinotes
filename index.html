@@ -463,7 +463,7 @@ main #tools input,main #tools select{border-radius:0}
   <div class="pbody"><span id="pPfp" class="pfp"></span><h2 id="pName"></h2><p id="pBio"></p>
     <div id="pActs" class="drow"></div>
     <div id="pEdit" hidden>
-      <input id="eName" maxlength="16" placeholder="Name"><textarea id="eBio" maxlength="120" placeholder="Bio (max 120 characters)"></textarea>
+      <input id="eName" maxlength="16" placeholder="Name"><textarea id="eBio" maxlength="120" placeholder="Bio (max 120 characters)"></textarea><input id="eSt" maxlength="30" placeholder="Status (e.g. Studying...)">
       <div class="drow"><button class="btn" id="ePfp" style="background:#222">Photo</button><button class="btn" id="eBan" style="background:#222">Banner</button><input type="color" id="eCol" value="#f0455a" title="Banner color"></div>
       <div class="drow" style="margin-top:6px"><b style="font-size:11px">Theme</b><span id="eThemes" style="display:contents"></span></div>
       <div class="drow"><input type="color" id="eT1" value="#f0455a" title="Theme color 1"><input type="color" id="eT2" value="#ffd166" title="Theme color 2"><button class="btn" id="eTreset" type="button" style="background:#888">No theme</button></div>
@@ -499,6 +499,9 @@ main #tools input,main #tools select{border-radius:0}
     <h3>Preferences</h3>
     <label class="pref"><input type="checkbox" id="snd"> Sound &amp; vibration on new notes</label>
     <label class="pref"><input type="checkbox" id="auto"> Match system dark mode</label>
+    <label class="pref"><input type="checkbox" id="aBig"> Larger text</label>
+    <label class="pref"><input type="checkbox" id="aHc"> High contrast notes</label>
+    <label class="pref"><input type="checkbox" id="aRm"> Reduce animations</label>
     <h3>History <button class="btn" id="clrTr" style="padding:2px 8px;margin-left:8px;background:#222;font-size:10px">Clear</button></h3>
     <div id="trashList"></div>
     <h3>Backup &amp; access</h3>
@@ -1489,6 +1492,7 @@ let renP=null,renN='';
 function tryRename(raw){
   const nn=String(raw||'').trim().slice(0,16);
   if(!nn||nn===myProf.name)return Promise.resolve(true);
+  if(window.pnBadName&&pnBadName(nn)){toast('That name is not allowed.');const ni=$('#name');if(ni)ni.value=myProf.name;return Promise.resolve(false)}
   if(renP&&renN===nn)return renP;
   renN=nn;
   const p=renP=(async()=>{
@@ -1789,8 +1793,14 @@ const TP=[{id:'p-aurora',name:'Aurora',bg:'linear-gradient(135deg,#0f2027,#2c536
  {id:'p-matrix',name:'Matrix',bg:'#041a0c',accent:'#2bff75',line:'rgba(43,255,117,.1)',dark:1,p:2400}];
 const RX=[['🔥','Fire',450],['🎉','Party',450],['😍','Heart eyes',450],['👀','Eyes',450],['🤯','Mind blown',600],['💯','100',600]];
 window.pnReacts=()=>RX.filter(r=>S.own['r'+r[0]]).map(r=>r[0]);
-window.pnPolis={bal:()=>S.c,spend:n=>{if(!(S.c>=n))return false;S.c-=n;save();coins();return true}};
-const CATS={st:'Profile stickers',th:'Premium themes',rx:'Note reactions'},HINT={st:'Equip up to 5 stickers: they show on your profile.',th:'Premium themes can be applied any time once bought.',rx:'Extra reactions appear under every note.'};let CAT='st';
+window.pnPolis={earn:n=>earn(n),ex:()=>Object.values(EX).flat().map(x=>x.k),own:()=>S.own,eq:()=>S.eq||{},st:()=>S.st||0,bal:()=>S.c,spend:n=>{if(!(S.c>=n))return false;S.c-=n;save();coins();return true}};
+const EXD={fr:[['gold','Gold frame',500],['red','Ruby frame',500],['blue','Ocean frame',500],['rb','Rainbow frame',900]],nc:[['red','Red name',300],['blue','Blue name',300],['gold','Gold name',400],['rb','Rainbow name',700]],fx:[['glow','Glow notes',600],['tilt','Wobbly notes',500],['shadow','Bold shadow',400],['rb','Rainbow edge',800]]};
+const FRS={gold:'0 0 0 4px #f5c542',red:'0 0 0 4px #e03a3a',blue:'0 0 0 4px #3a82c4',rb:'0 0 0 3px #f55,0 0 0 6px #fc3,0 0 0 9px #58f'};
+const NCS={red:'color:#ff5a5a',blue:'color:#3a82c4',gold:'color:#d4a017',rb:'background:linear-gradient(90deg,#f55,#fc3,#5e8,#58f,#c4c);-webkit-background-clip:text;background-clip:text;color:transparent'};
+const FXS={glow:'box-shadow:0 0 12px 3px #f0455a',tilt:'transform:rotate(-4deg);box-shadow:2px 4px 8px rgba(0,0,0,.25)',shadow:'box-shadow:6px 7px 0 rgba(0,0,0,.35)',rb:'border:3px solid;border-image:linear-gradient(135deg,#f55,#fc3,#5e8,#58f,#c4c) 1'};
+const PVW=(c,id)=>c=='fr'?'<div style="width:44px;height:44px;margin:8px auto 14px;border-radius:50%;background:#f0455a;color:#fff;font:800 20px Rubik,sans-serif;display:grid;place-items:center;box-shadow:'+FRS[id]+'">P</div>':c=='nc'?'<div style="font:800 20px Rubik,sans-serif;margin:10px 0;'+NCS[id]+'">Your name</div>':'<div style="width:72px;height:46px;margin:8px auto 12px;background:#8cc8f5;color:#222;border-radius:3px;font:11px sans-serif;padding:5px;'+FXS[id]+'">Note</div>';
+const EX={};Object.keys(EXD).forEach(c=>EX[c]=EXD[c].map(([id,n,p])=>({k:c+'_'+id,n,p,pv:PVW(c,id)})));
+const CATS={st:'Profile stickers',th:'Premium themes',rx:'Note reactions',fr:'Profile frames',nc:'Name colors',fx:'Note effects'},HINT={fr:'A colored ring around your profile picture.',nc:'Colors your name on your profile card.',fx:'Special looks for the notes on your board.',st:'Equip up to 5 stickers: they show on your profile.',th:'Premium themes can be applied any time once bought.',rx:'Extra reactions appear under every note.'};let CAT='st';
 /* stickers on the profile */
 let drawStk=()=>{};
 {const pn=document.getElementById('pName'),bio=document.getElementById('pBio');
@@ -1801,14 +1811,18 @@ function shop(L){
  L.innerHTML='<div class="row" style="margin:0 0 6px">'+Object.keys(CATS).map(c=>`<button class="chip ${c==CAT?'on':''}" data-c="${c}">${CATS[c]}</button>`).join('')+`</div><div style="font-size:13px;opacity:.7;margin-bottom:10px">${HINT[CAT]}</div><div class="gmG" id="gmS"></div>`;
  L.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{CAT=b.dataset.c;shop(L)});
  const big=e=>`<div style="font-size:34px">${e}</div>`,G=L.querySelector('#gmS');
- (CAT=='st'?SK.map(([e,n,p])=>({k:'s'+e,n,p,e,pv:big(e)})):CAT=='th'?TP.map(t=>({k:t.id,n:t.name,p:t.p,t,pv:`<div style="height:40px;border-radius:8px;background:${t.bg}"></div>`})):RX.map(([e,n,p])=>({k:'r'+e,n,p,e,pv:big(e)}))).forEach(it=>{
+ (CAT=='st'?SK.map(([e,n,p])=>({k:'s'+e,n,p,e,pv:big(e)})):CAT=='th'?TP.map(t=>({k:t.id,n:t.name,p:t.p,t,pv:`<div style="height:40px;border-radius:8px;background:${t.bg}"></div>`})):CAT in EX?EX[CAT]:RX.map(([e,n,p])=>({k:'r'+e,n,p,e,pv:big(e)}))).forEach(it=>{
   const own=S.own[it.k],eq=CAT=='st'&&(myProf.stk||[]).includes(it.e);
-  const c=card(it.pv,it.n,own?'Owned':CO+' '+it.p,own?(CAT=='st'?(eq?'Unequip':'Equip'):CAT=='th'?'Apply':'Owned'):'Buy'),b=c.querySelector('button');
+  const c=card(it.pv,it.n,own?'Owned':CO+' '+it.p,own?(CAT=='st'?(eq?'Unequip':'Equip'):CAT=='th'?'Apply':CAT in EX?((S.eq||{})[CAT]==it.k?'Unequip':'Equip'):'Owned'):'Buy'),b=c.querySelector('button');
   if(own&&CAT=='rx')b.disabled=true;
-  b.onclick=()=>{if(!own){if(S.c<it.p){b.textContent='Not enough Polis';return}S.c-=it.p;S.own[it.k]=1;save();coins();if(CAT=='rx'&&typeof render==='function')render();shop(L);return}
+  b.onclick=()=>{if(!own){if(S.c<it.p){b.textContent='Need '+(it.p-S.c)+' more Polis';return}S.c-=it.p;S.own[it.k]=1;save();coins();if(CAT=='rx'&&typeof render==='function')render();shop(L);return}
+   if(CAT in EX){S.eq=S.eq||{};S.eq[CAT]=S.eq[CAT]===it.k?'':it.k;save();window.pnApply&&pnApply();shop(L);return}
    if(CAT=='th'){applyTheme(it.t);return}
    const a=(myProf.stk||[]).slice(),i=a.indexOf(it.e);if(i>=0)a.splice(i,1);else{if(a.length>=5){b.textContent='Max 5 equipped';return}a.push(it.e)}
    myProf.stk=a;if(typeof saveProf==='function')saveProf();drawStk();shop(L)};
+  if(CAT in EX&&!own){const t=document.createElement('button');t.className='btn';t.style.cssText='margin-top:6px;background:#222';t.textContent='Try';
+   t.onclick=()=>{const pre=it.k.split('_')[0]+'-';[...document.body.classList].filter(x=>x.startsWith(pre)).forEach(x=>document.body.classList.remove(x));document.body.classList.add(it.k.replace('_','-'));
+    close();if(pre!='fx-')openProfile(uid);toast('Previewing '+it.n+' for 6 seconds');setTimeout(()=>window.pnApply&&pnApply(),6000)};c.append(t)}
   G.append(c)})}
 const day=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(),today=()=>day(new Date()),yest=()=>{const d=new Date();d.setDate(d.getDate()-1);return day(d)};
 const nextSt=()=>S.dd===yest()?(S.st||0)+1:1,rwd=()=>50+(Math.min(nextSt(),7)-1)*10;
@@ -1847,10 +1861,10 @@ document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
 {const tx=document.getElementById('text');if(tx)tx.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&e.target.value.trim())prog('n',1)},true)}
 {const o=window.addSticker;if(typeof o==='function')window.addSticker=function(){prog('s',1);return o.apply(this,arguments)}}
 function hub(t){halt();
- const nav=[['h','Home'],['t','Tasks'],['s','Shop']].map(([k,n])=>`<a data-t="${k}" class="${t==k?'sel':''}">${n}</a>`).join('');
+ const nav=[['h','Home'],['t','Tasks'],['s','Shop'],['b','Badges']].map(([k,n])=>`<a data-t="${k}" class="${t==k?'sel':''}">${n}</a>`).join('');
  P.innerHTML=head('',0,nav)+'<div class="gmBody" id="gmL"></div>';
  P.querySelector('#gmX').onclick=close;P.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>hub(b.dataset.t));
- const L=P.querySelector('#gmL');if(t=='h')home(L);else if(t=='t')tasks(L);else shop(L)}
+ const L=P.querySelector('#gmL');if(t=='h')home(L);else if(t=='t')tasks(L);else if(t=='b'&&window.pnBadges)pnBadges(L);else shop(L)}
 /* balance on the site home + launcher */
 bt.innerHTML=CO+' <b class="gmBal">'+S.c+'</b>';bt.title='Polis';dot();
 {const mk=m=>{const w=document.createElement('span');w.style.cssText=m;
@@ -1868,5 +1882,132 @@ if(S.dd!==today())setTimeout(()=>toast('Daily reward available!'),2000);
 }catch(e){console.warn('games',e)}})();
 </script>
 
+<style>
+.c-yellow{background:#fff3a0}.c-purple{background:#d9b8f5}.c-orange{background:#ffc78a}
+.dot.c-yellow{background:#f5d800}.dot.c-purple{background:#a96be0}.dot.c-orange{background:#ff9a2e}
+body.fx-glow .note{box-shadow:0 0 14px 3px var(--accent),2px 4px 10px rgba(0,0,0,.18)}
+body.fx-tilt .note:hover{transform:rotate(calc(var(--r,0deg) + 2.5deg)) scale(1.04)}
+body.fx-shadow .note{box-shadow:7px 9px 0 rgba(0,0,0,.35)}
+body.fx-rb .note{border:3px solid;border-image:linear-gradient(135deg,#f55,#fc3,#5e8,#58f,#c4c) 1}
+body.fr-gold #pOv[data-me="1"] #pPfp{box-shadow:0 0 0 4px #f5c542}
+body.fr-red #pOv[data-me="1"] #pPfp{box-shadow:0 0 0 4px #e03a3a}
+body.fr-blue #pOv[data-me="1"] #pPfp{box-shadow:0 0 0 4px #3a82c4}
+body.fr-rb #pOv[data-me="1"] #pPfp{box-shadow:0 0 0 4px #f55,0 0 0 8px #fc3,0 0 0 12px #58f}
+body.nc-red #pOv[data-me="1"] #pName{color:#ff5a5a}
+body.nc-blue #pOv[data-me="1"] #pName{color:#6ab4ee}
+body.nc-gold #pOv[data-me="1"] #pName{color:#f5c542}
+body.nc-rb #pOv[data-me="1"] #pName{background:linear-gradient(90deg,#f55,#fc3,#5e8,#58f,#c4c);-webkit-background-clip:text;background-clip:text;color:transparent}
+#tutOv{position:fixed;inset:0;z-index:130;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(25,38,48,.55);backdrop-filter:blur(3px)}
+#tutOv .tc{width:min(100%,400px);background:#fff;color:#222;border:2px solid #2b2b2b;box-shadow:8px 8px 0 rgba(0,0,0,.28);padding:18px;font:16px/1.4 'Source Sans 3','Segoe UI',Arial,sans-serif;text-align:left}
+#tutOv h2{margin:0 0 8px;font:800 20px 'Rubik',sans-serif;color:var(--accent)}
+#tutOv .tr{display:flex;gap:10px;margin-top:14px}
+#tutOv button{flex:1;height:42px;border:2px solid #2b2b2b;border-radius:2px;font:700 16px 'Source Sans 3',Arial,sans-serif;cursor:pointer;background:#fff;color:#222}
+#tutOv button.go{background:var(--accent);color:#fff}
+</style>
+<script>
+(()=>{try{
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+/* more note colors */
+let pv=$('.composer .dot.c-green'),pf=$('#tools .dot.c-green');
+[['c-yellow','Yellow'],['c-purple','Purple'],['c-orange','Orange']].forEach(([c,n])=>{
+ const d=document.createElement('button');d.className='dot '+c;d.dataset.c=c;d.setAttribute('aria-label',n);
+ d.onclick=()=>{color=c;$$('.composer .dot').forEach(x=>x.classList.toggle('sel',x===d))};pv.after(d);pv=d;
+ const f=document.createElement('button');f.className='dot '+c;f.setAttribute('aria-label',n);f.dataset.f=c;
+ f.onclick=()=>{flt=c;$$('#tools [data-f]').forEach(x=>x.classList.toggle('sel',x===f));render()};pf.after(f);pf=f});
+/* tidy up */
+const td=document.createElement('button');td.className='chip';td.id='tidy';td.textContent='🧹 Tidy up';td.title='Arrange all notes in a grid';
+td.onclick=()=>{Object.values(notes).forEach((n,i)=>{if(!n)return;n.cx=(i%4)*216-428;n.ty=8+Math.floor(i/4)*200;delete n.x;delete n.y;put(n)});toast('Notes arranged')};
+$('#newBoard').after(td);
+/* shop cosmetics */
+window.pnApply=()=>{const e=window.pnPolis?pnPolis.eq():{};
+ [...document.body.classList].filter(c=>/^(fx|fr|nc)-/.test(c)).forEach(c=>document.body.classList.remove(c));
+ Object.values(e).forEach(k=>{if(k)document.body.classList.add(k.replace('_','-'))})};
+pnApply();
+{const o=window.openProfile;if(typeof o==='function')window.openProfile=async function(u){pOv.dataset.me=u===uid?'1':'';return o.apply(this,arguments)}}
+/* badges */
+const BK='pn_bd',B=(()=>{try{return Object.assign({got:{},c:{n:0,s:0}},JSON.parse(localStorage.getItem(BK))||{})}catch{return{got:{},c:{n:0,s:0}}}})();
+const bsave=()=>{try{localStorage.setItem(BK,JSON.stringify(B))}catch{}};
+const BD=[['first','🌱','First note','Write your first note',10,()=>B.c.n>=1],['n25','📝','Note maker','Write 25 notes',40,()=>B.c.n>=25],['stk','🎨','Sticker fan','Add 5 stickers',30,()=>B.c.s>=5],['fr3','🤝','Friendly','Have 3 friends',50,()=>Object.keys(friends).length>=3],['st7','🔥','On fire','Reach a 7-day streak',70,()=>pnPolis.st()>=7],['own5','🛍️','Collector','Own 5 shop items',60,()=>Object.keys(pnPolis.own()).length>=5]];
+function check(){if(!window.pnPolis)return;BD.forEach(([id,i,n,d,r,f])=>{let ok=false;try{ok=f()}catch{}
+ if(ok&&!B.got[id]){B.got[id]=1;bsave();pnPolis.earn(r);toast('🏅 Badge unlocked: '+n+' · +'+r+' Polis')}})}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#add')&&$('#text').value.trim()){B.c.n++;bsave()}setTimeout(check,300)},true);
+{const o=window.addSticker;if(typeof o==='function')window.addSticker=function(){B.c.s++;bsave();return o.apply(this,arguments)}}
+setInterval(check,3000);
+window.pnBD={BD,B,bsave};window.pnBdIcon=id=>{const b=BD.find(x=>x[0]===id);return b?b[1]+' '+b[2]:''};window.pnBadges=L=>{L.innerHTML='<div style="margin:2px 0 10px;color:#555">Unlock badges to earn Polis. '+Object.keys(B.got).length+' / '+BD.length+' unlocked.</div><div class="gmG"></div>';
+ const G=L.querySelector('.gmG');BD.forEach(([id,i,n,d,r])=>{const got=B.got[id],c=document.createElement('div');c.className='gmC';if(!got)c.style.opacity='.6';
+  c.innerHTML='<b>'+(got?i:'🔒')+'</b><div style="font-weight:700">'+n+'</div><div style="font-size:13px;opacity:.7;margin:4px 0">'+d+'</div><div style="font-size:13px;font-weight:700">'+(got?'Unlocked ✓':'+'+r+' Polis')+'</div>';if(got){const sb=document.createElement('button'),on=()=>(myProf.bdg||[]).includes(id);sb.className='btn';sb.style.cssText='margin-top:6px;background:#222;font-size:11px';sb.textContent=on()?'Hide on profile':'Show on profile';
+  sb.onclick=()=>{const a=(myProf.bdg||[]).slice(),k=a.indexOf(id);if(k>=0)a.splice(k,1);else{if(a.length>=3){sb.textContent='Max 3 shown';return}a.push(id)}myProf.bdg=a;saveProf();sb.textContent=on()?'Hide on profile':'Show on profile'};c.append(sb)}
+  G.append(c)})};
+/* flying coins */
+new MutationObserver(m=>m.forEach(r=>r.addedNodes.forEach(n=>{if(!(n.classList&&n.classList.contains('gmToast'))||!/\+\d+ Polis/.test(n.textContent))return;
+ const t=n.getBoundingClientRect(),b=$('#gmBtn').getBoundingClientRect();
+ for(let i=0;i<6;i++){const c=document.createElement('i');c.className='gmc';c.style.cssText='position:fixed;z-index:200;pointer-events:none;left:'+t.left+'px;top:'+t.top+'px';document.body.append(c);
+  c.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:'translate('+(b.left-t.left+i*3)+'px,'+(b.top-t.top)+'px) scale(.6)',opacity:.2}],{duration:700+i*90,delay:i*60,easing:'ease-in',fill:'backwards'}).onfinish=()=>c.remove()}}))).observe(document.body,{childList:true});
+/* first-time tutorial */
+const ST=[['Write a note','Type in the box at the top and press Add. Pick a color, make a checklist or add stickers.'],['Add friends','Click any player in the lobby (gear menu), or use the Friends tab on the home page to search a username.'],['Earn Polis','Use the Polis button (top right) for daily rewards, tasks, badges and the shop.']];
+function tut(){let i=0;const o=document.createElement('div');o.id='tutOv';document.body.append(o);
+ const end=()=>{try{localStorage.setItem('pn_tut','1')}catch{}o.remove()};
+ const draw=()=>{const [h,t]=ST[i];o.innerHTML='<div class="tc"><div style="font-size:12px;opacity:.6">Step '+(i+1)+' of '+ST.length+'</div><h2></h2><p style="margin:0"></p><div class="tr"><button class="sk">Skip</button><button class="go">'+(i<ST.length-1?'Next':'Got it!')+'</button></div></div>';
+  o.querySelector('h2').textContent=h;o.querySelector('p').textContent=t;o.querySelector('.sk').onclick=end;o.querySelector('.go').onclick=()=>{if(++i>=ST.length)end();else draw()}};draw()}
+try{if(!localStorage.getItem('pn_tut')){const w=setInterval(()=>{if(document.body.classList.contains('entered')){clearInterval(w);setTimeout(tut,900)}},500)}}catch{}
+}catch(e){console.warn('extras',e)}})();
+</script>
+<style>
+body.a-big main,body.a-big .note{zoom:1.15}
+body.a-hc .note{border:2px solid #000;color:#000}body.a-hc{--line:rgba(0,0,0,.28)}
+body.a-rm *,body.a-rm *::before,body.a-rm *::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+</style>
+<script>
+(()=>{try{
+const $=s=>document.querySelector(s);
+/* accessibility */
+[['aBig','a-big'],['aHc','a-hc'],['aRm','a-rm']].forEach(([id,c])=>{const i=$('#'+id),k='pn_'+id;i.checked=LS.get(k,false);document.body.classList.toggle(c,i.checked);i.onchange=()=>{LS.set(k,i.checked);document.body.classList.toggle(c,i.checked)}});
+/* templates */
+const sel=document.createElement('select');sel.className='chip';sel.id='tpl';sel.style.cssText='max-width:130px;font-size:10px';
+[['','📋 Template…'],['shop','🛒 Shopping list'],['todo','✅ To-do'],['study','📚 Study notes']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sel.append(o)});
+const TX={shop:['Milk\nBread\nEggs\nFruit\nCoffee',1],todo:['Top priority\nSecond task\nQuick win',1],study:['📚 Topic:\n\nKey points:\n- \n- \n\nQuestions:\n- ',0]};
+sel.onchange=()=>{const t=TX[sel.value];if(!t)return;$('#text').value=t[0];if(!!t[1]!==listMode)$('#listBtn').click();sel.value=''};
+$('#listBtn').before(sel);
+/* name filter */
+window.pnBadName=n=>{if(window.__owner)return false;const f=n.replace(/[ ._-]/g,'');
+ return !/^[\p{L}\p{N} ._-]+$/u.test(n)||/^(admin|mod|moderator|staff|owner|poli|polinotes|system|support)$/i.test(f)||/(fuck|shit|cunt|nigg|puttan|cazzo|merda|stronz)/i.test(f)};
+/* profile: status + showcased badges */
+{const bio=$('#pBio'),box=document.createElement('div');box.style.cssText='margin:4px 0 8px;font-size:13px;display:flex;flex-direction:column;gap:4px';bio.after(box);
+ const draw=()=>{box.textContent='';try{const p=pView===uid?myProf:(profs[pView]||{});
+  if(p.status){const d=document.createElement('div');d.textContent='💬 '+String(p.status).slice(0,30);box.append(d)}
+  const b=(Array.isArray(p.bdg)?p.bdg:[]).slice(0,3).map(id=>window.pnBdIcon?pnBdIcon(String(id)):'').filter(Boolean);
+  if(b.length){const d=document.createElement('div');d.textContent=b.join('  ·  ');box.append(d)}}catch{}};
+ new MutationObserver(draw).observe($('#pName'),{childList:true,characterData:true,subtree:true})}
+{const o=window.editProf;if(typeof o==='function')window.editProf=function(){o.apply(this,arguments);$('#eSt').value=myProf.status||''}}
+$('#eSave').addEventListener('click',()=>{myProf.status=$('#eSt').value.trim().slice(0,30)},true);
+/* owner console: Ctrl+Shift+K */
+const OP='pn_owner';let unlocked=false;
+function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,n=parseInt(b,10);
+ switch(c){
+ case 'help':return '/polis add|take|set N\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
+ case 'polis':if(!P||isNaN(n)||n<0)return 'Usage: /polis add|take|set N';
+  if(a=='add')P.earn(n);else if(a=='take')P.earn(-Math.min(n,P.bal()));else if(a=='set')P.earn(n-P.bal());else return 'Usage: /polis add|take|set N';
+  return 'Balance: '+P.bal()+' Polis';
+ case 'name':localStorage.removeItem('pn_name_free_used');renderNameInfo();return 'Free name change restored.';
+ case 'badges':if(!window.pnBD)return 'n/a';if(a=='all')pnBD.BD.forEach(x=>pnBD.B.got[x[0]]=1);else if(a=='reset')pnBD.B.got={};else return 'Usage: /badges all|reset';pnBD.bsave();return 'Done.';
+ case 'unlock':if(!P)return 'n/a';P.ex().forEach(k=>P.own()[k]=1);P.spend(0);return 'All cosmetics unlocked.';
+ case 'tutorial':localStorage.removeItem('pn_tut');return 'The tutorial will show again on your next visit.';
+ case 'whoami':return 'uid: '+uid+'\nname: '+myProf.name;
+ case 'lock':unlocked=false;window.__owner=0;$('#ownOv')&&$('#ownOv').remove();return '';
+ default:return 'Unknown command. Type /help'}}
+function con(){if($('#ownOv'))return;const o=document.createElement('div');o.id='ownOv';
+ o.style.cssText='position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)';
+ o.innerHTML=`<div style="width:min(100%,520px);background:#111;color:#8f8;font:13px/1.5 monospace;border:2px solid #8f8;padding:14px"><div id="ownLog" style="max-height:50vh;overflow:auto;white-space:pre-wrap"></div><input id="ownIn" autocomplete="off" style="width:100%;margin-top:8px;background:#000;color:#8f8;border:1px solid #8f8;padding:6px;font:inherit"></div>`;
+ document.body.append(o);const inp=$('#ownIn'),log=t=>{const l=$('#ownLog');l.textContent+=t+'\n';l.scrollTop=l.scrollHeight};
+ let mode=unlocked?'cmd':localStorage.getItem(OP)?'login':'setup';
+ log(mode=='cmd'?'Owner console. Type /help':mode=='login'?'Owner password:':'First time: choose an owner password (min 4 characters):');
+ inp.type=mode=='cmd'?'text':'password';inp.focus();o.onclick=e=>{if(e.target===o)o.remove()};
+ inp.onkeydown=async e=>{if(e.key==='Escape'){o.remove();return}if(e.key!=='Enter')return;const v=inp.value.trim();inp.value='';
+  if(mode=='setup'){if(v.length<4){log('Too short.');return}localStorage.setItem(OP,await sha(v));unlocked=true;window.__owner=1;mode='cmd';inp.type='text';log('Password saved. Type /help');return}
+  if(mode=='login'){if(await sha(v)===localStorage.getItem(OP)){unlocked=true;window.__owner=1;mode='cmd';inp.type='text';log('Unlocked. Type /help')}else log('Wrong password.');return}
+  log('> '+v);const r=run(v);if(r)log(r)}}
+addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='k'){e.preventDefault();con()}});
+}catch(e){console.warn('extras2',e)}})();
+</script>
 </body>
 </html>
