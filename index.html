@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f0455a">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAB10lEQVR42u3bMQ0AIAxFwZrDRP0LwAEYYCpLA/fzFDS3EWKOlMqFEwggASSABJAEkAASQAJIAkgACSABJAEkgASQAJIAEkACSAAJIAkgASSABJAEkAASQAJIAkgACSABJAEkgASQABJAEkACSAAJIAkgASSABJAEkAASQOeW3Q0gAwgggAACCCCAADKAAAIIIIAAAgggAwgggAACCCCAADKAAAIIIIAAAgggAwgggAACCCCAAAIIIAMIIIAAAugLQI998QQIIIAczh0AAggggAACCCCHcweAAAIIIIAAAsjh3AEggAAygAACCCCAAAIIIAPIAAIIIIAAAggggAwggADyBuQOAAEEEEAAAQSQw7kDQAABBBBAAAHkcO4AEEAAAQQQQAB5TPWYChBAAAEEkAEEEEAAAQQQQAAZQAABBBBAAAEEULvDAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQSQx1SAAAIIIIAAMoAAAggggAACCCADCCCAAAIoJYAEkAASQBJAAkgACSAJIAEkgASQBJAAEkACSAJIAAkgASSAJIAEkAASQBJAAkgACSAJIAEkgASQBJAAEkACSABJAAkgASSAJIAEkAASQBJAAkgN2zbCAmdhmVaIAAAAAElFTkSuQmCC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Poli-Notes">
 <title>Poli-Notes</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0455a'/%3E%3Crect x='22' y='26' width='56' height='48' fill='%23fff'/%3E%3Cpath d='M32 42h36M32 54h36M32 66h22' stroke='%23f0455a' stroke-width='5'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@800&family=Fira+Code&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
@@ -1137,7 +1141,7 @@ function sOn(u,m){
   if(m.k==='pfull'){if(!friends[u]&&!reqIn[u]&&!sOut[u])return;
     if((m.kind!=='pfp'&&m.kind!=='ban')||typeof m.id!=='string'||typeof m.d!=='string'||!m.d.startsWith('data:image/gif')||!safeImg(m.d))return;
     lastFull[u+m.kind]=m.id;sStoreImg(u,m.kind,m.d);return}
-  if(m.k==='gift'){window.pnGift&&pnGift(m.i,m.n,u);return}
+  if(m.k==='gift'){window.pnGift&&pnGift(m.i,m.n,u,m.m);return}
   if(m.k==='preq'){if(friends[u]||sOut[u])sSendImgs(u);return}
   if(m.k==='hi'){sTakeProf(u,m.p);if(friends[u]||reqIn[u]||sOut[u])refreshSoc();return}
   if(m.k==='req'){
@@ -1701,9 +1705,7 @@ $('#imp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileRe
   r.onload=()=>{try{JSON.parse(r.result).forEach(n=>{if(n&&n.id)put(n)})}catch{alert('Invalid file')}};r.readAsText(f)};
 
 /* ===== INSTALLABLE APP (manifest generated on the fly) ===== */
-const mf=document.createElement('link');mf.rel='manifest';
-mf.href=URL.createObjectURL(new Blob([JSON.stringify({name:'Poli-Notes',short_name:'Poli-Notes',start_url:location.href,scope:location.href.replace(/[^/]*$/,''),display:'standalone',background_color:'#fdfdfd',theme_color:'#f0455a',icons:[{src:ICON,sizes:'any',type:'image/svg+xml',purpose:'any maskable'}]})],{type:'application/manifest+json'}));
-document.head.append(mf);
+{const mf=document.createElement('link');mf.rel='manifest';mf.href=URL.createObjectURL(new Blob([JSON.stringify({name:'Poli-Notes',short_name:'Poli-Notes',start_url:location.href,scope:location.href.replace(/[^/]*$/,''),display:'standalone',background_color:'#fdfdfd',theme_color:'#f0455a',icons:[{src:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAB10lEQVR42u3bMQ0AIAxFwZrDRP0LwAEYYCpLA/fzFDS3EWKOlMqFEwggASSABJAEkAASQAJIAkgACSABJAEkgASQAJIAEkACSAAJIAkgASSABJAEkAASQAJIAkgACSABJAEkgASQABJAEkACSAAJIAkgASSABJAEkAASQOeW3Q0gAwgggAACCCCAADKAAAIIIIAAAgggAwgggAACCCCAADKAAAIIIIAAAgggAwgggAACCCCAAAIIIAMIIIAAAugLQI998QQIIIAczh0AAggggAACCCCHcweAAAIIIIAAAsjh3AEggAAygAACCCCAAAIIIAPIAAIIIIAAAggggAwggADyBuQOAAEEEEAAAQSQw7kDQAABBBBAAAHkcO4AEEAAAQQQQAB5TPWYChBAAAEEkAEEEEAAAQQQQAAZQAABBBBAAAEEULvDAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQSQx1SAAAIIIIAAMoAAAggggAACCCADCCCAAAIoJYAEkAASQBJAAkgACSAJIAEkgASQBJAAEkACSAJIAAkgASSAJIAEkAASQBJAAkgACSAJIAEkgASQBJAAEkACSABJAAkgASSAJIAEkAASQBJAAkgN2zbCAmdhmVaIAAAAAElFTkSuQmCC',sizes:'192x192',type:'image/png',purpose:'any maskable'},{src:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAIAAAB7GkOtAAAJPklEQVR42u3VQRUEIQxEwZjDBP4F4ABOSODQpPqVgt0wv9aYADRUfgIAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAAAfArAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAACAAAAgAAAIAgAAAIAAACAAAAgCAAAAgAAAIAAACAIAAAAiAXwFAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABABAAAAQAAAEAAABAEAAABAAAAQAAAEAQAAAEAAABAAAAQBAAAAQAAAEAAAByLDN7M18XgRAAMwEAAEQADMBQAAEwEwAEAABMBMABEAAzAQAARAAMwFAAATATAAQAAEwEwABQADMBEAAEAAzARAABMBMAAQAATATAAFAAMwEQAAQADMBEAAEwEwABEAAzEwABEAAzEwABEAAzEwABEAAzEwABEAAzEwABEAAzEwABEAAzEwABEAAzEwABEAAzAQAARAAMwFAAATATAAQAAEwEwAEQADMBAABEAAzAUAABMBMABAAATATAAFAAMwEQAAQADMBEAAEwEwABAABMBMAAUAAzARAABAAMwEQAATATAAEAK/UTAAEQADMTAAEQADMTAAEQADMTAAEQADMTAAEQADMTAAEQADMTAAEQADMTAAEQADMBMAXRgAEwEwAEAABMBMABEAAzAQAARAAMwFAAATATAAQAAEwEwAEQADMBAABEAAzARAABMBMAAQAATATAAFAAMwEQAAQADMBEAAEwEwABAABMBMAAUAAzARAAATAzARAAATAzARAAATAzARAAATA48ENu2EB8Hg8HtywGxYAj8fjwQ27YQHweDwe3LAbFgCPx+PBDbthAfB4PB7cMALg8Xg8uGEEwOPxeHDDCIDH4/Hg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',sizes:'512x512',type:'image/png',purpose:'any maskable'}]})],{type:'application/manifest+json'}));document.head.append(mf)}
 </script>
 <!-- ===== GAMES (modulo autonomo: se fallisce, il resto dell'app non è toccato) ===== -->
 <style>
@@ -1795,13 +1797,14 @@ const TP=[{id:'p-aurora',name:'Aurora',bg:'linear-gradient(135deg,#0f2027,#2c536
 const RX=[['🔥','Fire',450],['🎉','Party',450],['😍','Heart eyes',450],['👀','Eyes',450],['🤯','Mind blown',600],['💯','100',600]];
 window.pnReacts=()=>RX.filter(r=>S.own['r'+r[0]]).map(r=>r[0]);
 window.pnPolis={earn:n=>earn(n),ex:()=>Object.values(EX).flat().map(x=>x.k),own:()=>S.own,eq:()=>S.eq||{},st:()=>S.st||0,bal:()=>S.c,spend:n=>{if(!(S.c>=n))return false;S.c-=n;save();coins();return true}};
-const EXD={fr:[['gold','Gold frame',500],['red','Ruby frame',500],['blue','Ocean frame',500],['rb','Rainbow frame',900]],nc:[['red','Red name',300],['blue','Blue name',300],['gold','Gold name',400],['rb','Rainbow name',700]],fx:[['glow','Glow notes',600],['tilt','Wobbly notes',500],['shadow','Bold shadow',400],['rb','Rainbow edge',800]]};
+const EXD={fr:[['gold','Gold frame',500],['red','Ruby frame',500],['blue','Ocean frame',500],['rb','Rainbow frame',900]],nc:[['red','Red name',300],['blue','Blue name',300],['gold','Gold name',400],['rb','Rainbow name',700]],fx:[['glow','Glow notes',600],['tilt','Wobbly notes',500],['shadow','Bold shadow',400],['rb','Rainbow edge',800]],wk:[['neon','Neon notes',1500],['fire','Fire name',1200],['galaxy','Galaxy frame',1500],['ice','Ice notes',1200],['sun','Sun name',1000],['candy','Candy frame',1200]]};
 const FRS={gold:'0 0 0 4px #f5c542',red:'0 0 0 4px #e03a3a',blue:'0 0 0 4px #3a82c4',rb:'0 0 0 3px #f55,0 0 0 6px #fc3,0 0 0 9px #58f'};
 const NCS={red:'color:#ff5a5a',blue:'color:#3a82c4',gold:'color:#d4a017',rb:'background:linear-gradient(90deg,#f55,#fc3,#5e8,#58f,#c4c);-webkit-background-clip:text;background-clip:text;color:transparent'};
 const FXS={glow:'box-shadow:0 0 12px 3px #f0455a',tilt:'transform:rotate(-4deg);box-shadow:2px 4px 8px rgba(0,0,0,.25)',shadow:'box-shadow:6px 7px 0 rgba(0,0,0,.35)',rb:'border:3px solid;border-image:linear-gradient(135deg,#f55,#fc3,#5e8,#58f,#c4c) 1'};
-const PVW=(c,id)=>c=='fr'?'<div style="width:44px;height:44px;margin:8px auto 14px;border-radius:50%;background:#f0455a;color:#fff;font:800 20px Rubik,sans-serif;display:grid;place-items:center;box-shadow:'+FRS[id]+'">P</div>':c=='nc'?'<div style="font:800 20px Rubik,sans-serif;margin:10px 0;'+NCS[id]+'">Your name</div>':'<div style="width:72px;height:46px;margin:8px auto 12px;background:#8cc8f5;color:#222;border-radius:3px;font:11px sans-serif;padding:5px;'+FXS[id]+'">Note</div>';
+const WKB={neon:'linear-gradient(135deg,#0ff,#f0f)',fire:'linear-gradient(135deg,#f33,#ff7a18)',galaxy:'linear-gradient(135deg,#1b1b5e,#7b5cff)',ice:'linear-gradient(135deg,#9be7ff,#fff)',sun:'linear-gradient(135deg,#ffd400,#fa0)',candy:'linear-gradient(135deg,#ff9ad5,#9bf6ff)'};
+const PVW=(c,id)=>c=='wk'?'<div style="width:72px;height:46px;margin:8px auto 12px;border-radius:6px;background:'+WKB[id]+'"></div>':c=='fr'?'<div style="width:44px;height:44px;margin:8px auto 14px;border-radius:50%;background:#f0455a;color:#fff;font:800 20px Rubik,sans-serif;display:grid;place-items:center;box-shadow:'+FRS[id]+'">P</div>':c=='nc'?'<div style="font:800 20px Rubik,sans-serif;margin:10px 0;'+NCS[id]+'">Your name</div>':'<div style="width:72px;height:46px;margin:8px auto 12px;background:#8cc8f5;color:#222;border-radius:3px;font:11px sans-serif;padding:5px;'+FXS[id]+'">Note</div>';
 const EX={};Object.keys(EXD).forEach(c=>EX[c]=EXD[c].map(([id,n,p])=>({k:c+'_'+id,n,p,pv:PVW(c,id)})));
-const CATS={st:'Profile stickers',th:'Premium themes',rx:'Note reactions',fr:'Profile frames',nc:'Name colors',fx:'Note effects'},HINT={fr:'A colored ring around your profile picture.',nc:'Colors your name on your profile card.',fx:'Special looks for the notes on your board.',st:'Equip up to 5 stickers: they show on your profile.',th:'Premium themes can be applied any time once bought.',rx:'Extra reactions appear under every note.'};let CAT='st';
+const CATS={st:'Profile stickers',th:'Premium themes',rx:'Note reactions',fr:'Profile frames',nc:'Name colors',fx:'Note effects',wk:'Weekly rare'},HINT={wk:'Rare items: 2 new ones every week. Ones you own stay yours.',fr:'A colored ring around your profile picture.',nc:'Colors your name on your profile card.',fx:'Special looks for the notes on your board.',st:'Equip up to 5 stickers: they show on your profile.',th:'Premium themes can be applied any time once bought.',rx:'Extra reactions appear under every note.'};let CAT='st';
 /* stickers on the profile */
 let drawStk=()=>{};
 {const pn=document.getElementById('pName'),bio=document.getElementById('pBio');
@@ -1812,7 +1815,7 @@ function shop(L){
  L.innerHTML='<div class="row" style="margin:0 0 6px">'+Object.keys(CATS).map(c=>`<button class="chip ${c==CAT?'on':''}" data-c="${c}">${CATS[c]}</button>`).join('')+`</div><div style="font-size:13px;opacity:.7;margin-bottom:10px">${HINT[CAT]}</div><div class="gmG" id="gmS"></div>`;
  L.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{CAT=b.dataset.c;shop(L)});
  const big=e=>`<div style="font-size:34px">${e}</div>`,G=L.querySelector('#gmS');
- (CAT=='st'?SK.map(([e,n,p])=>({k:'s'+e,n,p,e,pv:big(e)})):CAT=='th'?TP.map(t=>({k:t.id,n:t.name,p:t.p,t,pv:`<div style="height:40px;border-radius:8px;background:${t.bg}"></div>`})):CAT in EX?EX[CAT]:RX.map(([e,n,p])=>({k:'r'+e,n,p,e,pv:big(e)}))).forEach(it=>{
+ (CAT=='st'?SK.map(([e,n,p])=>({k:'s'+e,n,p,e,pv:big(e)})):CAT=='th'?TP.map(t=>({k:t.id,n:t.name,p:t.p,t,pv:`<div style="height:40px;border-radius:8px;background:${t.bg}"></div>`})):CAT in EX?(CAT=='wk'?EX.wk.filter((x,i)=>S.own[x.k]||Math.floor(i/2)==Math.floor(Date.now()/604800000)%3):EX[CAT]):RX.map(([e,n,p])=>({k:'r'+e,n,p,e,pv:big(e)}))).forEach(it=>{
   const own=S.own[it.k],eq=CAT=='st'&&(myProf.stk||[]).includes(it.e);
   const c=card(it.pv,it.n,own?'Owned':CO+' '+it.p,own?(CAT=='st'?(eq?'Unequip':'Equip'):CAT=='th'?'Apply':CAT in EX?((S.eq||{})[CAT]==it.k?'Unequip':'Equip'):'Owned'):'Buy'),b=c.querySelector('button');
   if(own&&CAT=='rx')b.disabled=true;
@@ -1921,7 +1924,7 @@ td.onclick=()=>{Object.values(notes).forEach((n,i)=>{if(!n)return;n.cx=(i%4)*216
 $('#newBoard').after(td);
 /* shop cosmetics */
 window.pnApply=()=>{const e=window.pnPolis?pnPolis.eq():{};
- [...document.body.classList].filter(c=>/^(fx|fr|nc)-/.test(c)).forEach(c=>document.body.classList.remove(c));
+ [...document.body.classList].filter(c=>/^(fx|fr|nc|wk)-/.test(c)).forEach(c=>document.body.classList.remove(c));
  Object.values(e).forEach(k=>{if(k)document.body.classList.add(k.replace('_','-'))})};
 pnApply();
 {const o=window.openProfile;if(typeof o==='function')window.openProfile=async function(u){pOv.dataset.me=u===uid?'1':'';return o.apply(this,arguments)}}
@@ -1983,25 +1986,30 @@ window.pnBadName=n=>{if(window.__owner)return false;const f=n.replace(/[ ._-]/g,
 $('#eSave').addEventListener('click',()=>{myProf.status=$('#eSt').value.trim().slice(0,30)},true);
 /* owner console: Ctrl+Shift+K */
 const OWNER_HASH='a72833c6d6f84440b8e5aed6b1d15e68';let unlocked=false; /* paste your owner code above (see console setup) */
+const glog=(t,n,m)=>{const l=LS.get('pn_giftlog',[]);l.push({t:Date.now(),to:t,n,m});LS.set('pn_giftlog',l.slice(-50))};
+const sendG=(t,n,msg)=>{const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid,m:msg});else if(typeof sSend==='function')sSend(t,{k:'gift',i:id,n,m:msg});glog(t,n,msg)};
 const OWNER_UID=''; /* optional: your friend code (/whoami); if set, gifts are accepted only from it */
-window.pnGift=(id,n,from)=>{try{n=Number(n);if(typeof id!=='string'||id.length>40||!Number.isInteger(n)||n<1||n>1000)return;
+window.pnGift=(id,n,from,msg)=>{try{n=Number(n);if(typeof id!=='string'||id.length>40||!Number.isInteger(n)||n<1||n>1000)return;
  if(OWNER_UID?from!==OWNER_UID:!friends[from])return;
  const g=LS.get('pn_gifts_seen',[]);if(g.includes(id))return;g.push(id);LS.set('pn_gifts_seen',g.slice(-200));
- pnPolis.earn(n);toast('🎁 You received '+n+' Polis!')}catch{}};
-if(SYNC&&db){db.ref('users/'+uid+'/gifts').on('child_added',s=>{const g=s.val()||{},k=s.key;setTimeout(()=>{pnGift(k,g.n,g.f);s.ref.remove()},3000)})}
+ pnPolis.earn(n);toast('🎁 You received '+n+' Polis!'+(typeof msg==='string'&&msg?' "'+msg.slice(0,60)+'"':''))}catch{}};
+if(SYNC&&db){db.ref('users/'+uid+'/gifts').on('child_added',s=>{const g=s.val()||{},k=s.key;setTimeout(()=>{pnGift(k,g.n,g.f,g.m);s.ref.remove()},3000)})}
 function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,n=parseInt(b,10);
  switch(c){
- case 'help':return '/polis add|take|set N\n/give <friend code> N   (N from 1 to 1000)\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
+ case 'help':return '/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
  case 'polis':if(!P||isNaN(n)||n<0)return 'Usage: /polis add|take|set N';
   if(a=='add')P.earn(n);else if(a=='take')P.earn(-Math.min(n,P.bal()));else if(a=='set')P.earn(n-P.bal());else return 'Usage: /polis add|take|set N';
   return 'Balance: '+P.bal()+' Polis';
- case 'give':{if(!a||isNaN(n)||n<1||n>1000)return 'Usage: /give <friend code or friend name> N  (N from 1 to 1000)';
+ case 'announce':{const x=v.replace(/^\/?announce\s*/i,'').slice(0,140);if(!x)return 'Usage: /announce text';if(!db||!room)return 'Enter a room first.';db.ref('rooms/'+room+'/announce').set({t:Date.now(),x,f:uid});return 'Announcement sent to everyone online in this room.'}
+ case 'giveall':{const k=parseInt(a,10);if(isNaN(k)||k<1||k>1000)return 'Usage: /giveall N [message]  (N from 1 to 1000)';const m=v.replace(/^\/?giveall\s+\d+\s*/i,'').slice(0,60),f=Object.keys(friends);if(!f.length)return 'You have no friends yet.';f.forEach(t=>sendG(t,k,m));return 'Sent '+k+' Polis to '+f.length+' friends.'}
+ case 'gifts':{const l=LS.get('pn_giftlog',[]).slice(-10).reverse();return l.length?l.map(x=>new Date(x.t).toLocaleString('en-GB')+'  '+String(x.to).toUpperCase()+'  '+x.n+(x.m?'  "'+x.m+'"':'')).join('\n'):'No gifts sent yet.'}
+ case 'give':{const msg=v.replace(/^\/?give\s+\S+\s+\d+\s*/i,'').slice(0,60);if(!a||isNaN(n)||n<1||n>1000)return 'Usage: /give <friend code or friend name> N  (N from 1 to 1000)';
   const t=UID_RE.test(a.toLowerCase())?a.toLowerCase():Object.keys(friends).find(u=>String(fname(u)).toLowerCase()===a.toLowerCase());
   if(!t)return 'Friend not found. Use their 7-character friend code.';
   if(t===uid)return "That is YOUR own friend code. Use /polis add N to give Polis to yourself, or use the code of another account.";
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid});else if(typeof sSend==='function')sSend(t,{k:'gift',i:id,n});else return 'Not connected.';
-  return 'Sent '+n+' Polis to '+t.toUpperCase()+'. They receive them when they are online.'+(friends[t]||OWNER_UID?'':'\nNote: you are not friends yet, so they will ignore it. Add each other from the Friends tab first.')}
+  if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid,m:msg});else if(typeof sSend==='function')sSend(t,{k:'gift',i:id,n,m:msg});else return 'Not connected.';
+  glog(t,n,msg);return 'Sent '+n+' Polis to '+t.toUpperCase()+'. They receive them when they are online.'+(friends[t]||OWNER_UID?'':'\nNote: you are not friends yet, so they will ignore it. Add each other from the Friends tab first.')}
  case 'name':localStorage.removeItem('pn_name_free_used');renderNameInfo();return 'Free name change restored.';
  case 'badges':if(!window.pnBD)return 'n/a';if(a=='all')pnBD.BD.forEach(x=>pnBD.B.got[x[0]]=1);else if(a=='reset')pnBD.B.got={};else return 'Usage: /badges all|reset';pnBD.bsave();return 'Done.';
  case 'unlock':if(!P)return 'n/a';P.ex().forEach(k=>P.own()[k]=1);P.spend(0);return 'All cosmetics unlocked.';
@@ -2022,6 +2030,63 @@ function con(){if($('#ownOv'))return;const o=document.createElement('div');o.id=
   log('> '+v);const r=run(v);if(r)log(r)}}
 addEventListener('keydown',e=>{const t=e.target,ed=t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));if(!ed&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&e.key.toLowerCase()==='k'&&!$('#ownOv')){e.preventDefault();con()}});
 }catch(e){console.warn('extras2',e)}})();
+</script>
+<style>
+body.wk-neon .note{box-shadow:0 0 10px 2px #0ff,0 0 24px 6px #f0f}
+body.wk-ice .note{box-shadow:0 0 12px 3px #9be7ff;border:2px solid #d8f6ff}
+body.wk-fire #pOv[data-me="1"] #pName{color:#ff7a18;text-shadow:0 0 8px #f33}
+body.wk-sun #pOv[data-me="1"] #pName{color:#ffd400;text-shadow:0 0 8px #fa0}
+body.wk-galaxy #pOv[data-me="1"] #pPfp{box-shadow:0 0 0 4px #7b5cff,0 0 0 8px #1b1b5e,0 0 18px #7b5cff}
+body.wk-candy #pOv[data-me="1"] #pPfp{box-shadow:0 0 0 4px #ff9ad5,0 0 0 8px #9bf6ff}
+#polls{display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 auto 14px}
+.pollc{position:relative;width:min(92vw,380px);padding:12px;background:#fff;color:#222;border:2px solid #2b2b2b;box-shadow:6px 6px 0 rgba(0,0,0,.13);text-align:left;font:13px 'Source Sans 3',Arial,sans-serif}
+.pollc b{display:block;margin:0 24px 8px 0;font-size:15px}
+.pollx{position:absolute;top:6px;right:8px;border:0;background:none;cursor:pointer;font-size:14px}
+.pollo{display:block;width:100%;margin:4px 0;padding:7px 10px;text-align:left;border:1px solid #ccc;background:linear-gradient(90deg,rgba(240,69,90,.25) var(--w,0%),#fff var(--w,0%));cursor:pointer;font:inherit;color:#222}
+.pollo.me{border:2px solid var(--accent);font-weight:700}.pollc small{opacity:.6}
+.annB{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:150;max-width:min(92vw,520px);padding:10px 14px;background:#222;color:#fff;border:2px solid var(--accent);font:600 15px 'Source Sans 3',Arial,sans-serif;box-shadow:4px 4px 0 rgba(0,0,0,.3);display:flex;gap:10px;align-items:center}
+.annB button{border:0;background:none;color:#fff;cursor:pointer;font-size:16px}
+#pollOv{position:fixed;inset:0;z-index:130;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(25,38,48,.55);backdrop-filter:blur(3px)}
+#pollOv .tc{width:min(100%,400px);background:#fff;color:#222;border:2px solid #2b2b2b;box-shadow:8px 8px 0 rgba(0,0,0,.28);padding:18px;font:16px/1.4 'Source Sans 3',Arial,sans-serif;text-align:left}
+#pollOv h2{margin:0 0 8px;font:800 20px 'Rubik',sans-serif;color:var(--accent)}
+#pollOv input{width:100%;margin:5px 0;padding:8px;font:15px 'Source Sans 3',Arial,sans-serif;border:1px solid #b9b9b9}
+#pollOv .tr{display:flex;gap:10px;margin-top:12px}
+#pollOv button{flex:1;height:42px;border:2px solid #2b2b2b;border-radius:2px;font:700 16px 'Source Sans 3',Arial,sans-serif;cursor:pointer;background:#fff;color:#222}
+#pollOv button.go{background:var(--accent);color:#fff}
+</style>
+<script>
+(()=>{try{
+const $=s=>document.querySelector(s),mk=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+/* install on phone / tablet */
+let dp=null;const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),stand=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+const ib=mk('button',null,'📲 Install app');ib.style.cssText='display:none;margin:12px 0 0 8px;padding:7px 14px;border:2px solid #2b2b2b;border-radius:2px;background:#fff;color:#222;font:600 15px "Source Sans 3",Arial,sans-serif;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.15)';
+$('#gChat').after(ib);const show=()=>{if(!stand)ib.style.display='inline-block'};
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;show()});if(ios)show();
+ib.onclick=async()=>{if(dp){dp.prompt();await dp.userChoice;dp=null;ib.style.display='none'}else alert('On iPhone/iPad: tap the Share button in Safari, then "Add to Home Screen". On Android: open the browser menu and choose "Install app".')};
+addEventListener('appinstalled',()=>{ib.style.display='none'});
+/* polls */
+const pb=mk('div');pb.id='polls';$('#tools').after(pb);
+const btn=mk('button','chip','📊 Poll');btn.id='pollBtn';btn.title='Create a poll';$('#tidy').after(btn);
+function drawPolls(v){pb.textContent='';
+ Object.entries(v||{}).filter(([,p])=>p&&Array.isArray(p.o)).sort((a,b)=>(b[1].t||0)-(a[1].t||0)).slice(0,5).forEach(([id,p])=>{
+  const vs=p.v||{},cnt=p.o.map(()=>0);Object.values(vs).forEach(i=>{if(cnt[i]!=null)cnt[i]++});const tot=cnt.reduce((a,b)=>a+b,0),mine=vs[uid],c=mk('div','pollc');
+  c.append(mk('b',null,'📊 '+p.q));
+  if(p.u===uid){const x=mk('button','pollx','✕');x.title='Delete poll';x.onclick=()=>db.ref('rooms/'+room+'/polls/'+id).remove();c.append(x)}
+  p.o.forEach((o,i)=>{const pc=tot?Math.round(cnt[i]/tot*100):0,r=mk('button','pollo'+(mine===i?' me':''),o+' · '+cnt[i]+' ('+pc+'%)');r.style.setProperty('--w',pc+'%');r.onclick=()=>db.ref('rooms/'+room+'/polls/'+id+'/v/'+uid).set(i);c.append(r)});
+  c.append(mk('small',null,tot+' vote'+(tot==1?'':'s')+' · by '+(p.n||'Guest')));pb.append(c)})}
+btn.onclick=()=>{if(!db||!room){toast('Enter a room first.');return}
+ const o=mk('div');o.id='pollOv';o.innerHTML='<div class="tc"><h2>New poll</h2><input id="pq" maxlength="80" placeholder="Question"><input class="po" maxlength="40" placeholder="Option 1"><input class="po" maxlength="40" placeholder="Option 2"><input class="po" maxlength="40" placeholder="Option 3 (optional)"><input class="po" maxlength="40" placeholder="Option 4 (optional)"><div class="tr"><button class="x">Cancel</button><button class="go">Create</button></div></div>';
+ document.body.append(o);o.querySelector('#pq').focus();o.querySelector('.x').onclick=()=>o.remove();o.onclick=e=>{if(e.target===o)o.remove()};
+ o.querySelector('.go').onclick=()=>{const q=o.querySelector('#pq').value.trim(),opts=[...o.querySelectorAll('.po')].map(i=>i.value.trim()).filter(Boolean);
+  if(!q||opts.length<2){toast('Add a question and at least 2 options.');return}
+  db.ref('rooms/'+room+'/polls/'+Date.now().toString(36)).set({q,o:opts,u:uid,n:myName,t:Date.now()});o.remove()}};
+/* announcements + live room listeners */
+const t0=Date.now();let ann=0;
+function showAnn(x){const b=mk('div','annB');b.append(mk('span',null,'📢 '+x));const c=mk('button',null,'✕');c.onclick=()=>b.remove();b.append(c);document.body.append(b);try{if(LS.get('pn_snd',true))ping()}catch{}setTimeout(()=>b.remove(),12000)}
+const w=setInterval(()=>{if(document.body.classList.contains('entered')&&db&&room){clearInterval(w);
+ db.ref('rooms/'+room+'/announce').on('value',s=>{const v=s.val();if(!v||!(v.t>t0)||v.t===ann)return;ann=v.t;showAnn(String(v.x||'').slice(0,140))});
+ db.ref('rooms/'+room+'/polls').on('value',s=>drawPolls(s.val()))}},500);
+}catch(e){console.warn('extras3',e)}})();
 </script>
 </body>
 </html>
