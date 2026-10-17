@@ -811,7 +811,9 @@ async function enter(code){
   code=code.trim().toLowerCase();
   if(!code){const b=$('.gate .box');b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');return}
   const eb=$('#enter');eb.classList.add('go');eb.textContent='Entering…';
-  const nn=$('#name').value.trim().slice(0,16);if(nn&&nn!==myProf.name){myProf.name=nn;saveProf()}myName=myProf.name;
+  const okN=await tryRename($('#name').value);
+  if(!okN){eb.classList.remove('go');eb.textContent='Enter';return}
+  myName=myProf.name;
   room=await sha(code);LS.set('pn_code',code);inRoom=true;
   board=LS.get('pn_board_'+room,'main');
   if(!db&&p2pPref()){db=makeP2P(room);
@@ -999,7 +1001,7 @@ $('#eT1').oninput=$('#eT2').oninput=()=>{pT1=$('#eT1').value;pT2=$('#eT2').value
 $('#eTreset').onclick=()=>{pT1=pT2='';applyCard(null)};
 $('#eSave').onclick=async()=>{
   myProf.t1=pT1;myProf.t2=pT2;
-  myProf.name=($('#eName').value.trim()||myProf.name).slice(0,16);myProf.bio=$('#eBio').value.trim().slice(0,120);myProf.bc=$('#eCol').value;
+  await tryRename(($('#eName').value.trim()||myProf.name).slice(0,16));myProf.bio=$('#eBio').value.trim().slice(0,120);myProf.bc=$('#eCol').value;
   if(pendPfp)myProf.pfp=pendPfp;
   if(pendBan){await imgSet('ban_'+uid,pendBan);try{localStorage.removeItem('pn_banner')}catch{}if(db)fb(db.ref('users/'+uid+'/banner').set(pendBan))}
   saveProf();if(!SYNC&&(pendPfp||pendBan))Object.keys(friends).forEach(sSendImgs);refreshUI();openProfile(uid)};
@@ -1460,7 +1462,51 @@ let rsT;addEventListener('resize',()=>{clearTimeout(rsT);rsT=setTimeout(()=>{ren
 $('#enter').onclick=()=>enter($('#code').value);
 ['#code','#name'].forEach(i=>$(i).onkeydown=e=>{if(e.key==='Enter')enter($('#code').value)});
 $('#name').value=myProf.name;
-$('#name').addEventListener('change',()=>{const nn=$('#name').value.trim().slice(0,16);if(nn&&nn!==myProf.name){myProf.name=nn;saveProf();renderFView()}});
+/* ===== NAME CHANGE: 1 free trial, then 100 Polis (with confirmation) ===== */
+const NAME_COST=100,nameFreeLeft=()=>!LS.get('pn_name_free_used',false);
+function renderNameInfo(){
+  const t=document.querySelector('.nm-trial'),w=document.querySelector('.nm-warn');if(!t||!w)return;
+  const free=nameFreeLeft();t.hidden=!free;
+  w.textContent=free?'⚠️ Warning: once your free trial is used, 100 Polis will be charged for every name change. Choose your name carefully!'
+    :'⚠️ You need at least '+NAME_COST+' Polis to change your name. Choose your name carefully!'}
+function askBuy(nn){return new Promise(res=>{
+  const o=el('div'),c=el('div');
+  o.style.cssText='position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(25,38,48,.55);backdrop-filter:blur(3px)';
+  c.style.cssText="width:min(100%,420px);background:#fff;color:#222;border:2px solid #2b2b2b;box-shadow:8px 8px 0 rgba(0,0,0,.28);padding:18px;font:400 16px/1.4 'Source Sans 3','Segoe UI',Arial,sans-serif;text-align:left";
+  const h=el('h2',null,'Confirm purchase');h.style.cssText="margin:0 0 10px;font:800 20px 'Rubik',sans-serif;color:var(--accent)";
+  const p1=el('p',null,'Changing your name to \"'+nn+'\" costs '+NAME_COST+' Polis.');p1.style.margin='0';
+  const p2=el('p',null,'Are you sure you want to proceed with the purchase? You cannot be refunded!');p2.style.cssText='margin:8px 0 0;font-weight:700;color:#b32323';
+  const row=el('div');row.style.cssText='display:flex;gap:10px;margin-top:16px;flex-wrap:wrap';
+  const bs="flex:1;min-width:130px;height:44px;border:2px solid #2b2b2b;border-radius:2px;font:700 17px 'Source Sans 3','Segoe UI',Arial,sans-serif;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.25)";
+  const yes=el('button',null,"Yes, I'm sure"),no=el('button',null,'No, not sure');
+  yes.style.cssText=bs+';background:var(--accent);color:#fff';no.style.cssText=bs+';background:#fff;color:#222';
+  const done=v=>{removeEventListener('keydown',esc,true);o.remove();res(v)};
+  const esc=e=>{if(e.key==='Escape'){e.stopPropagation();done(false)}};
+  yes.onclick=()=>done(true);no.onclick=()=>done(false);o.onclick=e=>{if(e.target===o)done(false)};
+  addEventListener('keydown',esc,true);
+  row.append(yes,no);c.append(h,p1,p2,row);o.append(c);document.body.append(o);no.focus()})}
+let renP=null,renN='';
+function tryRename(raw){
+  const nn=String(raw||'').trim().slice(0,16);
+  if(!nn||nn===myProf.name)return Promise.resolve(true);
+  if(renP&&renN===nn)return renP;
+  renN=nn;
+  const p=renP=(async()=>{
+    let ok=false;
+    if(nameFreeLeft()){LS.set('pn_name_free_used',true);myProf.name=nn;saveProf();ok=true}
+    else{
+      const P=window.pnPolis;
+      if(!P||P.bal()<NAME_COST)toast('You need '+NAME_COST+' Polis to change your name.');
+      else if(await askBuy(nn)){
+        if(P.spend(NAME_COST)){myProf.name=nn;saveProf();ok=true;toast('Name changed · -'+NAME_COST+' Polis')}
+        else toast('You need '+NAME_COST+' Polis to change your name.')}}
+    const ni=$('#name');if(ni)ni.value=myProf.name;
+    renderNameInfo();try{renderFView()}catch{}
+    return ok})();
+  p.finally(()=>{if(renP===p)renP=null});
+  return p}
+$('#name').addEventListener('change',()=>{tryRename($('#name').value)});
+renderNameInfo();
 let quitting=false;
 $('#logout').onclick=()=>{
   if(quitting)return;quitting=true;
@@ -1743,6 +1789,7 @@ const TP=[{id:'p-aurora',name:'Aurora',bg:'linear-gradient(135deg,#0f2027,#2c536
  {id:'p-matrix',name:'Matrix',bg:'#041a0c',accent:'#2bff75',line:'rgba(43,255,117,.1)',dark:1,p:2400}];
 const RX=[['🔥','Fire',450],['🎉','Party',450],['😍','Heart eyes',450],['👀','Eyes',450],['🤯','Mind blown',600],['💯','100',600]];
 window.pnReacts=()=>RX.filter(r=>S.own['r'+r[0]]).map(r=>r[0]);
+window.pnPolis={bal:()=>S.c,spend:n=>{if(!(S.c>=n))return false;S.c-=n;save();coins();return true}};
 const CATS={st:'Profile stickers',th:'Premium themes',rx:'Note reactions'},HINT={st:'Equip up to 5 stickers: they show on your profile.',th:'Premium themes can be applied any time once bought.',rx:'Extra reactions appear under every note.'};let CAT='st';
 /* stickers on the profile */
 let drawStk=()=>{};
