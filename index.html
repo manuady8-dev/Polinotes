@@ -175,7 +175,7 @@ body.dk .sub{background:rgba(0,0,0,.35)}
     <button class="btn" id="enter" style="width:100%">Enter</button>
     <small>Anyone with the same code sees the same notes.</small>
     <small id="syncRow"></small>
-    <div id="syncBox" hidden><textarea id="syncTxt" placeholder="Paste your firebaseConfig here (empty = remove)"></textarea><button class="btn" id="syncSave" style="width:100%">Save &amp; reload</button></div>
+    <div id="syncBox" hidden><textarea id="syncTxt" placeholder="Paste your firebaseConfig here (empty = remove)"></textarea><button class="btn" id="syncSave" style="width:100%">Save &amp; reload</button><a id="rulesLink" style="display:block;margin-top:6px;cursor:pointer;text-decoration:underline;font-size:11px">Show database rules to paste in Firebase</a></div>
   </div>
   <div id="gFriends" class="strip" hidden></div>
 </div>
@@ -484,7 +484,33 @@ $('#clrTr').onclick=()=>{Object.keys(trash).forEach(id=>trRef&&trRef.child(id).r
 /* ===== PROFILE / FRIENDS / CHAT ===== */
 let friends={},reqIn={},fOn={},unread=0,enterT=0,tab='lobby',dmWith=null,chL=null,dmRef=null,pView=null,pendPfp=null,pendBan=null;
 const watched=new Set(),lobbyMsgs=[],pOv=$('#pOv');
-const rulesErr=()=>toast('Database rules need updating (see setup steps)');
+const RULES=`{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": { "$uid": { ".read": true, ".write": true } },
+    "rooms": { ".read": true, ".write": true },
+    "dms":   { ".read": true, ".write": true }
+  }
+}`;
+function showRules(){
+  let o=$('#rulesOv');
+  if(!o){o=el('div');o.id='rulesOv';o.style.cssText='position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+    const c=el('div');c.style.cssText='background:#fff;color:#222;border-radius:14px;padding:18px;max-width:460px;width:100%;max-height:90vh;overflow:auto;font-size:13px;line-height:1.5';
+    const h=el('b',null,'Firebase database rules');h.style.fontSize='15px';
+    const p=el('p',null,'Firebase Console → Realtime Database → Rules → paste this (replace everything) → Publish. Then reload the app.');
+    const pre=el('pre',null,RULES);pre.style.cssText='background:#f3f3f3;padding:10px;border-radius:8px;overflow:auto;font-size:12px;user-select:all';
+    const row=el('div');row.style.cssText='display:flex;gap:8px;margin-top:10px';
+    const cp=el('button','btn','Copy'),cl=el('button','btn','Close');cl.style.background='#888';
+    cp.onclick=()=>{(navigator.clipboard?navigator.clipboard.writeText(RULES):Promise.reject()).then(()=>cp.textContent='Copied ✓').catch(()=>{const r=document.createRange();r.selectNodeContents(pre);getSelection().removeAllRanges();getSelection().addRange(r);cp.textContent='Selected - press Ctrl+C'})};
+    cl.onclick=()=>o.remove();o.onclick=e=>{if(e.target===o)o.remove()};
+    row.append(cp,cl);c.append(h,p,pre,row);o.append(c);document.body.append(o)}}
+const rulesErr=e=>{console.error('Firebase error:',e);
+  if(e&&(e.code==='PERMISSION_DENIED'||/permission/i.test(e.message||''))){
+    const t=$('#toast');t.innerHTML='';t.append(el('span',null,'Database rules need updating'));
+    const b=el('button',null,'Show rules');b.onclick=()=>{showRules();t.classList.remove('show')};t.append(b);
+    t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),10000)}
+  else toast('Sync error: '+((e&&e.message)||e))};
 const fb=p=>{if(p&&p.catch)p.catch(rulesErr);return p};
 function saveProf(){LS.set('pn_prof',myProf);myName=myProf.name;profs[uid]=myProf;
   if(db){fb(db.ref('users/'+uid+'/p').set(myProf));if(prRef)prRef.child(myId+'/name').set(myName)}}
@@ -494,10 +520,15 @@ function av(u,name,cls){
   else a.style.background='hsl('+hue(u||name||'?')+',60%,48%)';
   if(u)a.onclick=e=>{e.stopPropagation();openProfile(u)};
   return a}
+const profW=new Set();let rfT;
+const refreshSoon=()=>{clearTimeout(rfT);rfT=setTimeout(refreshUI,80)};
+function watchProf(u){return new Promise(res=>{
+  if(profW.has(u))return res();profW.add(u);let first=true;
+  db.ref('users/'+u+'/p').on('value',s=>{profs[u]=s.val()||{name:'Guest'};if(first){first=false;res()}else refreshSoon()},
+    e=>{profW.delete(u);console.error('profile read failed',u,e);if(first){first=false;res()}rulesErr(e)})})}
 async function loadProfiles(ids){
-  if(!db)return;const need=[...new Set(ids)].filter(u=>u&&!profs[u]);if(!need.length)return;
-  await Promise.all(need.map(u=>db.ref('users/'+u+'/p').once('value').then(s=>{profs[u]=s.val()||{name:'Guest'}}).catch(()=>{profs[u]={name:'Guest'}})));
-  refreshUI()}
+  if(!db)return;const need=[...new Set(ids)].filter(u=>u&&u!==uid&&!profW.has(u));if(!need.length)return;
+  await Promise.all(need.map(watchProf));refreshUI()}
 function refreshUI(){showOnline(lastPres);render();renderStrips();if(chatOpen())renderChat()}
 function renderStrips(){
   ['#gFriends','#fBar'].forEach(sel=>{const box=$(sel);box.innerHTML='';const ids=Object.keys(friends);box.hidden=!ids.length;if(!ids.length)return;
@@ -514,8 +545,19 @@ function startSocial(){
   const friendsTab=()=>chatOpen()&&tab==='friends'&&!dmWith&&renderChat();
   db.ref('users/'+uid+'/friends').on('value',s=>{friends=s.val()||{};
     Object.keys(friends).forEach(f=>{if(!watched.has(f)){watched.add(f);db.ref('users/'+f+'/status').on('value',x=>{fOn[f]=!!x.val();renderStrips();friendsTab()})}});
-    loadProfiles(Object.keys(friends));renderStrips();showOnline(lastPres);friendsTab()});
-  db.ref('users/'+uid+'/requests').on('value',s=>{reqIn=s.val()||{};loadProfiles(Object.keys(reqIn));badges();friendsTab()})}
+    loadProfiles(Object.keys(friends));renderStrips();showOnline(lastPres);friendsTab()},rulesErr);
+  let reqFirst=true;
+  db.ref('users/'+uid+'/requests').on('value',s=>{const prev=reqIn;reqIn=s.val()||{};loadProfiles(Object.keys(reqIn));badges();friendsTab();
+    if(!reqFirst)Object.keys(reqIn).filter(u=>!prev[u]).forEach(reqToast);reqFirst=false},rulesErr)}
+function reqToast(u){
+  const n=(reqIn[u]||{}).n||(profs[u]||{}).name||'Someone',t=$('#toast');t.innerHTML='';
+  t.append(el('span',null,'👋 '+n+' sent you a friend request'));
+  const ok=el('button',null,'Accept'),no=el('button',null,'Decline');
+  ok.onclick=()=>{accept(u);t.classList.remove('show')};
+  no.onclick=()=>{fb(db.ref('users/'+uid+'/requests/'+u).remove());t.classList.remove('show')};
+  t.append(ok,no);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),12000);
+  try{ping()}catch{}
+  try{if('Notification'in window&&Notification.permission==='granted')new Notification('Poli-Notes',{body:n+' sent you a friend request',icon:ICON})}catch{}}
 /* profile card */
 function setBanner(c,img){$('#pBanner').style.background=safeImg(img)?'url('+img+') center/cover':(/^#[0-9a-f]{6}$/i.test(c||'')?c:'#f0455a')}
 function setPfp(p,u){const pf=$('#pPfp');pf.textContent=(p.name||'?')[0].toUpperCase();
@@ -539,7 +581,7 @@ async function actions(u){
   else{const s=await db.ref('users/'+u+'/requests/'+uid).once('value').catch(()=>null);
     if(pView!==u)return;
     if(s&&s.exists())B('Request sent ✓ (cancel)',()=>{fb(db.ref('users/'+u+'/requests/'+uid).remove());close()},'#888');
-    else B('➕ Add friend',()=>{fb(db.ref('users/'+u+'/requests/'+uid).set({n:myName,t:Date.now()}));toast('Friend request sent');close()})}}
+    else B('➕ Add friend',()=>{db.ref('users/'+u+'/requests/'+uid).set({n:myName,t:Date.now()}).then(()=>toast('Friend request sent')).catch(rulesErr);close()})}}
 function cropImg(file,w,h,q){return new Promise(res=>{const im=new Image();
   im.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;const k=Math.max(w/im.width,h/im.height),dw=im.width*k,dh=im.height*k;
     c.getContext('2d').drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);res(c.toDataURL('image/webp',q))};
@@ -614,6 +656,7 @@ $('#logout').onclick=()=>{localStorage.removeItem('pn_code');if(ref)ref.off();lo
 /* sync setup (gate) */
 $('#syncRow').innerHTML='Sync: <b>'+(FIREBASE_CONFIG?'ON':'OFF')+'</b> (<a id="syncLink">setup</a>)';
 $('#syncLink').onclick=()=>{$('#syncBox').hidden=!$('#syncBox').hidden};
+$('#rulesLink').onclick=showRules;
 $('#syncSave').onclick=()=>{
   const t=$('#syncTxt').value.trim();
   if(!t){localStorage.removeItem('pn_fbcfg');location.reload();return}
