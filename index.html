@@ -1136,8 +1136,8 @@ function relayPost(u,msg){
 function sReply(u,msg){const c=sConn.get(u);if(c&&c.open){try{c.send(msg);return}catch{}}relayPost(u,msg)}
 function sRelayPush(){const now=Date.now();let ch=false;
   sQ.forEach(x=>{if(!x.a)x.a=Math.random().toString(36).slice(2,10);
-    if(x.ns&&now-x.ns<30000)return;if(x.m.k==='inv'&&now-x.t>36e5)return;
-    x.ns=now;ch=true;relayPost(x.to,Object.assign({a:x.a},x.m))});
+    if(x.ns&&now-x.ns<Math.min(36e5,3e4*Math.pow(2,x.nn||0)))return;if(x.m.k==='inv'&&now-x.t>36e5)return;
+    x.ns=now;x.nn=(x.nn||0)+1;ch=true;relayPost(x.to,Object.assign({a:x.a},x.m))});
   if(ch)sSave()}
 function sRelayStart(){
   if(typeof EventSource==='undefined'||sDead)return;
