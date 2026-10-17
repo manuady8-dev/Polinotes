@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@800&family=Fira+Code&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 :root{--accent:#f0455a;--text:#2b2b2b;--line:rgba(0,0,0,.07);--bg:#fdfdfd;--ease:cubic-bezier(.2,.8,.2,1)}
 *{box-sizing:border-box}
@@ -186,6 +187,7 @@ body.dk .sub{background:rgba(0,0,0,.35)}
     <small><a id="invLink">🔗 Copy invite link</a></small>
     <small>Anyone with the same code sees the same notes.</small>
     <small id="syncRow"></small>
+    <small id="p2pRow"><label style="cursor:pointer"><input type="checkbox" id="p2pOn" style="width:auto;padding:0;margin:0 5px 0 0;vertical-align:middle;letter-spacing:0"> Stanze live con gli amici (senza sincronizzazione)</label></small>
     <div id="syncBox" hidden><textarea id="syncTxt" placeholder="Paste your firebaseConfig here (empty = remove)"></textarea><button class="btn" id="syncSave" style="width:100%">Save &amp; reload</button><a id="rulesLink" style="display:block;margin-top:6px;cursor:pointer;text-decoration:underline;font-size:11px">Show database rules to paste in Firebase</a></div>
   </div>
   <div id="gFriends" class="strip" hidden></div>
@@ -200,6 +202,7 @@ body.dk .sub{background:rgba(0,0,0,.35)}
         <tr><td>✅</td><td>Fixed some functions</td></tr>
         <tr><td>✅</td><td>Added chat on the home screen</td></tr>
         <tr><td>✅</td><td>Added invites (link or friend invite)</td></tr>
+        <tr><td>✅</td><td>Added live rooms with friends (peer-to-peer)</td></tr>
       </tbody>
     </table>
   </aside>
@@ -392,7 +395,7 @@ function showOnline(o){
     a.title=(u.name||'Guest')+(id===myId?' (you)':'')+(fr?' - friend':'');box.append(a)});
   const ty=list.filter(([id,u])=>id!==myId&&u&&u.typing&&Date.now()-u.typing<5000).map(([,u])=>u.name||'Guest');
   if(ty.length)box.append(el('span','typing','✍️ '+ty.join(', ')+(ty.length>1?' are':' is')+' typing...'));
-  if(!db)box.append(el('span',null,'(sync off)'));
+  if(!SYNC){const st=db&&db.state;box.append(el('span',null,st?(st.connected?'(sincronizzazione off · live p2p)':'(sincronizzazione off · in attesa di amici)'):'(sincronizzazione off)'))}
   loadProfiles(list.map(([,u])=>u&&u.uid));
 }
 function trackPresence(){
@@ -467,6 +470,110 @@ function bind(){
     render();renderStickers();renderTrash();
   }
 }
+/* ===== LIVE ROOMS WITHOUT SYNC (peer-to-peer) =====
+   When Firebase sync is OFF, a room can still be shared live: browsers that enter the
+   same access code connect directly (WebRTC via PeerJS). It mimics the small part of the
+   Firebase API this app uses, keeps everything in memory and mirrors it to localStorage. */
+const SYNC=!!db;
+const p2pPref=()=>LS.get('pn_p2p',true)!==false;
+function makeP2P(room){
+  const R='rooms/'+room+'/',hubId='pn-'+room,root={},L=[],myOds=[],connOds=new Map(),conns=new Map();
+  const COLL=new Set(['notes','stickers','trash','chat','presence','cursors','boardlist','pp']);
+  let peer=null,isHub=false,hubConn=null,dead=false,infoCbs=[],pT=null;
+  const split=p=>String(p).split('/').filter(Boolean);
+  const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
+  const norm=p=>{const m=/^users\/([^/]+)\/(p|banner)$/.exec(p);return m?R+'pp/'+m[1]+'/'+m[2]:p};
+  const okPath=p=>typeof p==='string'&&p.startsWith(R)&&p.length<300&&!p.includes('..');
+  const getAt=p=>{let n=root;for(const k of split(p)){if(n==null||typeof n!=='object')return undefined;n=n[k]}return n};
+  function setAt(p,v){const ks=split(p);if(!ks.length)return;const st=[root];let n=root;
+    for(let i=0;i<ks.length-1;i++){const k=ks[i];if(n[k]==null||typeof n[k]!=='object')n[k]={};n=n[k];st.push(n)}
+    const last=ks[ks.length-1];if(v==null)delete n[last];else n[last]=clone(v);
+    for(let i=ks.length-1;i>0;i--){if(Object.keys(st[i]).length)break;delete st[i-1][ks[i-1]]}}
+  const snap=p=>{const v=getAt(p),ks=split(p);return{val:()=>clone(v),exists:()=>v!=null,key:ks[ks.length-1]||null}};
+  const related=(a,b)=>{const x=split(a),y=split(b),n=Math.min(x.length,y.length);for(let i=0;i<n;i++)if(x[i]!==y[i])return false;return true};
+  function dispatch(l){try{
+    if(l.type==='value'){l.cb(snap(l.path));return}
+    if(l.type!=='child_added')return;
+    const v=getAt(l.path);let keys=v&&typeof v==='object'?Object.keys(v).sort():[];if(l.limit)keys=keys.slice(-l.limit);
+    keys.filter(k=>!l.known.has(k)).forEach(k=>{l.known.add(k);l.cb(snap(l.path+'/'+k))});
+    [...l.known].forEach(k=>{if(!keys.includes(k))l.known.delete(k)})
+  }catch(e){console.error(e)}}
+  const fire=p=>{L.slice().forEach(l=>{if(l.on&&related(p,l.path))dispatch(l)})};
+  function saveLocal(){const rt=getAt('rooms/'+room)||{};
+    LS.set('pn_'+room,rt.notes||{});LS.set('pn_st_'+room,rt.stickers||{});LS.set('pn_tr_'+room,rt.trash||{});LS.set('pn_bl_'+room,rt.boardlist||{});
+    Object.entries(rt.boards||{}).forEach(([b,d])=>{d=d||{};LS.set('pn_'+room+'_'+b,d.notes||{});LS.set('pn_st_'+room+'_'+b,d.stickers||{});LS.set('pn_tr_'+room+'_'+b,d.trash||{})})}
+  function persistSoon(p){const rel=p.slice(R.length);
+    if(/^(notes|stickers|trash|boardlist|boards)(\/|$)/.test(rel)&&!/(^|\/)cursors(\/|$)/.test(rel)){clearTimeout(pT);pT=setTimeout(saveLocal,250)}}
+  function loadLocal(){const bl=LS.get('pn_bl_'+room,{});
+    ['main',...Object.keys(bl).filter(k=>k!=='main')].forEach(b=>{const sfx=b==='main'?'':'_'+b,base=b==='main'?'rooms/'+room:'rooms/'+room+'/boards/'+b;
+      [['pn_','notes'],['pn_st_','stickers'],['pn_tr_','trash']].forEach(([pre,key])=>{const d=LS.get(pre+room+sfx,{});if(d&&Object.keys(d).length)setAt(base+'/'+key,d)})});
+    Object.entries(bl).forEach(([id,v])=>{if(id!=='main')setAt('rooms/'+room+'/boardlist/'+id,v)})}
+  function sendW(m,except){
+    if(isHub)conns.forEach((c,id)=>{if(id!==except&&c.open)c.send(m)});
+    else if(hubConn&&hubConn.open)hubConn.send(m)}
+  function write(p,v){p=norm(p);v=v==null?null:v;setAt(p,v);fire(p);persistSoon(p);if(p.startsWith(R))sendW({k:'w',p,v},null)}
+  function ownTree(){const t=clone(getAt('rooms/'+room))||{};delete t.presence;delete t.cursors;
+    Object.values(t.boards||{}).forEach(b=>{if(b)delete b.cursors});return t}
+  function mergeTree(tree,wins,out){(function walk(rel,rv){
+    const isRec=rel.length>=2&&COLL.has(rel[rel.length-2]);
+    if(rv&&typeof rv==='object'&&!Array.isArray(rv)&&!isRec){Object.keys(rv).forEach(k=>walk(rel.concat(k),rv[k]));return}
+    if(rv==null)return;const p=R+rel.join('/'),cur=getAt(p);
+    if(cur===undefined||(wins&&JSON.stringify(cur)!==JSON.stringify(rv))){setAt(p,rv);fire(p);persistSoon(p);if(out)out.push([p,rv])}
+  })([],tree||{})}
+  const infoFire=()=>infoCbs.slice().forEach(o=>{try{o.cb({val:()=>true,exists:()=>true})}catch(e){console.error(e)}});
+  function status(){api.state={connected:isHub?conns.size>0:!!hubConn,hub:isHub,peers:conns.size};try{showOnline(lastPres)}catch{}}
+  function applyOds(id,announce){const ods=connOds.get(id)||[];connOds.delete(id);
+    ods.forEach(o=>{const v=o.op==='set'?o.v:null;setAt(o.p,v);fire(o.p);persistSoon(o.p);if(announce)sendW({k:'w',p:o.p,v:v==null?null:v},null)})}
+  function onMsg(c,m){if(!m||typeof m!=='object')return;
+    if(m.k==='w'){if(!okPath(m.p))return;setAt(m.p,m.v);fire(m.p);persistSoon(m.p);if(isHub)sendW(m,c.peer)}
+    else if(m.k==='hello'){if(!isHub)return;c.send({k:'snap',tree:clone(getAt('rooms/'+room))||{}});myOds.forEach(o=>c.send({k:'od',p:o.p,op:o.op,v:o.v}));infoFire()}
+    else if(m.k==='snap'){mergeTree(m.tree,true,null);try{api.onConnect&&api.onConnect()}catch(e){console.error(e)}c.send({k:'snap2',tree:ownTree()});infoFire();status()}
+    else if(m.k==='snap2'){if(!isHub)return;const out=[];mergeTree(m.tree,false,out);out.forEach(([p,v])=>sendW({k:'w',p,v},c.peer))}
+    else if(m.k==='od'){if(!okPath(m.p))return;if(!connOds.has(c.peer))connOds.set(c.peer,[]);connOds.get(c.peer).push({p:m.p,op:m.op,v:m.v})}}
+  function becomeHub(pr){isHub=true;peer=pr;
+    pr.on('connection',c=>{
+      c.on('open',()=>{conns.set(c.peer,c);status()});
+      c.on('data',m=>onMsg(c,m));
+      const drop=()=>{if(conns.get(c.peer)!==c)return;conns.delete(c.peer);applyOds(c.peer,true);status()};
+      c.on('close',drop);c.on('error',drop)});
+    pr.on('disconnected',()=>{try{pr.reconnect()}catch{}});
+    infoFire();status()}
+  function retry(ms){if(!dead)setTimeout(start,ms)}
+  function joinClient(){isHub=false;const pr=new Peer();peer=pr;
+    const giveUp=setTimeout(()=>{if(!hubConn&&!dead){try{pr.destroy()}catch{}retry(500+Math.random()*1500)}},12000);
+    pr.on('open',()=>{const c=pr.connect(hubId,{reliable:true});
+      c.on('open',()=>{clearTimeout(giveUp);hubConn=c;c.send({k:'hello'});myOds.forEach(o=>c.send({k:'od',p:o.p,op:o.op,v:o.v}));status()});
+      c.on('data',m=>onMsg(c,m));
+      const lost=()=>{if(hubConn!==c)return;hubConn=null;applyOds(c.peer,false);status();try{pr.destroy()}catch{}retry(400+Math.random()*1600)};
+      c.on('close',lost);c.on('error',lost)});
+    pr.on('error',e=>{if(e&&e.type==='peer-unavailable'){clearTimeout(giveUp);try{pr.destroy()}catch{}retry(200+Math.random()*600)}else console.warn('p2p',e)})}
+  function start(){if(dead)return;
+    if(typeof Peer==='undefined'){status();return}
+    let pr,opened=false;try{pr=new Peer(hubId)}catch(e){console.error(e);retry(5000);return}
+    pr.on('open',()=>{opened=true;becomeHub(pr)});
+    pr.on('error',e=>{if(opened){console.warn('p2p',e);return}try{pr.destroy()}catch{}
+      if(e&&e.type==='unavailable-id')joinClient();else retry(4000+Math.random()*3000)})}
+  function mkRef(p,lim){p=norm(p);const self={path:p,
+    child:c=>mkRef(p+'/'+c),
+    set:v=>{write(p,v);return Promise.resolve()},
+    remove:()=>{write(p,null);return Promise.resolve()},
+    push:v=>{const k=Date.now().toString(36).padStart(9,'0')+Math.random().toString(36).slice(2,6),r=mkRef(p+'/'+k);if(v!==undefined)r.set(v);return Promise.resolve(r)},
+    on:(t,cb)=>{
+      if(p==='.info/connected'){infoCbs.push({cb,owner:self});setTimeout(()=>{if(infoCbs.some(o=>o.cb===cb))try{cb({val:()=>true,exists:()=>true})}catch(e){console.error(e)}},0);return cb}
+      const l={path:p,type:t,cb,limit:lim,known:new Set(),on:true,owner:self};L.push(l);setTimeout(()=>{if(l.on)dispatch(l)},0);return cb},
+    once:()=>Promise.resolve(snap(p)),
+    off:()=>{L.forEach(l=>{if(l.owner===self)l.on=false});for(let i=L.length-1;i>=0;i--)if(!L[i].on)L.splice(i,1);infoCbs=infoCbs.filter(o=>o.owner!==self)},
+    limitToLast:n=>mkRef(p,n),
+    onDisconnect:()=>{const add=o=>{if(!myOds.some(x=>x.p===o.p&&x.op===o.op))myOds.push(o);
+        const m={k:'od',p:o.p,op:o.op,v:o.v};if(isHub)conns.forEach(c=>c.open&&c.send(m));else if(hubConn&&hubConn.open)hubConn.send(m);return Promise.resolve()};
+      return{remove:()=>add({p,op:'remove'}),set:v=>add({p,op:'set',v})}}};
+    return self}
+  const api={p2p:true,state:{connected:false,hub:false,peers:0},ref:p=>mkRef(p),onConnect:null,
+    stop(){dead=true;try{peer&&peer.destroy()}catch{}}};
+  loadLocal();start();
+  addEventListener('pagehide',()=>api.stop());
+  return api}
+
 async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,32)}
 async function enter(code){
   code=code.trim().toLowerCase();
@@ -474,6 +581,9 @@ async function enter(code){
   const nn=$('#name').value.trim().slice(0,16);if(nn&&nn!==myProf.name){myProf.name=nn;saveProf()}myName=myProf.name;
   room=await sha(code);LS.set('pn_code',code);inRoom=true;
   board=LS.get('pn_board_'+room,'main');
+  if(!db&&p2pPref()){db=makeP2P(room);
+    db.onConnect=()=>{db.ref('users/'+uid+'/p').set(myProf);const bn=LS.get('pn_banner','');if(bn)db.ref('users/'+uid+'/banner').set(bn)};
+    db.onConnect()}
   if(db){setBoards({});db.ref('rooms/'+room+'/boardlist').on('value',s=>setBoards(s.val()))}
   else setBoards(LS.get('pn_bl_'+room,{}));
   bind();trackPresence();startChat();
@@ -535,7 +645,7 @@ const rulesErr=e=>{console.error('Firebase error:',e);
     const t=$('#toast');t.innerHTML='';t.append(el('span',null,'Database rules need updating'));
     const b=el('button',null,'Show rules');b.onclick=()=>{showRules();t.classList.remove('show')};t.append(b);
     t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),10000)}
-  else toast('Sync error: '+((e&&e.message)||e))};
+  else toast('Errore di sincronizzazione: '+((e&&e.message)||e))};
 const fb=p=>{if(p&&p.catch)p.catch(rulesErr);return p};
 function saveProf(){LS.set('pn_prof',myProf);myName=myProf.name;profs[uid]=myProf;
   if(db){fb(db.ref('users/'+uid+'/p').set(myProf));if(prRef)prRef.child(myId+'/name').set(myName)}}
@@ -594,7 +704,7 @@ async function copyInvite(){const c=curCode();if(!c){toast('Type an access code 
   try{if(navigator.share&&/Mobi|Android/i.test(navigator.userAgent)){await navigator.share({title:'Poli-Notes',text:myName+' invited you to Poli-Notes',url});return}}catch{}
   try{await navigator.clipboard.writeText(url);toast('Invite link copied')}catch{prompt('Copy this invite link:',url)}}
 function sendInvite(u){const c=curCode();if(!c){toast('Enter a room first (or type an access code)');return}
-  if(!db)return;
+  if(!SYNC)return;
   db.ref('users/'+u+'/invites/'+uid).set({n:myName,c,t:Date.now()}).then(()=>toast('Invite sent to '+((profs[u]||{}).name||'your friend'))).catch(rulesErr)}
 function joinInvite(u){const i=invIn[u];if(!i||!i.c)return;
   const go=()=>{LS.set('pn_code',String(i.c).trim().toLowerCase().slice(0,64));location.reload()};
@@ -627,7 +737,7 @@ async function actions(u){
   const B=(t,f,bg)=>{const b=el('button','btn',t);if(bg)b.style.background=bg;b.onclick=f;box.append(b)};
   const close=()=>pOv.classList.remove('open');
   if(u===uid){B('✏️ Edit profile',editProf);return}
-  if(!db){box.append(el('span','mut','Turn on sync to use friends.'));return}
+  if(!SYNC){box.append(el('span','mut','Attiva la sincronizzazione per usare gli amici.'));return}
   if(friends[u]){B('💬 Message',()=>{close();openChat(true);tab='friends';dmWith=u;renderChat()});
     B('✉️ Invite to my room',()=>{sendInvite(u);close()});
     B('Remove friend',()=>{fb(db.ref('users/'+uid+'/friends/'+u).remove());fb(db.ref('users/'+u+'/friends/'+uid).remove());close()},'#888')}
@@ -694,7 +804,8 @@ function renderChat(){
   document.querySelectorAll('#chat .tab').forEach(t=>t.classList.toggle('sel',t.dataset.t===tab&&!dmWith));
   $('#chBack').hidden=!dmWith;$('#chTitle').textContent=dmWith?((profs[dmWith]||{}).name||'Friend'):'Chat';
   $('#chInput').hidden=!(tab==='lobby'||dmWith);
-  if(!db){body.append(el('p','mut','Turn on sync to chat and add friends.'));const lk0=el('button','btn','🔗 Copy invite link');lk0.onclick=copyInvite;body.append(lk0);$('#chInput').hidden=true;return}
+  if(!db){body.append(el('p','mut','Attiva la sincronizzazione per chattare e aggiungere amici.'));const lk0=el('button','btn','🔗 Copy invite link');lk0.onclick=copyInvite;body.append(lk0);$('#chInput').hidden=true;return}
+  if(!SYNC&&(dmWith||tab==='friends')){dmWith=null;$('#chInput').hidden=true;body.append(el('p','mut','Amici e chat private richiedono la sincronizzazione. La chat della lobby funziona dal vivo nella tua stanza!'));const lk2=el('button','btn','🔗 Copy invite link');lk2.onclick=copyInvite;body.append(lk2);return}
   if(dmWith){const u=dmWith;loadProfiles([u]);
     dmRef=db.ref('dms/'+pair(u)+'/msgs').limitToLast(100);
     dmRef.on('child_added',s=>{const m=s.val();if(m&&dmWith===u)addMsg(m)});
@@ -715,7 +826,7 @@ $('#enter').onclick=()=>enter($('#code').value);
 $('#name').value=myProf.name;
 $('#logout').onclick=()=>{localStorage.removeItem('pn_code');if(ref)ref.off();location.reload()};
 /* sync setup (gate) */
-$('#syncRow').innerHTML='Sync: <b>'+(FIREBASE_CONFIG?'ON':'OFF')+'</b> (<a id="syncLink">setup</a>)';
+$('#syncRow').innerHTML='Sincronizzazione: <b>'+(FIREBASE_CONFIG?'ON':'OFF')+'</b> (<a id="syncLink">setup</a>)';
 $('#syncLink').onclick=()=>{$('#syncBox').hidden=!$('#syncBox').hidden};
 $('#rulesLink').onclick=showRules;
 $('#syncSave').onclick=()=>{
@@ -725,6 +836,7 @@ $('#syncSave').onclick=()=>{
   if(!cfgOk(c)){alert('Config incomplete: it needs real apiKey and databaseURL values.');return}
   localStorage.setItem('pn_fbcfg',JSON.stringify(c));location.reload()};
 $('#invLink').onclick=copyInvite;
+if(SYNC)$('#p2pRow').style.display='none';else{$('#p2pOn').checked=p2pPref();$('#p2pOn').onchange=e=>LS.set('pn_p2p',e.target.checked)}
 $('#gChat').style.display=db?'':'none';$('#gChat').onclick=()=>{tab='friends';dmWith=null;openChat(true)};
 const joinM=/[#&]join=([^&]+)/.exec(location.hash);let joinCode='';
 try{joinCode=joinM?decodeURIComponent(joinM[1]).trim().toLowerCase().slice(0,64):''}catch{}
