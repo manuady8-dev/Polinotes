@@ -376,9 +376,11 @@ main #tools input,main #tools select{border-radius:0}
         <div class="gpanel">
           <h2>Add a friend</h2>
           <div class="fme" id="fMe"></div>
-          <div class="fsearch"><input id="fSearch" type="text" maxlength="16" placeholder="Search a username" autocomplete="off"><button class="fgo" id="fGo">Search</button></div>
+          <div class="fme" id="fCode"></div>
+          <div class="fsearch"><input id="fSearch" type="text" maxlength="16" placeholder="Friend code or username" autocomplete="off"><button class="fgo" id="fGo">Search</button></div>
           <div id="fResult"></div>
           <p class="fnote" id="fNote"></p>
+          <p class="fnote" id="fConn"></p>
         </div>
         <div class="gpanel" id="fTab"></div>
         <div class="gpanel" id="fPend"></div>
@@ -1007,7 +1009,8 @@ function sSetOn(u,v){if(!!fOn[u]===v)return;fOn[u]=v;renderStrips();
   if(chatOpen()){if(dmWith===u)dmHead();else if(tab==='friends'&&!dmWith)renderChat()}}
 function sTakeProf(u,p){if(!p||typeof p!=='object')return;const c=sClean(p);
   if(friends[u]){friends[u].p=c;profs[u]=c;sSave()}
-  else if(reqIn[u]){reqIn[u].p=c;profs[u]=c;sSave()}}
+  else if(reqIn[u]){reqIn[u].p=c;profs[u]=c;sSave()}
+  else if(sOut[u]){sOut[u].p=c;profs[u]=c;sSave()}}
 function sFlush(u){const c=sConn.get(u);if(!c||!c.open)return;
   /* messages stay queued until the other side acknowledges them ({k:'ack'}); unacked ones are
      re-sent, and if a connection looks dead (no ack after 2 tries) it is dropped and re-opened */
@@ -1067,7 +1070,7 @@ function sOn(u,m){
       if(it.m.k==='dm'){const h=sHist(u),hm=h.find(y=>y.i===it.m.i);if(hm&&hm.q){delete hm.q;sSaveHist(u,h);if(chatOpen()&&dmWith===u)renderChat()}}}
     return}
   if(typeof m.a==='string'){const cc=sConn.get(u);if(cc&&cc.open)try{cc.send({k:'ack',a:m.a})}catch{}}
-  if(m.k==='hi'){sTakeProf(u,m.p);if(friends[u]||reqIn[u])refreshSoc();return}
+  if(m.k==='hi'){sTakeProf(u,m.p);if(friends[u]||reqIn[u]||sOut[u])refreshSoc();return}
   if(m.k==='req'){
     if(friends[u]){sSend(u,{k:'acc',p:sProf()});return}
     if(sOut[u]){if(m.p)profs[u]=sClean(m.p);sAccept(u);return}
@@ -1092,7 +1095,8 @@ function sOn(u,m){
     if(!friends[u]||typeof m.c!=='string')return;
     invIn[u]={n:String(m.n||'').slice(0,16),c:m.c.slice(0,64),t:Date.now()};
     badges();if(chatOpen()&&tab==='friends'&&!dmWith)renderChat();invToast(u)}}
-let sGen=0,sRetryT=null;
+let sGen=0,sRetryT=null,sStat='connecting…';
+const setStat=t=>{sStat=t;try{renderFView()}catch{}};
 function sRetry(ms){clearTimeout(sRetryT);sRetryT=setTimeout(sStart,ms)}
 function sStart(){
   if(typeof Peer==='undefined'||sDead)return;
@@ -1103,17 +1107,18 @@ function sStart(){
   sReady=false;
   let pr;try{pr=new Peer(pid(uid))}catch(e){console.error(e);sRetry(15000);return}
   sPeer=pr;
-  pr.on('open',()=>{if(!cur())return;sReady=true;sTick();clearInterval(sPoll);sPoll=setInterval(sTick,10000)});
+  pr.on('open',()=>{if(!cur())return;sReady=true;setStat('ok');sTick();clearInterval(sPoll);sPoll=setInterval(sTick,10000)});
   pr.on('connection',c=>{
     const mt=/^pn-u-([a-z0-9]+)$/i.exec(c.peer||'');if(!mt){try{c.close()}catch{}return}
     const u=mt[1];c.on('open',()=>sAttach(c,u))});
   pr.on('disconnected',()=>{if(cur())try{pr.reconnect()}catch{}});
   pr.on('error',e=>{
     if(!cur())return;
+    if(e&&e.type!=='peer-unavailable')setStat(String(e.type||e.message||'error'));
     if(e&&e.type==='unavailable-id'){sReady=false;try{pr.destroy()}catch{}sRetry(5000);return}
     if(e&&e.type==='peer-unavailable'){const mt=/pn-u-([a-z0-9]+)/i.exec(e.message||'');if(mt){sPend.delete(mt[1]);sSetOn(mt[1],false)}return}
     console.warn('social p2p',e)});
-  pr.on('close',()=>{if(!cur())return;sReady=false;if(!sDead)sRetry(4000)})}
+  pr.on('close',()=>{if(!cur())return;sReady=false;if(sStat==='ok')setStat('reconnecting…');if(!sDead)sRetry(4000)})}
 addEventListener('pagehide',()=>{sDead=true;try{sPeer&&sPeer.destroy()}catch{}});
 /* chat */
 const chatOpen=()=>$('#chat').classList.contains('open'),pair=u=>[uid,u].sort().join('_');
@@ -1242,8 +1247,18 @@ function lookupP2PNow(k){return new Promise(res=>{
   c.on('error',()=>fin({none:1}))})}
 async function fSearch(){
   if(fvBusy)return;
-  const k=uname($('#fSearch').value);
-  if(!k){fvResults=null;fvMsg='Type a username to search.';renderFView();return}
+  const raw=$('#fSearch').value,code=raw.toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(/^[a-z0-9]{16}$/.test(code)&&/\d/.test(code)&&!/^[a-z]+$/.test(code)){
+    if(code===uid){fvResults=[];fvMsg="That's you! Share your friend code with others.";renderFView();return}
+    if(friends[code]){fvResults=[];fvMsg='You are already friends.';renderFView();return}
+    fvBusy=true;fvResults=null;fvMsg='Checking code…';renderFView();
+    let ok=true;
+    try{if(SYNC){const s=await db.ref('users/'+code+'/p').once('value');ok=s.exists()}}catch(e){ok=true}
+    fvBusy=false;
+    if(!ok){fvResults=[];fvMsg='No user found with that friend code.';renderFView();return}
+    fvResults=[{u:code,key:code}];fvMsg=SYNC?'':'Code accepted. The request is delivered as soon as that person is online.';renderFView();return}
+  const k=uname(raw);
+  if(!k){fvResults=null;fvMsg='Type a friend code or username.';renderFView();return}
   fvBusy=true;fvResults=null;fvMsg='Searching…';renderFView();
   let out=[];
   try{
@@ -1265,7 +1280,8 @@ async function fSearch(){
   fvBusy=false;fvResults=out;renderFView()}
 /* render */
 const fprof=u=>{if(!profs[u]){const x=(sOut[u]&&sOut[u].p)||(reqIn[u]&&reqIn[u].p);if(x)profs[u]=x}return profs[u]||{}};
-const fname=u=>fprof(u).name||(reqIn[u]&&reqIn[u].n)||'Guest';
+const fmtCode=u=>String(u).toUpperCase().replace(/(.{4})(?=.)/g,'$1-');
+const fname=u=>fprof(u).name||(reqIn[u]&&reqIn[u].n)||(sOut[u]?'Code '+fmtCode(u).slice(0,4)+'…':'Guest');
 const fbtn=(t,f,c,title)=>{const b=el('button','fbt'+(c?' '+c:''),t);if(title)b.title=title;b.onclick=f;return b};
 const fwho=(u,cls)=>{const d=el('div','fwho');fprof(u);d.append(av(u,fname(u),cls||''),el('span','fnm',fname(u)));return d};
 const fcell=(...n)=>{const td=el('td');td.append(...n);return td};
@@ -1278,6 +1294,13 @@ function ftable(title,cols,rows,none){
 function renderFView(){
   const me=$('#fMe');if(!me)return;
   me.replaceChildren('Your username: ',el('b',null,myProf.name||'Guest'));
+  const fc=$('#fCode');
+  const cb=fbtn('Copy',()=>{copyText(fmtCode(uid)).then(ok=>toast(ok?'Friend code copied':'Copy failed: '+fmtCode(uid)))},'','Copy my friend code');cb.style.marginLeft='8px';
+  fc.replaceChildren('Your friend code: ',el('b',null,fmtCode(uid)),cb);
+  const cn=$('#fConn');
+  if(SYNC){cn.textContent='';}
+  else{cn.className='fnote'+(sStat==='ok'?'':' warn');
+    cn.textContent=sStat==='ok'?'Connection: online ✓':(typeof Peer==='undefined'?'Connection problem: the peer-to-peer library did not load (blocked?).':'Connection: '+sStat+' — requests are queued and sent once connected.')}
   const note=$('#fNote');
   note.className='fnote'+(nameTaken?' warn':'');
   note.textContent=nameTaken?"This username is already taken by someone else, so friends can't find you with it. Change your name in the Play tab.":
