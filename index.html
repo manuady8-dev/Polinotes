@@ -894,7 +894,7 @@ const unfriend=u=>{if(!SYNC){sUnfriend(u);return}fb(db.ref('users/'+uid+'/friend
 function startSocial(){
   if(!SYNC)sLoad();
   renderStrips();badges();
-  if(!SYNC){sStart();return}
+  if(!SYNC){sStart();sRelayStart();setInterval(()=>{if(!SYNC)sRelayPush()},10000);return}
   db.ref('users/'+uid+'/p').once('value').then(s=>{if(!s.exists())fb(db.ref('users/'+uid+'/p').set(myProf))}).catch(rulesErr);
   db.ref('.info/connected').on('value',s=>{if(s.val()){const st=db.ref('users/'+uid+'/status');st.onDisconnect().set(false);st.set(true)}});
   const friendsTab=()=>chatOpen()&&tab==='friends'&&!dmWith&&renderChat();
@@ -1034,7 +1034,8 @@ function sFlush(u){const c=sConn.get(u);if(!c||!c.open)return;
 function sSend(u,m){
   if(!u||u===uid)return;
   sQ.push({to:u,m,t:Date.now(),a:Math.random().toString(36).slice(2,10)});sSave();
-  const c=sConn.get(u);if(c&&c.open)sFlush(u);else sConnect(u)}
+  const c=sConn.get(u);if(c&&c.open)sFlush(u);else sConnect(u);
+  sRelayPush()}
 function sSendDM(u,x){
   const m={k:'dm',i:Date.now().toString(36)+Math.random().toString(36).slice(2,6),n:myName,t:Date.now(),x:String(x).slice(0,300)};
   const h=sHist(u);
@@ -1057,7 +1058,7 @@ function sConnect(u){
   c.on('open',()=>{clearTimeout(fail);sPend.delete(u);sAttach(c,u)});
   c.on('error',()=>{clearTimeout(fail);sPend.delete(u)})}
 function sTargets(){return new Set([...Object.keys(friends),...Object.keys(sOut),...sQ.map(x=>x.to)])}
-function sTick(){sTargets().forEach(sConnect);sConn.forEach((c,u)=>sFlush(u))}
+function sTick(){sTargets().forEach(sConnect);sConn.forEach((c,u)=>sFlush(u));sRelayPush()}
 function sRequest(u){sOut[u]={t:Date.now()};sSave();
   sSend(u,{k:'req',n:myName,p:sProf()});toast('Friend request sent');refreshSoc()}
 function sCancelReq(u){delete sOut[u];sQ=sQ.filter(x=>!(x.to===u&&x.m.k==='req'));sSave();refreshSoc()}
@@ -1074,7 +1075,7 @@ function sOn(u,m){
     if(it){sQ=sQ.filter(x=>x!==it);sSave();
       if(it.m.k==='dm'){const h=sHist(u),hm=h.find(y=>y.i===it.m.i);if(hm&&hm.q){delete hm.q;sSaveHist(u,h);if(chatOpen()&&dmWith===u)renderChat()}}}
     return}
-  if(typeof m.a==='string'){const cc=sConn.get(u);if(cc&&cc.open)try{cc.send({k:'ack',a:m.a})}catch{}}
+  if(typeof m.a==='string'){sReply(u,{k:'ack',a:m.a});const key=u+m.a;if(seenA.has(key))return;seenA.add(key)}
   if(m.k==='hi'){sTakeProf(u,m.p);if(friends[u]||reqIn[u]||sOut[u])refreshSoc();return}
   if(m.k==='req'){
     if(friends[u]){sSend(u,{k:'acc',p:sProf()});return}
@@ -1124,7 +1125,32 @@ function sStart(){
     if(e&&e.type==='peer-unavailable'){const mt=/pn-u-([a-z0-9]+)/i.exec(e.message||'');if(mt){sPend.delete(mt[1]);sSetOn(mt[1],false)}return}
     console.warn('social p2p',e)});
   pr.on('close',()=>{if(!cur())return;sReady=false;if(sStat==='ok')setStat('reconnecting…');if(!sDead)sRetry(4000)})}
-addEventListener('pagehide',()=>{sDead=true;try{sPeer&&sPeer.destroy()}catch{}});
+/* ---- relay (ntfy.sh): plain HTTPS fallback, works even when WebRTC / the PeerJS server are blocked.
+   Every user listens on the topic pn-u-<code>. Messages wait there (~12h) if the person is offline. ---- */
+const RELAY='https://ntfy.sh/',tp=u=>RELAY+'pn-u-'+u;
+let sRelayStat='connecting…',sEs=null,sEsT=null;const seenA=new Set();
+function relayPost(u,msg){
+  try{const m=JSON.parse(JSON.stringify(msg));if(m.p)delete m.p.pfp;
+    const body=JSON.stringify({f:uid,m});if(body.length>3800)return;
+    fetch(tp(u),{method:'POST',body}).catch(()=>{})}catch{}}
+function sReply(u,msg){const c=sConn.get(u);if(c&&c.open){try{c.send(msg);return}catch{}}relayPost(u,msg)}
+function sRelayPush(){const now=Date.now();let ch=false;
+  sQ.forEach(x=>{if(!x.a)x.a=Math.random().toString(36).slice(2,10);
+    if(x.ns&&now-x.ns<30000)return;if(x.m.k==='inv'&&now-x.t>36e5)return;
+    x.ns=now;ch=true;relayPost(x.to,Object.assign({a:x.a},x.m))});
+  if(ch)sSave()}
+function sRelayStart(){
+  if(typeof EventSource==='undefined'||sDead)return;
+  clearTimeout(sEsT);if(sEs){try{sEs.close()}catch{}}
+  const since=LS.get('pn_ntfy_t',0),es=new EventSource(tp(uid)+'/sse?since='+(since||'1h'));sEs=es;
+  es.onopen=()=>{sRelayStat='ok';try{renderFView()}catch{}};
+  es.onerror=()=>{sRelayStat='error';try{renderFView()}catch{}if(es.readyState===2&&!sDead)sEsT=setTimeout(sRelayStart,15000)};
+  es.addEventListener('message',ev=>{try{
+    const o=JSON.parse(ev.data);if(o.time)LS.set('pn_ntfy_t',o.time);
+    const d=JSON.parse(o.message);
+    if(!d||typeof d.f!=='string'||!/^[a-z0-9]{1,24}$/i.test(d.f)||d.f===uid)return;
+    sOn(d.f,d.m)}catch(e){console.warn('relay',e)}})}
+addEventListener('pagehide',()=>{sDead=true;try{sPeer&&sPeer.destroy()}catch{}try{sEs&&sEs.close()}catch{}});
 /* chat */
 const chatOpen=()=>$('#chat').classList.contains('open'),pair=u=>[uid,u].sort().join('_');
 function stopDM(){if(dmRef){dmRef.off();dmRef=null}}
@@ -1304,8 +1330,8 @@ function renderFView(){
   fc.replaceChildren('Your friend code: ',el('b',null,fmtCode(uid)),cb);
   const cn=$('#fConn');
   if(SYNC){cn.textContent='';}
-  else{cn.className='fnote'+(sStat==='ok'?'':' warn');
-    cn.textContent=sStat==='ok'?'Connection: online ✓':(typeof Peer==='undefined'?'Connection problem: the peer-to-peer library did not load (blocked?).':'Connection: '+sStat+' — requests are queued and sent once connected.')}
+  else{const up=sStat==='ok'||sRelayStat==='ok';cn.className='fnote'+(up?'':' warn');
+    cn.textContent=up?'Connection: online ✓'+(sStat==='ok'?'':' (relay)'):(typeof Peer==='undefined'?'Connection problem: the peer-to-peer library did not load (blocked?).':'Connection: '+sStat+' — requests are queued and sent once connected.')}
   const note=$('#fNote');
   note.className='fnote'+(nameTaken?' warn':'');
   note.textContent=nameTaken?"This username is already taken by someone else, so friends can't find you with it. Change your name in the Play tab.":
