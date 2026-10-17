@@ -348,6 +348,8 @@ main #tools input,main #tools select{border-radius:0}
 .gate .fbt.dis{background:#eee;color:#777;border-style:dashed;box-shadow:none}.gate .fbt.dis:hover{background:#e2e2e2;color:#555}
 .gate .ftag{display:inline-block;padding:1px 8px;border:2px solid #2b2b2b;font:700 12px var(--rb);letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
 .gate .ftag.in{background:#fff3c4}.gate .ftag.out{background:#e4eefb}
+.gate .gpanel .nm-trial{margin:-2px 0 10px;padding:8px 12px;background:#fff8e1;border:1px solid #e6c65c;font:600 15px/1.35 var(--rb);color:#5a4500}
+.gate .gpanel .nm-warn{margin:-4px 0 12px 2px;font:600 13.5px/1.35 var(--rb);color:#b32323}
 @media(max-width:480px){.gate .fbt{padding:0 7px}.gate .fgo{padding:0 14px}}
 </style>
 </head>
@@ -366,6 +368,8 @@ main #tools input,main #tools select{border-radius:0}
         <div class="gpanel box">
           <h2>Join a room and start writing!</h2>
           <input id="name" type="text" maxlength="16" placeholder="Your name (optional)" autocomplete="off">
+          <div class="nm-trial">🎁 You have <b>1 free trial</b> to change your name. After the trial, each name change will cost <b>100 Polis</b>.</div>
+          <div class="nm-warn">⚠️ Warning: once your free trial is used, 100 Polis will be charged for every name change. Choose your name carefully!</div>
           <input id="code" type="password" placeholder="Access code" autocomplete="off">
           <button class="btn" id="enter" style="width:100%">Enter</button>
           <small>Anyone with the same code sees the same notes.</small>
