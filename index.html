@@ -1559,7 +1559,7 @@ function render(){
     if(n.due)c.append(el('div','due-b','⏰ '+new Date(n.due).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})));
     if(n.exp)c.append(el('div','due-b','⏳ until '+new Date(n.exp).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})));
     const rc=el('div','reacts');
-    ['❤️','😂','👍'].forEach(e=>{const r=el('button',null,e+(n.reacts[e]?' '+n.reacts[e]:''));r.onclick=()=>{n.reacts[e]=(n.reacts[e]||0)+1;put(n)};rc.append(r)});
+    ['❤️','😂','👍'].concat(typeof pnReacts==='function'?pnReacts():[]).forEach(e=>{const r=el('button',null,e+(n.reacts[e]?' '+n.reacts[e]:''));r.onclick=()=>{n.reacts[e]=(n.reacts[e]||0)+1;put(n)};rc.append(r)});
     c.append(rc);
     /* drag: anywhere on the screen */
     g.onpointerdown=ev=>{ev.preventDefault();g.setPointerCapture(ev.pointerId);c.classList.add('drag');
@@ -1650,5 +1650,172 @@ const mf=document.createElement('link');mf.rel='manifest';
 mf.href=URL.createObjectURL(new Blob([JSON.stringify({name:'Poli-Notes',short_name:'Poli-Notes',start_url:location.href,scope:location.href.replace(/[^/]*$/,''),display:'standalone',background_color:'#fdfdfd',theme_color:'#f0455a',icons:[{src:ICON,sizes:'any',type:'image/svg+xml',purpose:'any maskable'}]})],{type:'application/manifest+json'}));
 document.head.append(mf);
 </script>
+<!-- ===== GAMES (modulo autonomo: se fallisce, il resto dell'app non è toccato) ===== -->
+<style>
+#gmBtn{position:fixed;bottom:14px;left:14px;z-index:40;border:2px solid var(--accent);background:#fff;color:#222;border-radius:20px;padding:5px 12px;font:700 12px 'Fira Code',monospace;cursor:pointer}
+#gmOv{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.4);backdrop-filter:blur(4px)}
+#gmOv.open{display:flex}
+.gmP{width:min(100%,680px);max-height:92vh;overflow:auto;background:#fff;color:#222;border-radius:14px;padding:16px;text-align:left;font:12px 'Fira Code',monospace;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.gmP h2{margin:0;font:800 18px 'Rubik',sans-serif}
+.gmH{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.gmG{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.gmC{border:2px solid #eee;border-radius:10px;padding:10px;background:#fafafa;text-align:center}
+.gmC b{display:block;font-size:26px}
+.gmK{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:10px 0}
+.gmK button{width:30px;height:34px}
+
+.gmP{width:min(100%,860px);height:min(92vh,660px);max-height:none;padding:0;display:flex;flex-direction:column;overflow:hidden;background:#ececec}
+.gmBar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--accent);color:#fff}
+.gmBar>b{flex:1;font:800 17px 'Rubik',sans-serif}
+.gmBar button{border:0;background:none;color:#fff;cursor:pointer;display:flex;padding:2px}
+.gmPill{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.22);border-radius:14px;padding:3px 10px;font-weight:700}
+.gmc{display:inline-block;width:14px;height:14px;box-sizing:border-box;border-radius:50%;background:#f4c20d;border:2px solid #c89b00;vertical-align:-2px}
+.gmBody{flex:1;overflow:auto;padding:14px}
+.gmBody h3{margin:14px 0 8px;font:800 14px 'Rubik',sans-serif}
+.gmHi{display:flex;align-items:center;gap:16px;padding:6px 4px 10px}
+.gmNav{display:flex;background:#fff;border-top:1px solid #ddd}
+.gmNav button{flex:1;border:0;background:none;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;font:600 10px 'Fira Code',monospace;color:#777;cursor:pointer}
+.gmNav button.on{color:var(--accent)}
+.gmT{background:#fff;border-radius:10px;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .15s}
+.gmT:hover{transform:translateY(-3px)}.gmT.soon{opacity:.6;cursor:default}.gmT.soon:hover{transform:none}
+.gmN{font-weight:700;padding:6px 8px 0}.gmD{font-size:13px;opacity:.65;padding:2px 8px 8px}
+.gmG{gap:10px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.gmC{background:#fff}
+.gmc{width:16px;height:16px;border:0;border-radius:0;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Crect%20x%3D%22.8%22%20y%3D%22.8%22%20width%3D%2222.4%22%20height%3D%2222.4%22%20rx%3D%225%22%20fill%3D%22%23f0455a%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2220%22%20height%3D%2220%22%20rx%3D%224%22%20fill%3D%22%23fff%22%2F%3E%3Crect%20x%3D%223.6%22%20y%3D%223.6%22%20width%3D%2216.8%22%20height%3D%2216.8%22%20rx%3D%222.6%22%20fill%3D%22%23f0455a%22%2F%3E%3Cpath%20fill-rule%3D%22evenodd%22%20transform%3D%22translate%280%20.8%29%22%20fill%3D%22%23a5243a%22%20d%3D%22M7.5%205.5h6.2a4.2%204.2%200%200%201%200%208.4h-2.6v4.6H7.5zM11.1%208.6v2.2h2.1a1.1%201.1%200%200%200%200-2.2z%22%2F%3E%3Cpath%20fill-rule%3D%22evenodd%22%20transform%3D%22translate%28-.7%200%29%22%20fill%3D%22%23fff%22%20d%3D%22M7.5%205.5h6.2a4.2%204.2%200%200%201%200%208.4h-2.6v4.6H7.5zM11.1%208.6v2.2h2.1a1.1%201.1%200%200%200%200-2.2z%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat}
+#gmBtn{display:flex;align-items:center;gap:6px}.gmDot::after{content:"";position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#e03a3a}
+.gmToast{position:fixed;bottom:56px;left:14px;z-index:80;background:#222;color:#fff;padding:8px 12px;border-radius:10px;font:700 12px 'Fira Code',monospace;animation:pop .45s var(--ease)}
+.gmBr{height:10px;border-radius:6px;background:#e3e3e3;margin:8px 0;overflow:hidden}.gmBr i{display:block;height:100%;width:0;background:var(--accent);transition:width 1s linear}
+.gmc{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;box-sizing:border-box;border:2px solid var(--accent);border-radius:0;background:#fff;color:var(--accent);box-shadow:1px 1px 0 rgba(0,0,0,.25);font:800 11px/1 'Rubik',sans-serif;vertical-align:-3px}.gmc::before{content:'P'}
+.gmc{border:0;border-radius:3px;background:#e03a3a;color:#fff;transform:rotate(-6deg);box-shadow:0 0 0 1px #fff inset,1px 1px 0 rgba(0,0,0,.18);font:800 11px/1 'Rubik',sans-serif}
+
+.gmP{font:14px 'Source Sans 3','Segoe UI',Arial,sans-serif;width:min(100%,900px);background-color:#fff;background-image:linear-gradient(rgba(74,134,196,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(74,134,196,.22) 1px,transparent 1px);background-size:26px 26px;border:1px solid #d6d6d6;border-radius:0;box-shadow:6px 6px 0 rgba(0,0,0,.25)}
+.gmBar{background:#fff;color:#222;height:64px;padding:0 16px;gap:6px;border-bottom:1px solid #d6d6d6;box-shadow:0 3px 0 rgba(0,0,0,.05)}
+.gmLg{display:flex;align-items:center;gap:9px;margin-right:16px;color:#1f3540;font:700 21px 'Source Sans 3',Arial,sans-serif}
+.gmLg i{display:grid;place-items:center;width:34px;height:34px;background:#e03a3a;color:#fff;font:800 20px 'Rubik',sans-serif;font-style:normal;border-radius:4px;transform:rotate(-6deg);box-shadow:0 0 0 2px #fff inset,2px 2px 0 rgba(0,0,0,.18)}
+.gmNv{flex:1;display:flex;height:100%}
+.gmNv a{display:flex;align-items:center;padding:3px 14px 0;color:#666;font:600 17px 'Source Sans 3',Arial,sans-serif;border-bottom:3px solid transparent;cursor:pointer;transition:color .2s,background .2s}
+.gmNv a:hover{color:var(--accent);background:rgba(0,0,0,.03)}.gmNv a.sel{color:var(--accent);border-bottom-color:var(--accent)}
+.gmPill{background:#f3f3f3;color:#222;border:1px solid #ddd}.gmBar button{color:#444}
+.gmC,.gmT{border-radius:0;border:1px solid #d6d6d6;box-shadow:3px 3px 0 rgba(0,0,0,.1);background:#fff}
+#gmBtn{top:14px;right:52px;bottom:auto;left:auto;height:30px;padding:0 10px;border-radius:15px}
+#gmOv{display:flex;visibility:hidden;opacity:0;background:rgba(0,0,0,0);backdrop-filter:blur(0);transition:opacity .3s var(--ease),background .35s,backdrop-filter .35s,visibility 0s .35s}
+#gmOv.open{visibility:visible;opacity:1;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);transition:opacity .3s var(--ease),background .35s,backdrop-filter .35s,visibility 0s}
+.gmP{opacity:0;transform:translateY(28px) scale(.94);transition:transform .4s var(--ease),opacity .3s}
+#gmOv.open .gmP{opacity:1;transform:none}
+#gmBtn{transition:transform .2s var(--ease),filter .2s}#gmBtn:hover{transform:scale(1.08)}#gmBtn:active{transform:scale(.92)}
+</style>
+<script>
+(()=>{try{
+const K='pn_games_v1';let S={c:0,own:{},done:{},eq:{}};
+try{Object.assign(S,JSON.parse(localStorage.getItem(K))||{})}catch{}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch{}};
+const ov=document.createElement('div');ov.id='gmOv';ov.innerHTML='<div class="gmP"></div>';
+const P=ov.firstChild,bt=document.createElement('button');bt.id='gmBtn';bt.textContent='';
+document.body.append(ov,bt);
+let stop=null;
+const halt=()=>{if(stop){stop();stop=null}};
+const close=()=>{halt();ov.classList.remove('open')};
+ov.onclick=e=>{if(e.target===ov)close()};
+bt.onclick=()=>{ov.classList.add('open');hub('h')};
+const CO='<i class="gmc"></i>';
+const SV=(d,f)=>`<svg viewBox="0 0 24 24" width="24" height="24" ${f}>${d}</svg>`;
+const IC={x:SV('<path d="M5 5l14 14M19 5L5 19"/>','fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"'),back:SV('<path d="M15 5l-7 7 7 7"/>','fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"'),
+ h:SV('<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>','fill="currentColor"'),
+ g:SV('<path d="M7 7h10a5 5 0 0 1 5 5v1a3 3 0 0 1-5.2 2L15 13H9l-1.8 2A3 3 0 0 1 2 13v-1a5 5 0 0 1 5-5z"/><path d="M7 10v4M5 12h4" stroke="#fff" stroke-width="1.6"/><circle cx="16" cy="11" r="1.2" fill="#fff"/><circle cx="18.5" cy="13" r="1.2" fill="#fff"/>','fill="currentColor"'),
+ s:SV('<path d="M8 3l4 2 4-2 5 4-3 3-2-1v11H8V9l-2 1-3-3z"/>','fill="currentColor"')};
+const coins=()=>{const x=P.querySelector('#gmCo');if(x)x.textContent=S.c;document.querySelectorAll('.gmBal').forEach(e=>e.textContent=S.c)};
+const earn=n=>{S.c+=n;save();coins()};
+const head=(t,back,nav)=>`<div class="gmBar"><span class="gmLg"><i>P</i>Polis</span><nav class="gmNv">${nav||''}</nav><span class="gmPill">${CO} <b id="gmCo">${S.c}</b></span><button id="gmX" aria-label="${back?'Back':'Close'}">${back?IC.back:IC.x}</button></div>`;
+function open(t){halt();P.innerHTML=head(t,1)+'<div class="gmBody"><div id="gmA"></div></div>';P.querySelector('#gmX').onclick=()=>hub('g');return P.querySelector('#gmA')}
+const card=(i,n,d,l)=>{const c=document.createElement('div');c.className='gmC';c.innerHTML=`<b>${i}</b><div style="font-weight:700">${n}</div><div style="font-size:13px;opacity:.7;margin:4px 0 8px">${d}</div><button class="btn">${l}</button>`;return c};
+
+/* --- Polis shop --- */
+IC.s=SV('<path d="M5 8h14l-1 12H6z" fill="currentColor"/><path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2.2"/>','');
+const SK=[['⭐','Star',180],['🔥','Fire',180],['🎓','Graduate',240],['📚','Books',240],['🚀','Rocket',300],['🐱','Cat',300],['🐶','Dog',300],['👻','Ghost',360],['🌈','Rainbow',450],['🦄','Unicorn',600],['👑','Crown',750],['💎','Gem',900]];
+const TP=[{id:'p-aurora',name:'Aurora',bg:'linear-gradient(135deg,#0f2027,#2c5364,#00c9a7)',accent:'#00c9a7',line:'rgba(255,255,255,.1)',dark:1,p:1600},
+ {id:'p-sunset',name:'Sunset',bg:'linear-gradient(135deg,#ff512f,#dd2476)',accent:'#ff512f',line:'rgba(255,255,255,.15)',dark:1,p:1600},
+ {id:'p-sakura',name:'Sakura',bg:'linear-gradient(135deg,#ffe3ec,#ffb3c9)',accent:'#e0457b',line:'rgba(0,0,0,.05)',dark:0,p:1600},
+ {id:'p-midnight',name:'Midnight',bg:'linear-gradient(160deg,#0b0b2b,#1b1b5e)',accent:'#8b7bff',line:'rgba(255,255,255,.08)',dark:1,p:2000},
+ {id:'p-gold',name:'Gold',bg:'linear-gradient(135deg,#fff7d6,#f5c542)',accent:'#b8860b',line:'rgba(0,0,0,.06)',dark:0,p:2000},
+ {id:'p-matrix',name:'Matrix',bg:'#041a0c',accent:'#2bff75',line:'rgba(43,255,117,.1)',dark:1,p:2400}];
+const RX=[['🔥','Fire',450],['🎉','Party',450],['😍','Heart eyes',450],['👀','Eyes',450],['🤯','Mind blown',600],['💯','100',600]];
+window.pnReacts=()=>RX.filter(r=>S.own['r'+r[0]]).map(r=>r[0]);
+const CATS={st:'Profile stickers',th:'Premium themes',rx:'Note reactions'},HINT={st:'Equip up to 5 stickers: they show on your profile.',th:'Premium themes can be applied any time once bought.',rx:'Extra reactions appear under every note.'};let CAT='st';
+/* stickers on the profile */
+let drawStk=()=>{};
+{const pn=document.getElementById('pName'),bio=document.getElementById('pBio');
+ if(pn&&bio){const row=document.createElement('div');row.style.cssText='display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:6px 0;font-size:22px';bio.after(row);
+  drawStk=()=>{row.textContent='';try{const p=pView===uid?myProf:(profs[pView]||{});(Array.isArray(p.stk)?p.stk:[]).slice(0,5).forEach(e=>{const x=document.createElement('span');x.textContent=String(e).slice(0,8);row.append(x)})}catch{}};
+  new MutationObserver(drawStk).observe(pn,{childList:true,characterData:true,subtree:true})}}
+function shop(L){
+ L.innerHTML='<div class="row" style="margin:0 0 6px">'+Object.keys(CATS).map(c=>`<button class="chip ${c==CAT?'on':''}" data-c="${c}">${CATS[c]}</button>`).join('')+`</div><div style="font-size:13px;opacity:.7;margin-bottom:10px">${HINT[CAT]}</div><div class="gmG" id="gmS"></div>`;
+ L.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{CAT=b.dataset.c;shop(L)});
+ const big=e=>`<div style="font-size:34px">${e}</div>`,G=L.querySelector('#gmS');
+ (CAT=='st'?SK.map(([e,n,p])=>({k:'s'+e,n,p,e,pv:big(e)})):CAT=='th'?TP.map(t=>({k:t.id,n:t.name,p:t.p,t,pv:`<div style="height:40px;border-radius:8px;background:${t.bg}"></div>`})):RX.map(([e,n,p])=>({k:'r'+e,n,p,e,pv:big(e)}))).forEach(it=>{
+  const own=S.own[it.k],eq=CAT=='st'&&(myProf.stk||[]).includes(it.e);
+  const c=card(it.pv,it.n,own?'Owned':CO+' '+it.p,own?(CAT=='st'?(eq?'Unequip':'Equip'):CAT=='th'?'Apply':'Owned'):'Buy'),b=c.querySelector('button');
+  if(own&&CAT=='rx')b.disabled=true;
+  b.onclick=()=>{if(!own){if(S.c<it.p){b.textContent='Not enough Polis';return}S.c-=it.p;S.own[it.k]=1;save();coins();if(CAT=='rx'&&typeof render==='function')render();shop(L);return}
+   if(CAT=='th'){applyTheme(it.t);return}
+   const a=(myProf.stk||[]).slice(),i=a.indexOf(it.e);if(i>=0)a.splice(i,1);else{if(a.length>=5){b.textContent='Max 5 equipped';return}a.push(it.e)}
+   myProf.stk=a;if(typeof saveProf==='function')saveProf();drawStk();shop(L)};
+  G.append(c)})}
+const day=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(),today=()=>day(new Date()),yest=()=>{const d=new Date();d.setDate(d.getDate()-1);return day(d)};
+const nextSt=()=>S.dd===yest()?(S.st||0)+1:1,rwd=()=>50+(Math.min(nextSt(),7)-1)*10;
+const toast=m=>{const t=document.createElement('div');t.className='gmToast';t.innerHTML=CO+' '+m;document.body.append(t);setTimeout(()=>t.remove(),3500)};
+const dot=()=>bt.classList.toggle('gmDot',S.dd!==today());
+function claim(){if(S.dd===today())return;const r=rwd();S.st=nextSt();S.dd=today();earn(r);dot();toast('+'+r+' Polis · daily reward')}
+function home(L){const done=S.dd===today();
+ L.innerHTML=`<div style="text-align:center;padding:10px 0"><div style="font:800 30px Rubik,sans-serif">${CO.replace('gmc','gmc" style="width:30px;height:30px;font-size:19px')} <span class="gmBal">${S.c}</span> Polis</div></div>
+ <div class="gmC" style="text-align:left;margin:8px 0"><div style="font-weight:700">Next 10 Polis</div><div class="gmBr"><i id="gmPr" style="width:${(S.ms||0)/3000}%"></i></div><div style="font-size:13px;opacity:.7">Get 10 Polis for every 5 minutes you spend on the site.</div></div>
+ <div class="gmC" style="text-align:left;margin:8px 0"><div style="font-weight:700">Daily reward · streak ${S.st||0}</div><div style="font-size:13px;opacity:.7;margin:4px 0 8px">Come back every day: a longer streak means more Polis (up to 7 days).</div><button class="btn" id="gmD" ${done?'disabled':''}>${done?'Already claimed today':'Claim '+rwd()+' Polis'}</button></div>
+ <div class="gmC" style="text-align:left;margin:8px 0"><div style="font-weight:700">What can I buy?</div><div style="font-size:13px;opacity:.7;margin-top:4px">Profile stickers, Premium themes and extra note reactions. Check the Shop tab.</div></div>`;
+ L.querySelector('#gmD').onclick=()=>{claim();home(L)}}
+/* --- Tasks (reset every 3 hours) --- */
+const TASKS=[{k:'n',t:'Write down 10 notes',g:10,r:20},{k:'r',t:'React to 5 notes',g:5,r:20},{k:'s',t:'Add 2 stickers to the board',g:2,r:20},{k:'pn',t:'Pin 2 notes',g:2,r:20},{k:'tm',t:'Stay active for 15 minutes',g:900,r:30}];
+const W=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*60000)/10800000),leftMs=()=>(W()+1)*10800000-(Date.now()-new Date().getTimezoneOffset()*60000);
+const ensure=()=>{if(!S.tk||S.tk.w!==W()){S.tk={w:W(),p:{},c:{}};save()}};
+const lab=(x,v)=>x.k=='tm'?Math.floor(v/60)+' / 15 min':v+' / '+x.g,fmt=()=>{const l=leftMs();return Math.floor(l/3600000)+'h '+Math.floor(l%3600000/60000)+'m'};
+let shown=new Set();
+function prog(k,v){ensure();const x=TASKS.find(t=>t.k==k),b=S.tk.p[k]||0;S.tk.p[k]=b+v;
+ if(x&&b<x.g&&b+v>=x.g){toast('Task complete: '+x.t);save()}else if(k!='tm')save()}
+function tasks(L){ensure();shown=new Set();
+ L.innerHTML=`<div id="gmTk"><div style="margin:2px 0 10px;color:#555">Tasks reset in <b id="gmRs">${fmt()}</b></div></div>`;const box=L.firstChild;box.dataset.w=S.tk.w;
+ TASKS.forEach(x=>{const v=Math.min(S.tk.p[x.k]||0,x.g),done=v>=x.g,cl=S.tk.c[x.k];if(done)shown.add(x.k);
+  const c=document.createElement('div');c.className='gmC';c.style.cssText='text-align:left;margin:8px 0;display:flex;align-items:center;gap:12px';
+  c.innerHTML=`<div style="flex:1"><div style="font-weight:700">${x.t}</div><div class="gmBr"><i id="tb-${x.k}" style="width:${v/x.g*100}%"></i></div><div id="tt-${x.k}" style="font-size:13px;opacity:.7">${lab(x,v)}</div></div><button class="btn" ${done&&!cl?'':'disabled'}>${cl?'Claimed':(done?'Claim ':'')+CO+' +'+x.r}</button>`;
+  c.querySelector('button').onclick=()=>{S.tk.c[x.k]=1;earn(x.r);toast('+'+x.r+' Polis · task reward');tasks(L)};
+  box.append(c)})}
+function paint(){const box=P.querySelector('#gmTk');if(!box)return;ensure();
+ if(TASKS.some(x=>(S.tk.p[x.k]||0)>=x.g&&!shown.has(x.k))||box.dataset.w!=String(S.tk.w))return tasks(box.parentNode);
+ box.querySelector('#gmRs').textContent=fmt();
+ TASKS.forEach(x=>{const v=Math.min(S.tk.p[x.k]||0,x.g),b=box.querySelector('#tb-'+x.k),t=box.querySelector('#tt-'+x.k);if(b)b.style.width=v/x.g*100+'%';if(t)t.textContent=lab(x,v)})}
+document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+ if(t.closest('#add')&&document.getElementById('text').value.trim())prog('n',1);
+ if(t.closest('.reacts button'))prog('r',1);
+ const pn=t.closest('.note .pin');if(pn&&!pn.closest('.note').classList.contains('pinned'))prog('pn',1)},true);
+{const tx=document.getElementById('text');if(tx)tx.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&e.target.value.trim())prog('n',1)},true)}
+{const o=window.addSticker;if(typeof o==='function')window.addSticker=function(){prog('s',1);return o.apply(this,arguments)}}
+function hub(t){halt();
+ const nav=[['h','Home'],['t','Tasks'],['s','Shop']].map(([k,n])=>`<a data-t="${k}" class="${t==k?'sel':''}">${n}</a>`).join('');
+ P.innerHTML=head('',0,nav)+'<div class="gmBody" id="gmL"></div>';
+ P.querySelector('#gmX').onclick=close;P.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>hub(b.dataset.t));
+ const L=P.querySelector('#gmL');if(t=='h')home(L);else if(t=='t')tasks(L);else shop(L)}
+/* balance on the site home + launcher */
+bt.innerHTML=CO+' <b class="gmBal">'+S.c+'</b>';bt.title='Polis';dot();
+{const mk=m=>{const w=document.createElement('span');w.style.cssText=m;
+ w.innerHTML=`<button class="btn" style="background:#fff;color:#222;border:1px solid #ddd;display:inline-flex;align-items:center;gap:6px;font-weight:700">${CO} <span class="gmBal">${S.c}</span> Polis</button>`;w.firstChild.onclick=()=>bt.click();return w};
+ const ml=document.querySelector('main .mlogo');if(ml){const w=document.createElement('div');w.style.cssText='text-align:center;margin:-10px 0 14px';w.append(mk(''));const br=ml.nextElementSibling;(br&&br.tagName=='BR'?br:ml).after(w)}
+ const sp=document.querySelector('.gate .gbar .sp');if(sp)sp.after(mk('margin-left:8px'))}
+let last=Date.now(),act=Date.now(),cnt=0;
+['pointerdown','keydown','pointermove','scroll'].forEach(e=>addEventListener(e,()=>act=Date.now(),{passive:true,capture:true}));
+setInterval(()=>{const n=Date.now();if(document.visibilityState==='visible'&&n-act<120000){const d=Math.min(n-last,5000);S.ms=(S.ms||0)+d;prog('tm',d/1000)}last=n;
+ if(S.ms>=300000){S.ms-=300000;earn(10);toast('+10 Polis')}
+ const pr=P.querySelector('#gmPr');if(pr)pr.style.width=(S.ms/3000)+'%';
+ if(++cnt%10==0)save();if(cnt%3==0)paint()},1000);
+addEventListener('pagehide',save);
+if(S.dd!==today())setTimeout(()=>toast('Daily reward available!'),2000);
+}catch(e){console.warn('games',e)}})();
+</script>
+
 </body>
 </html>
