@@ -107,7 +107,12 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 #chInput input{flex:1;min-width:0;font:12px 'Fira Code',monospace;border:1px solid #ccc;border-radius:8px;padding:6px 8px}
 .fr-row{display:flex;align-items:center;gap:8px;padding:5px 12px;font-size:12px}.fr-row .btn{padding:3px 8px;font-size:10px}
 .pcard{padding:0!important;overflow:hidden;position:relative;width:min(100%,340px)}
-#pBanner{height:96px;background:#f0455a}
+#pBanner{height:108px;background:#f0455a}
+.pcard{background:#1e1f22;color:#f2f3f5;border:1px solid rgba(255,255,255,.1)}
+.pcard .pfp{border-color:#1e1f22;width:84px;height:84px;margin-top:-44px}
+.pcard .pfp.on::after{content:"";position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:50%;background:#23a55a;border:4px solid #1e1f22}
+.pcard #pBio{opacity:.85}
+.pcard #pEdit input[type=text],.pcard #pEdit input:not([type]),.pcard #pEdit textarea{background:#2b2d31;color:#f2f3f5;border-color:#3f4147}
 .pbody{padding:0 18px 18px}
 .pfp{display:grid;place-items:center;width:76px;height:76px;margin-top:-38px;border-radius:50%;border:4px solid #fff;color:#fff;font:800 28px 'Rubik',sans-serif;background:#888;position:relative}
 #pName{margin:8px 0 2px;font:800 18px 'Rubik',sans-serif}
@@ -115,6 +120,7 @@ input[type=datetime-local]{font:10px 'Fira Code',monospace;border:1px solid #ccc
 #pClose{position:absolute;top:8px;right:10px;border:0;border-radius:50%;width:26px;height:26px;background:rgba(0,0,0,.4);color:#fff;cursor:pointer}
 #pEdit input[type=text],#pEdit input:not([type]),#pEdit textarea{width:100%;margin:6px 0;padding:6px;font:12px 'Fira Code',monospace;border:1px solid #ccc;border-radius:8px}
 #pEdit textarea{height:60px;resize:none}
+.tsw{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #999;cursor:pointer;padding:0;transition:transform .15s}.tsw:hover{transform:scale(1.2)}
 /* extras */
 #tools{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:min(92vw,720px);margin:0 auto 14px;padding:6px 10px;border-radius:14px;background:rgba(255,255,255,.6);color:#222}
 #tools select,#tools input[type=search]{font:11px 'Fira Code',monospace;border:1px solid #ccc;border-radius:8px;padding:4px 8px;background:#fff;color:#222;min-width:0}
@@ -455,6 +461,8 @@ main #tools input,main #tools select{border-radius:0}
     <div id="pEdit" hidden>
       <input id="eName" maxlength="16" placeholder="Name"><textarea id="eBio" maxlength="120" placeholder="Bio (max 120 characters)"></textarea>
       <div class="drow"><button class="btn" id="ePfp" style="background:#222">Photo</button><button class="btn" id="eBan" style="background:#222">Banner</button><input type="color" id="eCol" value="#f0455a" title="Banner color"></div>
+      <div class="drow" style="margin-top:6px"><b style="font-size:11px">Theme</b><span id="eThemes" style="display:contents"></span></div>
+      <div class="drow"><input type="color" id="eT1" value="#f0455a" title="Theme color 1"><input type="color" id="eT2" value="#ffd166" title="Theme color 2"><button class="btn" id="eTreset" type="button" style="background:#888">No theme</button></div>
       <input type="file" id="ePfpF" accept="image/*" hidden><input type="file" id="eBanF" accept="image/*" hidden>
       <div class="drow"><button class="btn" id="eSave">Save</button><button class="btn" id="eCancel" style="background:#888">Cancel</button></div>
     </div>
@@ -583,7 +591,7 @@ const hue=id=>[...String(id)].reduce((a,c)=>a+c.charCodeAt(0)*37,0)%360;
 const bpath=()=>'rooms/'+room+(board==='main'?'':'/boards/'+board);
 const lk=p=>p+room+(board==='main'?'':'_'+board);
 const ANCH=500,PW=()=>document.documentElement.clientWidth;
-const safeImg=s=>typeof s==='string'&&s.length<400000&&/^data:image\/(webp|png|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(s);
+const safeImg=s=>typeof s==='string'&&s.length<(s.startsWith('data:image/gif')?1300000:400000)&&/^data:image\/(webp|png|jpeg|gif);base64,[A-Za-z0-9+\/=]+$/.test(s);
 const UID_RE=/^[a-hj-km-np-z2-9]{7}$/;
 const genUid=()=>{const A='abcdefghjkmnpqrstuvwxyz23456789';for(;;){const u=[...crypto.getRandomValues(new Uint8Array(7))].map(b=>A[b%31]).join('');if(/\d/.test(u)&&/[a-z]/.test(u))return u}};
 const uid=(()=>{let u=LS.get('pn_uid',null);if(typeof u==='string'&&UID_RE.test(u))return u;
@@ -831,7 +839,7 @@ function renderTrash(){
     const b=el('button','btn','Restore');b.onclick=()=>restore(t.id);r.append(b);box.append(r)})}
 $('#clrTr').onclick=()=>{Object.keys(trash).forEach(id=>trRef&&trRef.child(id).remove());trash={};LS.set(lk('pn_tr_'),trash);renderTrash()};
 /* ===== PROFILE / FRIENDS / CHAT ===== */
-let friends={},reqIn={},inRoom=false,fOn={},unread=0,enterT=0,tab='lobby',dmWith=null,chL=null,dmRef=null,pView=null,pendPfp=null,pendBan=null;
+let friends={},reqIn={},inRoom=false,fOn={},unread=0,enterT=0,tab='lobby',dmWith=null,chL=null,dmRef=null,pView=null,pendPfp=null,pendBan=null,pT1='',pT2='';
 const watched=new Set(),lobbyMsgs=[],pOv=$('#pOv');
 const RULES=`{
   "rules": {
@@ -926,14 +934,18 @@ function reqToast(u){
   try{ping()}catch{}
   try{if('Notification'in window&&Notification.permission==='granted')new Notification('Poli-Notes',{body:n+' sent you a friend request',icon:ICON})}catch{}}
 /* profile card */
+function applyCard(p){
+  const c=document.querySelector('#pOv .pcard'),pf=$('#pPfp'),ok=h=>/^#[0-9a-f]{6}$/i.test(h||'');
+  if(p&&ok(p.t1)&&ok(p.t2)){c.style.background='linear-gradient(160deg,'+p.t1+','+p.t2+')';c.style.color=(lum(p.t1)+lum(p.t2))/2<.55?'#fff':'#222';pf.style.borderColor=p.t1}
+  else{c.style.background='';c.style.color='';pf.style.borderColor=''}}
 function setBanner(c,img){$('#pBanner').style.background=safeImg(img)?'url('+img+') center/cover':(/^#[0-9a-f]{6}$/i.test(c||'')?c:'#f0455a')}
-function setPfp(p,u){const pf=$('#pPfp');pf.textContent=(p.name||'?')[0].toUpperCase();
+function setPfp(p,u){const pf=$('#pPfp');pf.classList.toggle('on',u===uid||!!fOn[u]);pf.textContent=(p.name||'?')[0].toUpperCase();
   pf.style.background=safeImg(p.pfp)?'url('+p.pfp+') center/cover':'hsl('+hue(u)+',60%,48%)';if(safeImg(p.pfp))pf.textContent=''}
 async function openProfile(u){
   if(!u)return;pView=u;const me=u===uid;await loadProfiles([u]);const p=profs[u]||{name:'Guest'};
   $('#pEdit').hidden=true;$('#pName').textContent=p.name||'Guest';
   $('#pBio').textContent=p.bio||(me?'No bio yet - tap Edit profile.':'No bio yet.');
-  setPfp(p,u);setBanner(p.bc,me?LS.get('pn_banner',''):'');
+  setPfp(p,u);applyCard(p);setBanner(p.bc,me?LS.get('pn_banner',''):'');
   if(!me&&!SYNC){setBanner(p.bc,LS.get('pn_s_ban_'+u,''));sPull(u)}
   if(!me&&db&&SYNC)db.ref('users/'+u+'/banner').once('value').then(s=>{if(pView===u)setBanner(p.bc,s.val())}).catch(()=>{});
   pOv.classList.add('open');await actions(u)}
@@ -955,12 +967,27 @@ function cropImg(file,w,h,q){return new Promise(res=>{const im=new Image();
     c.getContext('2d').drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);res(c.toDataURL('image/webp',q))};
   im.onerror=()=>res(null);im.src=URL.createObjectURL(file)})}
 function editProf(){pendPfp=pendBan=null;$('#eName').value=myProf.name;$('#eBio').value=myProf.bio||'';$('#eCol').value=myProf.bc||'#f0455a';
+  pT1=myProf.t1||'';pT2=myProf.t2||'';$('#eT1').value=pT1||'#f0455a';$('#eT2').value=pT2||'#ffd166';
   $('#pEdit').hidden=false;$('#pActs').innerHTML=''}
 $('#ePfp').onclick=()=>$('#ePfpF').click();$('#eBan').onclick=()=>$('#eBanF').click();
-$('#ePfpF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;pendPfp=await cropImg(f,128,128,.8);if(pendPfp)setPfp({pfp:pendPfp,name:myProf.name},uid)};
-$('#eBanF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;pendBan=await cropImg(f,480,160,.75);if(pendBan)setBanner(null,pendBan)};
+const readURL=f=>new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res(null);r.readAsDataURL(f)});
+const isGif=f=>f.type==='image/gif'||/\.gif$/i.test(f.name||'');
+$('#ePfpF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  if(isGif(f)){if(f.size>256*1024){toast('GIF too big for a profile picture (max 256 KB)');return}pendPfp=await readURL(f);if(!safeImg(pendPfp))pendPfp=null}
+  else pendPfp=await cropImg(f,128,128,.8);
+  if(pendPfp)setPfp({pfp:pendPfp,name:myProf.name},uid)};
+$('#eBanF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  if(isGif(f)){if(f.size>900*1024){toast('GIF too big for a banner (max 900 KB)');return}pendBan=await readURL(f);if(!safeImg(pendBan))pendBan=null}
+  else pendBan=await cropImg(f,480,160,.75);
+  if(pendBan)setBanner(null,pendBan)};
 $('#eCol').oninput=e=>{if(!pendBan)setBanner(e.target.value,'')};
+[['#ff7e5f','#feb47b'],['#2193b0','#6dd5ed'],['#134e5e','#71b280'],['#ff9a9e','#fad0c4'],['#232526','#414345'],['#4b6cb7','#182848'],['#f7971e','#ffd200'],['#11998e','#38ef7d']].forEach(([a,b])=>{
+  const x=el('button','tsw');x.type='button';x.style.background='linear-gradient(135deg,'+a+','+b+')';
+  x.onclick=()=>{pT1=a;pT2=b;$('#eT1').value=a;$('#eT2').value=b;applyCard({t1:a,t2:b})};$('#eThemes').append(x)});
+$('#eT1').oninput=$('#eT2').oninput=()=>{pT1=$('#eT1').value;pT2=$('#eT2').value;applyCard({t1:pT1,t2:pT2})};
+$('#eTreset').onclick=()=>{pT1=pT2='';applyCard(null)};
 $('#eSave').onclick=()=>{
+  myProf.t1=pT1;myProf.t2=pT2;
   myProf.name=($('#eName').value.trim()||myProf.name).slice(0,16);myProf.bio=$('#eBio').value.trim().slice(0,120);myProf.bc=$('#eCol').value;
   if(pendPfp)myProf.pfp=pendPfp;
   if(pendBan){LS.set('pn_banner',pendBan);if(db)fb(db.ref('users/'+uid+'/banner').set(pendBan))}
@@ -977,8 +1004,8 @@ const pid=u=>'pn-u-'+u;
 let sOut={},sQ=[],sPeer=null,sReady=false,sPoll=null,sDead=false;
 const sConn=new Map(),sPend=new Set();
 const sSave=()=>{LS.set('pn_s_fr',friends);LS.set('pn_s_rin',reqIn);LS.set('pn_s_rout',sOut);LS.set('pn_s_q',sQ.slice(-200))};
-const sClean=p=>({name:String((p&&p.name)||'Guest').slice(0,16),bio:String((p&&p.bio)||'').slice(0,120),bc:/^#[0-9a-f]{6}$/i.test((p&&p.bc)||'')?p.bc:'#f0455a',pfp:safeImg(p&&p.pfp)?p.pfp:''});
-const sProf=()=>({name:myProf.name,bio:myProf.bio||'',bc:myProf.bc||'#f0455a',pfp:myProf.pfp||''});
+const sClean=p=>({name:String((p&&p.name)||'Guest').slice(0,16),bio:String((p&&p.bio)||'').slice(0,120),bc:/^#[0-9a-f]{6}$/i.test((p&&p.bc)||'')?p.bc:'#f0455a',pfp:safeImg(p&&p.pfp)?p.pfp:'',t1:/^#[0-9a-f]{6}$/i.test((p&&p.t1)||'')?p.t1:'',t2:/^#[0-9a-f]{6}$/i.test((p&&p.t2)||'')?p.t2:''});
+const sProf=()=>({name:myProf.name,bio:myProf.bio||'',bc:myProf.bc||'#f0455a',pfp:myProf.pfp||'',t1:myProf.t1||'',t2:myProf.t2||''});
 const sHist=u=>{const h=LS.get('pn_s_dm_'+pair(u),[]);return Array.isArray(h)?h:[]};
 const sSaveHist=(u,h)=>LS.set('pn_s_dm_'+pair(u),h.slice(-100));
 function refreshSoc(){renderStrips();badges();if(chatOpen())renderChat();renderPlayers()}
@@ -1055,10 +1082,14 @@ const shrink=(src,w,h,q)=>new Promise(res=>{if(!safeImg(src))return res('');cons
   im.onerror=()=>res('');im.src=src});
 async function sSendImgs(u){
   const id=Date.now().toString(36);
-  const parts=[['pfp',await shrink(myProf.pfp,96,96,.7)],['ban',await shrink(LS.get('pn_banner',''),320,107,.6)]];
-  parts.forEach(([kind,d])=>{if(!d||d.length>30000)return;const n=Math.ceil(d.length/3000);
-    for(let i=0;i<n;i++)sSend(u,{k:'pc',id,kind,i,n,d:d.slice(i*3000,(i+1)*3000)})})}
-const sPullT={},pcBuf={};
+  const pf=myProf.pfp,bn=LS.get('pn_banner',''),gif=d=>typeof d==='string'&&d.startsWith('data:image/gif')&&d.length<=36000;
+  const parts=[['pfp',gif(pf)?pf:await shrink(pf,96,96,.7)],['ban',gif(bn)?bn:await shrink(bn,320,107,.6)]];
+  parts.forEach(([kind,d])=>{if(!d||d.length>36000)return;const n=Math.ceil(d.length/3000);
+    for(let i=0;i<n;i++)sSend(u,{k:'pc',id,kind,i,n,d:d.slice(i*3000,(i+1)*3000)})});
+  /* big animated GIFs don't fit the relay: a still copy goes out above, the full GIF goes over a direct connection when there is one */
+  const c=sConn.get(u);
+  if(c&&c.open)[['pfp',pf],['ban',bn]].forEach(([kind,d])=>{if(typeof d==='string'&&d.startsWith('data:image/gif')&&d.length>36000&&safeImg(d))try{c.send({k:'pfull',id,kind,d})}catch{}})}
+const sPullT={},pcBuf={},lastFull={};
 function sPull(u){if(SYNC||!u||u===uid)return;const n=Date.now();if(sPullT[u]&&n-sPullT[u]<60000)return;sPullT[u]=n;sSend(u,{k:'preq'})}
 function sOnChunk(u,m){
   if(!friends[u]&&!reqIn[u]&&!sOut[u])return;
@@ -1067,7 +1098,10 @@ function sOnChunk(u,m){
   if(Object.keys(b.p).length<b.n)return;
   delete pcBuf[key];let d='';for(let i=0;i<b.n;i++){if(b.p[i]==null)return;d+=b.p[i]}
   if(!safeImg(d))return;
-  if(m.kind==='ban'){LS.set('pn_s_ban_'+u,d);if(pView===u&&pOv.classList.contains('open'))setBanner((profs[u]||{}).bc,d);return}
+  if(lastFull[u+m.kind]&&lastFull[u+m.kind]>=m.id)return;
+  sStoreImg(u,m.kind,d)}
+function sStoreImg(u,kind,d){
+  if(kind==='ban'){LS.set('pn_s_ban_'+u,d);if(pView===u&&pOv.classList.contains('open'))setBanner((profs[u]||{}).bc,d);return}
   profs[u]=Object.assign({},profs[u]||{},{pfp:d});
   const c=sClean(profs[u]);[friends,reqIn,sOut].forEach(o=>{if(o[u])o[u].p=c});
   sSave();refreshSoc();if(pView===u&&pOv.classList.contains('open'))setPfp(profs[u],u)}
@@ -1080,6 +1114,9 @@ function sOn(u,m){
     return}
   if(typeof m.a==='string'){sReply(u,{k:'ack',a:m.a});const key=u+m.a;if(seenA.has(key))return;seenA.add(key)}
   if(m.k==='pc'){sOnChunk(u,m);return}
+  if(m.k==='pfull'){if(!friends[u]&&!reqIn[u]&&!sOut[u])return;
+    if((m.kind!=='pfp'&&m.kind!=='ban')||typeof m.id!=='string'||typeof m.d!=='string'||!m.d.startsWith('data:image/gif')||!safeImg(m.d))return;
+    lastFull[u+m.kind]=m.id;sStoreImg(u,m.kind,m.d);return}
   if(m.k==='preq'){if(friends[u]||sOut[u])sSendImgs(u);return}
   if(m.k==='hi'){sTakeProf(u,m.p);if(friends[u]||reqIn[u]||sOut[u])refreshSoc();return}
   if(m.k==='req'){
