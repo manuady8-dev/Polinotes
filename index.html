@@ -591,13 +591,20 @@ const hue=id=>[...String(id)].reduce((a,c)=>a+c.charCodeAt(0)*37,0)%360;
 const bpath=()=>'rooms/'+room+(board==='main'?'':'/boards/'+board);
 const lk=p=>p+room+(board==='main'?'':'_'+board);
 const ANCH=500,PW=()=>document.documentElement.clientWidth;
-const safeImg=s=>typeof s==='string'&&s.length<(s.startsWith('data:image/gif')?1300000:400000)&&/^data:image\/(webp|png|jpeg|gif);base64,[A-Za-z0-9+\/=]+$/.test(s);
+const safeImg=s=>typeof s==='string'&&s.length<(s.startsWith('data:image/gif')?7000000:400000)&&/^data:image\/(webp|png|jpeg|gif);base64,[A-Za-z0-9+\/=]+$/.test(s);
 const UID_RE=/^[a-hj-km-np-z2-9]{7}$/;
 const genUid=()=>{const A='abcdefghjkmnpqrstuvwxyz23456789';for(;;){const u=[...crypto.getRandomValues(new Uint8Array(7))].map(b=>A[b%31]).join('');if(/\d/.test(u)&&/[a-z]/.test(u))return u}};
 const uid=(()=>{let u=LS.get('pn_uid',null);if(typeof u==='string'&&UID_RE.test(u))return u;
   u=genUid();LS.set('pn_uid',u);
   try{Object.keys(localStorage).filter(k=>/^pn_s_(fr|rin|rout|q|dm_)/.test(k)).forEach(k=>localStorage.removeItem(k))}catch{}
   return u})();
+/* big images (GIF banners...) live in IndexedDB: localStorage is far too small for them */
+const idb={db:null,open(){return this.db||(this.db=new Promise(res=>{try{const r=indexedDB.open('pn_img',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch{res(null)}}))},
+  async get(k){const d=await this.open();if(!d)return null;return new Promise(res=>{try{const q=d.transaction('k').objectStore('k').get(k);q.onsuccess=()=>res(q.result==null?null:q.result);q.onerror=()=>res(null)}catch{res(null)}})},
+  async set(k,v){const d=await this.open();if(!d)return false;return new Promise(res=>{try{const t=d.transaction('k','readwrite');t.objectStore('k').put(v,k);t.oncomplete=()=>res(true);t.onerror=()=>res(false);t.onabort=()=>res(false)}catch{res(false)}})}};
+const imgSet=async(k,v)=>{if(await idb.set(k,v))return;if(typeof v==='string'&&v.length<1500000)LS.set('pn_i_'+k,v)};
+const imgGet=async k=>(await idb.get(k))||LS.get('pn_i_'+k,'')||'';
+const myBanner=async()=>(await imgGet('ban_'+uid))||LS.get('pn_banner','')||'';
 const myProf=LS.get('pn_prof',null)||{name:LS.get('pn_name','')||'Guest '+Math.floor(10+Math.random()*90),bio:'',pfp:'',bc:'#f0455a'};
 myName=myProf.name;const profs={[uid]:myProf};
 if(FIREBASE_CONFIG&&typeof firebase!=='undefined'){try{firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database()}catch(e){console.error(e)}}
@@ -804,7 +811,7 @@ async function enter(code){
   room=await sha(code);LS.set('pn_code',code);inRoom=true;
   board=LS.get('pn_board_'+room,'main');
   if(!db&&p2pPref()){db=makeP2P(room);
-    db.onConnect=()=>{db.ref('users/'+uid+'/p').set(myProf);const bn=LS.get('pn_banner','');if(bn)db.ref('users/'+uid+'/banner').set(bn)};
+    db.onConnect=()=>{db.ref('users/'+uid+'/p').set(myProf);myBanner().then(bn=>{if(bn)db.ref('users/'+uid+'/banner').set(bn)})};
     db.onConnect()}
   if(db){setBoards({});db.ref('rooms/'+room+'/boardlist').on('value',s=>setBoards(s.val()))}
   else setBoards(LS.get('pn_bl_'+room,{}));
@@ -945,8 +952,8 @@ async function openProfile(u){
   if(!u)return;pView=u;const me=u===uid;await loadProfiles([u]);const p=profs[u]||{name:'Guest'};
   $('#pEdit').hidden=true;$('#pName').textContent=p.name||'Guest';
   $('#pBio').textContent=p.bio||(me?'No bio yet - tap Edit profile.':'No bio yet.');
-  setPfp(p,u);applyCard(p);setBanner(p.bc,me?LS.get('pn_banner',''):'');
-  if(!me&&!SYNC){setBanner(p.bc,LS.get('pn_s_ban_'+u,''));sPull(u)}
+  setPfp(p,u);applyCard(p);setBanner(p.bc,'');if(me)myBanner().then(b=>{if(b&&pView===u)setBanner(p.bc,b)});
+  if(!me&&!SYNC){imgGet('ban_'+u).then(b=>{if(b&&pView===u)setBanner(p.bc,b)});sPull(u)}
   if(!me&&db&&SYNC)db.ref('users/'+u+'/banner').once('value').then(s=>{if(pView===u)setBanner(p.bc,s.val())}).catch(()=>{});
   pOv.classList.add('open');await actions(u)}
 async function actions(u){
@@ -973,11 +980,11 @@ $('#ePfp').onclick=()=>$('#ePfpF').click();$('#eBan').onclick=()=>$('#eBanF').cl
 const readURL=f=>new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res(null);r.readAsDataURL(f)});
 const isGif=f=>f.type==='image/gif'||/\.gif$/i.test(f.name||'');
 $('#ePfpF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
-  if(isGif(f)){if(f.size>256*1024){toast('GIF too big for a profile picture (max 256 KB)');return}pendPfp=await readURL(f);if(!safeImg(pendPfp))pendPfp=null}
+  if(isGif(f)){if(f.size>512*1024){toast('GIF too big for a profile picture (max 512 KB)');return}pendPfp=await readURL(f);if(!safeImg(pendPfp))pendPfp=null}
   else pendPfp=await cropImg(f,128,128,.8);
   if(pendPfp)setPfp({pfp:pendPfp,name:myProf.name},uid)};
 $('#eBanF').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
-  if(isGif(f)){if(f.size>900*1024){toast('GIF too big for a banner (max 900 KB)');return}pendBan=await readURL(f);if(!safeImg(pendBan))pendBan=null}
+  if(isGif(f)){if(f.size>5*1024*1024){toast('GIF too big for a banner (max 5 MB)');return}pendBan=await readURL(f);if(!safeImg(pendBan))pendBan=null}
   else pendBan=await cropImg(f,480,160,.75);
   if(pendBan)setBanner(null,pendBan)};
 $('#eCol').oninput=e=>{if(!pendBan)setBanner(e.target.value,'')};
@@ -986,11 +993,11 @@ $('#eCol').oninput=e=>{if(!pendBan)setBanner(e.target.value,'')};
   x.onclick=()=>{pT1=a;pT2=b;$('#eT1').value=a;$('#eT2').value=b;applyCard({t1:a,t2:b})};$('#eThemes').append(x)});
 $('#eT1').oninput=$('#eT2').oninput=()=>{pT1=$('#eT1').value;pT2=$('#eT2').value;applyCard({t1:pT1,t2:pT2})};
 $('#eTreset').onclick=()=>{pT1=pT2='';applyCard(null)};
-$('#eSave').onclick=()=>{
+$('#eSave').onclick=async()=>{
   myProf.t1=pT1;myProf.t2=pT2;
   myProf.name=($('#eName').value.trim()||myProf.name).slice(0,16);myProf.bio=$('#eBio').value.trim().slice(0,120);myProf.bc=$('#eCol').value;
   if(pendPfp)myProf.pfp=pendPfp;
-  if(pendBan){LS.set('pn_banner',pendBan);if(db)fb(db.ref('users/'+uid+'/banner').set(pendBan))}
+  if(pendBan){await imgSet('ban_'+uid,pendBan);try{localStorage.removeItem('pn_banner')}catch{}if(db)fb(db.ref('users/'+uid+'/banner').set(pendBan))}
   saveProf();if(!SYNC&&(pendPfp||pendBan))Object.keys(friends).forEach(sSendImgs);refreshUI();openProfile(uid)};
 $('#eCancel').onclick=()=>openProfile(uid);
 $('#pClose').onclick=()=>pOv.classList.remove('open');
@@ -1003,7 +1010,8 @@ $('#myProf').onclick=()=>{open_(false);openProfile(uid)};
 const pid=u=>'pn-u-'+u;
 let sOut={},sQ=[],sPeer=null,sReady=false,sPoll=null,sDead=false;
 const sConn=new Map(),sPend=new Set();
-const sSave=()=>{LS.set('pn_s_fr',friends);LS.set('pn_s_rin',reqIn);LS.set('pn_s_rout',sOut);LS.set('pn_s_q',sQ.slice(-200))};
+const sStrip=o=>JSON.parse(JSON.stringify(o,(k,v)=>k==='pfp'&&typeof v==='string'&&v.length>100000?'':v));
+const sSave=()=>{LS.set('pn_s_fr',sStrip(friends));LS.set('pn_s_rin',sStrip(reqIn));LS.set('pn_s_rout',sStrip(sOut));LS.set('pn_s_q',sQ.slice(-200))};
 const sClean=p=>({name:String((p&&p.name)||'Guest').slice(0,16),bio:String((p&&p.bio)||'').slice(0,120),bc:/^#[0-9a-f]{6}$/i.test((p&&p.bc)||'')?p.bc:'#f0455a',pfp:safeImg(p&&p.pfp)?p.pfp:'',t1:/^#[0-9a-f]{6}$/i.test((p&&p.t1)||'')?p.t1:'',t2:/^#[0-9a-f]{6}$/i.test((p&&p.t2)||'')?p.t2:''});
 const sProf=()=>({name:myProf.name,bio:myProf.bio||'',bc:myProf.bc||'#f0455a',pfp:myProf.pfp||'',t1:myProf.t1||'',t2:myProf.t2||''});
 const sHist=u=>{const h=LS.get('pn_s_dm_'+pair(u),[]);return Array.isArray(h)?h:[]};
@@ -1013,7 +1021,9 @@ function sLoad(){
   friends=LS.get('pn_s_fr',{});reqIn=LS.get('pn_s_rin',{});sOut=LS.get('pn_s_rout',{});sQ=LS.get('pn_s_q',[]);
   if(!Array.isArray(sQ))sQ=[];
   Object.entries(friends).forEach(([f,v])=>{if(v&&v.p)profs[f]=sClean(v.p)});
-  Object.entries(reqIn).forEach(([r,v])=>{if(v&&v.p)profs[r]=sClean(v.p)})}
+  Object.entries(reqIn).forEach(([r,v])=>{if(v&&v.p)profs[r]=sClean(v.p)});
+  [...new Set([...Object.keys(friends),...Object.keys(reqIn),...Object.keys(sOut)])].forEach(async u=>{
+    const d=await imgGet('pfp_'+u);if(d&&safeImg(d)&&!(profs[u]&&profs[u].pfp)){profs[u]=Object.assign({},profs[u]||{},{pfp:d});refreshSoc()}})}
 function dmHead(){if(dmWith&&!SYNC)$('#chTitle').textContent=((profs[dmWith]||{}).name||'Friend')+(fOn[dmWith]?'':' (offline)')}
 function sSetOn(u,v){if(!!fOn[u]===v)return;fOn[u]=v;renderStrips();
   if(chatOpen()){if(dmWith===u)dmHead();else if(tab==='friends'&&!dmWith)renderChat()}}
@@ -1082,7 +1092,7 @@ const shrink=(src,w,h,q)=>new Promise(res=>{if(!safeImg(src))return res('');cons
   im.onerror=()=>res('');im.src=src});
 async function sSendImgs(u){
   const id=Date.now().toString(36);
-  const pf=myProf.pfp,bn=LS.get('pn_banner',''),gif=d=>typeof d==='string'&&d.startsWith('data:image/gif')&&d.length<=36000;
+  const pf=myProf.pfp,bn=await myBanner(),gif=d=>typeof d==='string'&&d.startsWith('data:image/gif')&&d.length<=36000;
   const parts=[['pfp',gif(pf)?pf:await shrink(pf,96,96,.7)],['ban',gif(bn)?bn:await shrink(bn,320,107,.6)]];
   parts.forEach(([kind,d])=>{if(!d||d.length>36000)return;const n=Math.ceil(d.length/3000);
     for(let i=0;i<n;i++)sSend(u,{k:'pc',id,kind,i,n,d:d.slice(i*3000,(i+1)*3000)})});
@@ -1101,7 +1111,8 @@ function sOnChunk(u,m){
   if(lastFull[u+m.kind]&&lastFull[u+m.kind]>=m.id)return;
   sStoreImg(u,m.kind,d)}
 function sStoreImg(u,kind,d){
-  if(kind==='ban'){LS.set('pn_s_ban_'+u,d);if(pView===u&&pOv.classList.contains('open'))setBanner((profs[u]||{}).bc,d);return}
+  if(kind==='ban'){imgSet('ban_'+u,d);if(pView===u&&pOv.classList.contains('open'))setBanner((profs[u]||{}).bc,d);return}
+  if(d.length>100000)imgSet('pfp_'+u,d);
   profs[u]=Object.assign({},profs[u]||{},{pfp:d});
   const c=sClean(profs[u]);[friends,reqIn,sOut].forEach(o=>{if(o[u])o[u].p=c});
   sSave();refreshSoc();if(pView===u&&pOv.classList.contains('open'))setPfp(profs[u],u)}
