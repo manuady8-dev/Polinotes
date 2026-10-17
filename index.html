@@ -1981,7 +1981,7 @@ window.pnBadName=n=>{if(window.__owner)return false;const f=n.replace(/[ ._-]/g,
 {const o=window.editProf;if(typeof o==='function')window.editProf=function(){o.apply(this,arguments);$('#eSt').value=myProf.status||''}}
 $('#eSave').addEventListener('click',()=>{myProf.status=$('#eSt').value.trim().slice(0,30)},true);
 /* owner console: Ctrl+Shift+K */
-const OP='pn_owner';let unlocked=false;
+const OWNER_HASH='';let unlocked=false; /* paste your owner code here (see console setup) */
 function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,n=parseInt(b,10);
  switch(c){
  case 'help':return '/polis add|take|set N\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
@@ -1999,14 +1999,14 @@ function con(){if($('#ownOv'))return;const o=document.createElement('div');o.id=
  o.style.cssText='position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)';
  o.innerHTML=`<div style="width:min(100%,520px);background:#111;color:#8f8;font:13px/1.5 monospace;border:2px solid #8f8;padding:14px"><div id="ownLog" style="max-height:50vh;overflow:auto;white-space:pre-wrap"></div><input id="ownIn" autocomplete="off" style="width:100%;margin-top:8px;background:#000;color:#8f8;border:1px solid #8f8;padding:6px;font:inherit"></div>`;
  document.body.append(o);const inp=$('#ownIn'),log=t=>{const l=$('#ownLog');l.textContent+=t+'\n';l.scrollTop=l.scrollHeight};
- let mode=unlocked?'cmd':localStorage.getItem(OP)?'login':'setup';
- log(mode=='cmd'?'Owner console. Type /help':mode=='login'?'Owner password:':'First time: choose an owner password (min 4 characters):');
+ let mode=unlocked?'cmd':OWNER_HASH?'login':'setup';
+ log(mode=='cmd'?'Owner console. Type /help':mode=='login'?'Owner password:':'Setup: type a LONG owner password (min 8 characters). You will get a code to paste into the file.');
  inp.type=mode=='cmd'?'text':'password';inp.focus();o.onclick=e=>{if(e.target===o)o.remove()};
  inp.onkeydown=async e=>{if(e.key==='Escape'){o.remove();return}if(e.key!=='Enter')return;const v=inp.value.trim();inp.value='';
-  if(mode=='setup'){if(v.length<4){log('Too short.');return}localStorage.setItem(OP,await sha(v));unlocked=true;window.__owner=1;mode='cmd';inp.type='text';log('Password saved. Type /help');return}
-  if(mode=='login'){if(await sha(v)===localStorage.getItem(OP)){unlocked=true;window.__owner=1;mode='cmd';inp.type='text';log('Unlocked. Type /help')}else log('Wrong password.');return}
+  if(mode=='setup'){if(v.length<8){log('Use at least 8 characters.');return}log("Paste this in index.html, replacing const OWNER_HASH='';\nconst OWNER_HASH='"+await sha(v)+"';\nUntil you do, the console stays locked for everyone.");return}
+  if(mode=='login'){if(await sha(v)===OWNER_HASH){unlocked=true;window.__owner=1;mode='cmd';inp.type='text';log('Unlocked. Type /help')}else log('Wrong password.');return}
   log('> '+v);const r=run(v);if(r)log(r)}}
-addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='k'){e.preventDefault();con()}});
+addEventListener('keydown',e=>{const t=e.target,ed=t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));if(!ed&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&e.key.toLowerCase()==='k'&&!$('#ownOv')){e.preventDefault();con()}});
 }catch(e){console.warn('extras2',e)}})();
 </script>
 </body>
