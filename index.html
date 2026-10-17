@@ -1982,7 +1982,7 @@ window.pnBadName=n=>{if(window.__owner)return false;const f=n.replace(/[ ._-]/g,
 {const o=window.editProf;if(typeof o==='function')window.editProf=function(){o.apply(this,arguments);$('#eSt').value=myProf.status||''}}
 $('#eSave').addEventListener('click',()=>{myProf.status=$('#eSt').value.trim().slice(0,30)},true);
 /* owner console: Ctrl+Shift+K */
-const OWNER_HASH='';let unlocked=false; /* paste your owner code above (see console setup) */
+const OWNER_HASH='a72833c6d6f84440b8e5aed6b1d15e68';let unlocked=false;
 const OWNER_UID=''; /* optional: your friend code (/whoami); if set, gifts are accepted only from it */
 window.pnGift=(id,n,from)=>{try{n=Number(n);if(typeof id!=='string'||id.length>40||!Number.isInteger(n)||n<1||n>1000)return;
  if(OWNER_UID?from!==OWNER_UID:!friends[from])return;
