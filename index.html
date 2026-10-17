@@ -1248,7 +1248,7 @@ function lookupP2PNow(k){return new Promise(res=>{
 async function fSearch(){
   if(fvBusy)return;
   const raw=$('#fSearch').value,code=raw.toLowerCase().replace(/[^a-z0-9]/g,'');
-  if(/^[a-z0-9]{16}$/.test(code)&&/\d/.test(code)&&!/^[a-z]+$/.test(code)){
+  if(/^[a-z0-9]{10,24}$/.test(code)&&/\d/.test(code)&&(raw.includes('-')||code.length===16)){
     if(code===uid){fvResults=[];fvMsg="That's you! Share your friend code with others.";renderFView();return}
     if(friends[code]){fvResults=[];fvMsg='You are already friends.';renderFView();return}
     fvBusy=true;fvResults=null;fvMsg='Checking code…';renderFView();
