@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f0455a">
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAB10lEQVR42u3bMQ0AIAxFwZrDRP0LwAEYYCpLA/fzFDS3EWKOlMqFEwggASSABJAEkAASQAJIAkgACSABJAEkgASQAJIAEkACSAAJIAkgASSABJAEkAASQAJIAkgACSABJAEkgASQABJAEkACSAAJIAkgASSABJAEkAASQOeW3Q0gAwgggAACCCCAADKAAAIIIIAAAgggAwgggAACCCCAADKAAAIIIIAAAgggAwgggAACCCCAAAIIIAMIIIAAAugLQI998QQIIIAczh0AAggggAACCCCHcweAAAIIIIAAAsjh3AEggAAygAACCCCAAAIIIAPIAAIIIIAAAggggAwggADyBuQOAAEEEEAAAQSQw7kDQAABBBBAAAHkcO4AEEAAAQQQQAB5TPWYChBAAAEEkAEEEEAAAQQQQAAZQAABBBBAAAEEULvDAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQSQx1SAAAIIIIAAMoAAAggggAACCCADCCCAAAIoJYAEkAASQBJAAkgACSAJIAEkgASQBJAAEkACSAJIAAkgASSAJIAEkAASQBJAAkgACSAJIAEkgASQBJAAEkACSABJAAkgASSAJIAEkAASQBJAAkgN2zbCAmdhmVaIAAAAAElFTkSuQmCC">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -612,7 +612,13 @@ const myId=Math.random().toString(36).slice(2,9);let myName='Guest';
 const hue=id=>[...String(id)].reduce((a,c)=>a+c.charCodeAt(0)*37,0)%360;
 const bpath=()=>'rooms/'+room+(board==='main'?'':'/boards/'+board);
 const lk=p=>p+room+(board==='main'?'':'_'+board);
-const ANCH=500,PW=()=>document.documentElement.clientWidth;
+let ANCH=500;const PW=()=>document.documentElement.clientWidth;
+/* ANCH = top of the notes area (right under title/composer/toolbar/polls): notes can never go above it */
+const syncAnch=()=>{const w=document.getElementById('wrap');if(w)ANCH=Math.round(w.getBoundingClientRect().top+(window.scrollY||0))+6};
+/* columns of the default grid depend on screen width (1 column on phones) */
+const gridCols=()=>Math.max(1,Math.min(4,Math.floor((PW()-16)/216)));
+const gridCx=i=>(i%gridCols())*216-Math.round((gridCols()*216-8)/2);
+const gridTy=i=>8+Math.floor(i/gridCols())*200;
 const safeImg=s=>typeof s==='string'&&s.length<(s.startsWith('data:image/gif')?7000000:400000)&&/^data:image\/(webp|png|jpeg|gif);base64,[A-Za-z0-9+\/=]+$/.test(s);
 const UID_RE=/^[a-hj-km-np-z2-9]{7}$/;
 const genUid=()=>{const A='abcdefghjkmnpqrstuvwxyz23456789';for(;;){const u=[...crypto.getRandomValues(new Uint8Array(7))].map(b=>A[b%31]).join('');if(/\d/.test(u)&&/[a-z]/.test(u))return u}};
@@ -1580,7 +1586,7 @@ function add(){
   const i=Object.keys(notes).length;
   const n={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),color,pinned:false,reacts:{},
     author:myName,aid:myId,uid,exp:+$('#exp').value?Date.now()+(+$('#exp').value):0,
-    due:$('#due').value||'',cx:(i%4)*216-428,ty:8+Math.floor(i/4)*200,
+    due:$('#due').value||'',cx:gridCx(i),ty:gridTy(i),
     type:listMode?'list':'note',text:listMode?'':text,
     items:listMode?text.split('\n').filter(Boolean).map(t=>({t,d:false})):[]};
   if(n.due&&'Notification'in window&&Notification.permission==='default')Notification.requestPermission();
@@ -1608,7 +1614,7 @@ function fitPage(){let m=0;document.querySelectorAll('#board .note,#stickers .sk
   document.body.style.minHeight=m+140>innerHeight?m+140+'px':''}
 const mineN=n=>!n.uid||n.uid===uid;
 function render(){
-  const b=$('#board');b.innerHTML='';
+  syncAnch();const b=$('#board');b.innerHTML='';
   Object.values(notes).forEach(n=>{if(n&&n.exp&&n.exp<Date.now()){delete notes[n.id];ref?ref.child(n.id).remove():persist()}});
   const list=Object.values(notes);
   $('#wrap').innerHTML='';if(!list.length)$('#wrap').append(el('p','empty','No notes yet. Write the first one!'));
@@ -1619,7 +1625,7 @@ function render(){
     const hay=((n.text||'')+' '+n.items.map(i=>i.t).join(' ')+' '+(n.author||'')).toLowerCase();
     const dim=!((flt==='all'||n.color===flt)&&(!q||hay.includes(q)));
     const c=el('div','note '+n.color+(n.pinned?' pinned':'')+(isDue?' due':'')+(dim?' dim':'')+(seen.has(n.id)?'':' new'));
-    seen.add(n.id);c.style.left=Math.max(0,Math.min(PW()/2+cx,PW()-208))+'px';c.style.top=Math.max(0,ANCH+ty)+'px';
+    seen.add(n.id);c.style.left=Math.max(0,Math.min(PW()/2+cx,PW()-208))+'px';c.style.top=Math.max(ANCH,ANCH+ty)+'px';
     c.style.setProperty('--r',((idx%3)-1)*1.2+'deg');
     const bar=el('div','bar'),g=el('span','grip','⠿'),au=av(n.uid,n.author||'?','xs');au.title='by '+(n.author||'unknown');
     bar.append(au,g);
@@ -1646,7 +1652,7 @@ function render(){
     /* drag: anywhere on the screen */
     g.onpointerdown=ev=>{ev.preventDefault();g.setPointerCapture(ev.pointerId);c.classList.add('drag');
       const sx=ev.pageX-c.offsetLeft,sy=ev.pageY-c.offsetTop;
-      g.onpointermove=m=>{const t=Math.max(0,m.pageY-sy);
+      g.onpointermove=m=>{const t=Math.max(ANCH,m.pageY-sy);
         c.style.left=Math.max(0,Math.min(PW()-c.offsetWidth,m.pageX-sx))+'px';c.style.top=t+'px';
         const h=t+c.offsetHeight+140;if(h>(parseInt(document.body.style.minHeight)||0)&&h>innerHeight)document.body.style.minHeight=h+'px'};
       g.onpointerup=()=>{g.onpointermove=g.onpointerup=null;c.classList.remove('drag');
@@ -1655,6 +1661,12 @@ function render(){
   });
   fitPage();
 }
+/* if something above the notes area changes height (online bar, polls, friends bar, rotation...) re-anchor the notes */
+{let lastA=-1,tA;const chkA=()=>{const w=document.getElementById('wrap');if(!w)return;
+  const a=Math.round(w.getBoundingClientRect().top+(window.scrollY||0))+6;
+  if(a!==lastA&&!document.querySelector('.note.drag,.sk.drag')){lastA=a;render();renderStickers()}};
+  if(window.ResizeObserver)new ResizeObserver(()=>{clearTimeout(tA);tA=setTimeout(chkA,80)}).observe(document.querySelector('main'));
+  addEventListener('load',()=>setTimeout(chkA,200))}
 /* reminders */
 setInterval(()=>{let hit=false;
   Object.values(notes).forEach(n=>{if(n.due&&new Date(n.due)<=new Date()&&!fired.has(n.id)){
@@ -1699,11 +1711,11 @@ $('#dClose').onclick=()=>$('#drawOv').classList.remove('open');
 $('#drawOv').onclick=e=>{if(e.target.id==='drawOv')e.currentTarget.classList.remove('open')};
 $('#dAdd').onclick=()=>{if(drew)addSticker(dv.toDataURL('image/webp',.9),160);$('#drawOv').classList.remove('open')};
 function renderStickers(){
-  const box=$('#stickers');box.innerHTML='';
+  syncAnch();const box=$('#stickers');box.innerHTML='';
   Object.values(stickers).forEach(s=>{if(!safeImg(s.src))return;
     const e=el('div','sk'+(stSeen.has(s.id)?'':' new'));stSeen.add(s.id);
     const cx=s.cx!=null?s.cx:(s.x||0)-500,ty=s.ty!=null?s.ty:(s.y||0);
-    e.style.left=Math.max(0,Math.min(PW()/2+cx,PW()-s.w))+'px';e.style.top=Math.max(0,ANCH+ty)+'px';e.style.width=s.w+'px';
+    e.style.left=Math.max(0,Math.min(PW()/2+cx,PW()-s.w))+'px';e.style.top=Math.max(ANCH,ANCH+ty)+'px';e.style.width=s.w+'px';
     const im=el('img');im.src=s.src;im.alt='sticker';
     const x=el('button','x','✕');x.setAttribute('aria-label','Remove sticker');
     x.onpointerdown=ev=>ev.stopPropagation();x.onclick=()=>delSt(s.id);
@@ -1714,7 +1726,7 @@ function renderStickers(){
       rz.onpointerup=()=>{rz.onpointermove=rz.onpointerup=null;s.w=e.offsetWidth;putSt(s)}};
     e.onpointerdown=ev=>{ev.preventDefault();e.setPointerCapture(ev.pointerId);e.classList.add('drag');
       const sx=ev.pageX-e.offsetLeft,sy=ev.pageY-e.offsetTop;
-      e.onpointermove=m=>{e.style.left=Math.max(0,Math.min(PW()-e.offsetWidth,m.pageX-sx))+'px';e.style.top=Math.max(0,m.pageY-sy)+'px'};
+      e.onpointermove=m=>{e.style.left=Math.max(0,Math.min(PW()-e.offsetWidth,m.pageX-sx))+'px';e.style.top=Math.max(ANCH,m.pageY-sy)+'px'};
       e.onpointerup=()=>{e.onpointermove=e.onpointerup=null;e.classList.remove('drag');
         s.cx=Math.round(e.offsetLeft-PW()/2);s.ty=Math.round(e.offsetTop-ANCH);delete s.x;delete s.y;putSt(s)}};
     e.append(im,x,rz);box.append(e)});
@@ -1950,7 +1962,7 @@ let pv=$('.composer .dot.c-green'),pf=$('#tools .dot.c-green');
  f.onclick=()=>{flt=c;$$('#tools [data-f]').forEach(x=>x.classList.toggle('sel',x===f));render()};pf.after(f);pf=f});
 /* tidy up */
 const td=document.createElement('button');td.className='chip';td.id='tidy';td.textContent='🧹 Tidy up';td.title='Arrange all notes in a grid';
-td.onclick=()=>{Object.values(notes).forEach((n,i)=>{if(!n)return;n.cx=(i%4)*216-428;n.ty=8+Math.floor(i/4)*200;delete n.x;delete n.y;put(n)});toast('Notes arranged')};
+td.onclick=()=>{Object.values(notes).forEach((n,i)=>{if(!n)return;n.cx=gridCx(i);n.ty=gridTy(i);delete n.x;delete n.y;put(n)});toast('Notes arranged')};
 $('#newBoard').after(td);
 /* shop cosmetics */
 window.pnApply=()=>{const e=window.pnPolis?pnPolis.eq():{};
@@ -2565,5 +2577,57 @@ setInterval(()=>{if(live())publishLb()},60000);
 }catch(e){console.warn('features',e)}})();
 </script>
 
+<style>
+/* ===== MOBILE / RESPONSIVE ===== */
+html,body{overflow-x:hidden;max-width:100%}
+main{max-width:1000px;width:100%}
+.note{max-width:calc(100vw - 16px);overflow-wrap:anywhere}
+.grip{padding:4px 0}
+@media(pointer:coarse){
+  .grip{font-size:20px;padding:6px 0;opacity:.6}
+  .bar button{font-size:17px;padding:4px}
+  .dot{width:24px;height:24px}
+  .chip{padding:7px 11px;font-size:12px}
+  .reacts button{min-width:34px;min-height:30px}
+}
+@media(max-width:700px){
+  body{padding:60px 10px calc(84px + env(safe-area-inset-bottom))}
+  .mlogo{margin:6px 0 16px}
+  .mlogo .lg{font-size:clamp(28px,10vw,42px);padding:2px 12px 4px;border-width:4px;outline-width:2px}
+  .mlogo .tag{font-size:clamp(15px,4.6vw,19px);padding:6px 10px;margin-top:12px}
+  main #online,main .strip{width:auto;max-width:96vw;font-size:12px;margin:-4px auto 14px}
+  main .composer{width:96vw;max-width:440px;padding:10px}
+  main .composer textarea{height:84px;font-size:16px}
+  main .composer .row{gap:8px}
+  main .composer input[type=datetime-local]{font-size:14px;flex:1 1 150px;min-width:0}
+  main .composer #exp{font-size:14px;flex:1 1 140px;max-width:100%;min-width:0}
+  main .composer #add{padding:10px 22px;font-size:14px}
+  main #tools{width:96vw;max-width:520px;gap:8px;padding:8px}
+  main #tools select,main #tools input[type=search]{font-size:16px;padding:7px 8px}
+  main #tools input[type=search]{flex:1 1 100%;order:5;min-width:0}
+  #chInput input{font-size:16px}
+  #chat{width:min(100vw,360px)}
+  #gmBtn{bottom:calc(14px + env(safe-area-inset-bottom))}
+  #toast{max-width:92vw;bottom:calc(20px + env(safe-area-inset-bottom))}
+  .panel,.pcard{max-height:88vh}
+  #pEdit input,#pEdit textarea,.gate .gpanel input{font-size:16px!important}
+  /* home / login */
+  .gate .gbar>div{padding:0 10px;gap:2px}
+  .gate .glogo-s{margin-right:6px;font-size:0}
+  .gate .glogo-s i{font-size:20px}
+  .gate .gnav a{padding:20px 8px 17px;font-size:15px}
+  .gate .gmain{padding:20px 12px;gap:16px}
+  .gate .glogo{margin-top:6px;max-width:100%}
+  .gate .glogo .lg{font-size:clamp(32px,11vw,48px);padding:2px 12px 4px;border-width:4px}
+  .gate .glogo .tag{font-size:clamp(16px,5vw,21px);padding:8px 12px;margin-top:12px}
+  .gate .gpanel{padding:14px 12px 16px;box-shadow:4px 4px 0 rgba(0,0,0,.13)}
+  .gate .gpanel h2{font-size:21px}
+  .gate .gcol{width:100%}
+}
+@media(max-width:380px){
+  #fxBtn{left:50px}
+  .mlogo .lg{font-size:28px}
+}
+</style>
 </body>
 </html>
