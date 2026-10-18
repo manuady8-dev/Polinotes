@@ -366,7 +366,14 @@ main #tools input,main #tools select{border-radius:0}
 .gate .gpanel .nm-warn{margin:-4px 0 12px 2px;font:600 13.5px/1.35 var(--rb);color:#b32323}
 @media(max-width:480px){.gate .fbt{padding:0 7px}.gate .fgo{padding:0 14px}}
 </style>
-<style>#syncRow,#syncBox,#p2pRow{display:none!important}#pnInfo{position:fixed;left:8px;bottom:4px;z-index:2;max-width:92vw;font:10px/1.3 "Source Sans 3",sans-serif;opacity:.55;pointer-events:none}#banScr .ic{font-size:44px;line-height:1;margin-bottom:6px;animation:banPulse 2s ease-in-out infinite}@keyframes banPulse{50%{transform:scale(1.12)}}#banScr .big{letter-spacing:1px}</style>
+<style>#syncRow,#syncBox,#p2pRow{display:none!important}#pnInfo{position:fixed;left:8px;bottom:4px;z-index:2;max-width:92vw;font:10px/1.3 "Source Sans 3",sans-serif;opacity:.55;pointer-events:none}#banScr .ic{font-size:44px;line-height:1;margin-bottom:6px;animation:banPulse 2s ease-in-out infinite}@keyframes banPulse{50%{transform:scale(1.12)}}#banScr .big{letter-spacing:1px}#banScr{background:#0b0b0c!important;color:#fff}
+.bkc{width:min(100%,600px);background:#18191c;border-radius:16px;padding:20px;text-align:left;font:16px/1.5 'Source Sans 3',Arial,sans-serif;animation:banPop .9s cubic-bezier(.2,.8,.2,1) .35s backwards;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.bkh{display:flex;align-items:center;gap:10px;font-size:20px;margin-bottom:14px}.bkm{margin:0 0 14px}.bkt{font-weight:700;margin-bottom:8px}
+.bkb{background:#26272b;border-radius:12px;padding:14px}.bkr{margin-bottom:10px}.bkr b{display:block}
+.bkx{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #3a3b40;font-size:14px;opacity:.85}
+.bkv{width:100%;margin-top:6px;padding:9px;border:0;border-radius:8px;background:#3a3b40;color:#fff;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer}
+.bkid{margin:6px 2px 0;font-size:12px;color:#5a5a60;word-break:break-all}.bkf{display:flex;justify-content:flex-end;margin-top:26px}
+.bkf button{padding:12px 18px;border:0;border-radius:10px;background:#2c2d31;color:#fff;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer}</style>
 </head>
 <body class="lines">
 
@@ -2079,22 +2086,30 @@ function showBan(b,load){
   if(banned)return;banned=true;
   const build=()=>{document.documentElement.classList.add('banned');
     const o=document.createElement('div');o.id='banScr';o.style.opacity='0';
-    const bx=el('div','bx'),h=el('h1',null,'YOU ARE BANNED');
-    const ic=el('div','ic','🚫'),P=b.k==='perm';const dur=el('div',null,P?'You are permanently banned from Poli-Notes.':'You cannot access Poli-Notes for:');
-    const big=el('div','big',P?'PERMANENT':b.n+' '+(UN_EN[b.k][b.n==1?0:1]));
-    const until=el('div',null,P?'This ban has no end date.':'Your ban ends on '+new Date(b.until).toLocaleString('en-GB'));
-    const left=el('small');
-    bx.append(ic,h,dur,big,until,left);
-    if(b.r){const r=el('div','rs');r.append(el('b',null,'Reason: '),document.createTextNode(String(b.r).slice(0,80)));bx.append(r)}
-    bx.append(el('small',null,'Friend code: '+uid.toUpperCase()+' · If you think this is a mistake, contact the owner.'));o.append(bx);document.body.append(o);void o.offsetWidth;o.style.opacity='1';
-    const tick=()=>{if(P){left.textContent='';return}const ms=b.until-Date.now();if(ms<=0){clearInterval(banT);clearBan(true);return}left.textContent='Time left: '+fmtLeft(ms,1)};
+    const P=b.k==='perm',code=uid.toUpperCase(),when=new Date(b.t||Date.now()).toLocaleString('en-GB',{dateStyle:'long',timeStyle:'short'});
+    const card=el('div','bkc'),hd=el('div','bkh');
+    hd.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e03a3a" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';hd.append(el('b',null,'Banned'));
+    const msg=el('p','bkm',P?'We permanently banned your account because of repeated or serious rule-breaking.':'We banned your account for '+b.n+' '+UN_EN[b.k][b.n==1?0:1]+' because of rule-breaking.');
+    const box=el('div','bkb'),row=(a,v)=>{const d=el('div','bkr');d.append(el('b',null,a));if(typeof v==='string')d.append(el('div',null,v));else d.append(v);return d};
+    const tl=el('div');
+    box.append(row('Review date:',when),row('Moderator note:',b.r||'Repeated or serious rule-breaking'),row('Ban length:',P?'Permanent':b.n+' '+UN_EN[b.k][b.n==1?0:1]));
+    if(!P)box.append(row('Time left:',tl));
+    const more=el('div','bkx');more.append(el('div',null,P?'This ban has no end date.':'Your ban ends on '+new Date(b.until).toLocaleString('en-GB')),el('div',null,'Friend code: '+code));
+    const vb=el('button','bkv','View more');vb.onclick=()=>{const on=more.style.display==='block';more.style.display=on?'none':'block';vb.textContent=on?'View more':'View less'};
+    box.append(vb,more);
+    const ft=el('div','bkf'),rb=el('button',null,'Report a mistake');
+    rb.onclick=()=>{const t='Hi, I think my Poli-Notes ban is a mistake. My friend code is '+code+'.';try{navigator.clipboard.writeText(t)}catch{}rb.textContent='Copied: send it to the owner'};
+    ft.append(rb);
+    card.append(hd,msg,el('div','bkt','Latest activity we reviewed'),box,el('div','bkid',code),ft);
+    o.append(card);document.body.append(o);void o.offsetWidth;o.style.opacity='1';
+    const tick=()=>{if(P)return;const ms=b.until-Date.now();if(ms<=0){clearInterval(banT);clearBan(true);return}tl.textContent=fmtLeft(ms,1)};
     tick();banT=setInterval(tick,1000)};
   if(load){document.documentElement.classList.add('banned');setTimeout(build,500)}
   else{const k=el('div');k.id='banBlack';document.body.append(k);void k.offsetWidth;k.style.opacity='1';
     setTimeout(()=>{build();setTimeout(()=>k.remove(),80)},2000)}}
 function applyBan(b,load){
   if(!b||!(b.until>Date.now())||!Number.isFinite(b.until))return;
-  b={until:b.until,n:Math.max(1,b.n|0),k:(UNITS[b.k]||b.k==='perm')?b.k:'d',r:typeof b.r==='string'?b.r.slice(0,80):''};
+  const _o=LS.get('pn_ban',null);b={until:b.until,t:(_o&&_o.until===b.until&&Number.isFinite(_o.t))?_o.t:(Number.isFinite(b.t)?b.t:Date.now()),n:Math.max(1,b.n|0),k:(UNITS[b.k]||b.k==='perm')?b.k:'d',r:typeof b.r==='string'?b.r.slice(0,80):''};
   LS.set('pn_ban',b);localStorage.removeItem('pn_code');
   try{if(typeof prRef!=='undefined'&&prRef)prRef.child(myId).remove()}catch{}
   try{if(typeof curRef!=='undefined'&&curRef)curRef.child(myId).remove()}catch{}
