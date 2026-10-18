@@ -1554,7 +1554,7 @@ async function fSearch(){
 /* render */
 const fprof=u=>{if(!profs[u]){const x=(sOut[u]&&sOut[u].p)||(reqIn[u]&&reqIn[u].p);if(x)profs[u]=x}return profs[u]||{}};
 const fmtCode=u=>String(u).toUpperCase();
-const fname=u=>fprof(u).name||(reqIn[u]&&reqIn[u].n)||(sOut[u]?'Code '+fmtCode(u):'Guest');
+const fname=u=>fprof(u).name||(reqIn[u]&&reqIn[u].n)||('Code '+fmtCode(u));
 const fbtn=(t,f,c,title)=>{const b=el('button','fbt'+(c?' '+c:''),t);if(title)b.title=title;b.onclick=f;return b};
 const fwho=(u,cls)=>{const d=el('div','fwho');fprof(u);d.append(av(u,fname(u),cls||''),el('span','fnm',fname(u)));return d};
 const fcell=(...n)=>{const td=el('td');td.append(...n);return td};
