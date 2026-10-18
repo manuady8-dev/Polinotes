@@ -2966,15 +2966,19 @@ function resetHwTheme(){
   let cur;try{cur=JSON.parse(localStorage.getItem('pn_theme'))}catch{}
   if(cur&&/^h-/.test(cur.id||'')){try{localStorage.removeItem('pn_theme')}catch{}try{applyTheme(THEMES.classic[0])}catch{}}}
 function delThemes(){grp.forEach(x=>x.remove());grp=[];resetHwTheme()}
+function swapIcon(rel,href,type){
+  document.querySelectorAll('link[rel="'+rel+'"]').forEach(x=>x.remove());
+  const l=document.createElement('link');l.rel=rel;if(type)l.type=type;l.href=href;document.head.append(l)}
 function setIcon(){
   const li=$('link[rel=icon]'),ap=$('link[rel=apple-touch-icon]'),mf=$('link[rel=manifest]');
   if(iconOrig===null)iconOrig={li:li&&li.href,ap:ap&&ap.href,mf:mf&&mf.href};
-  if(li){li.type='image/png';li.href=IC.i64}if(ap)ap.href=IC.i180;
+  swapIcon('icon',IC.i64,'image/png');swapIcon('shortcut icon',IC.i64,'image/png');swapIcon('apple-touch-icon',IC.i180);
   if(mf){const m={name:'Poli-Notes',short_name:'Poli-Notes',description:'Our spooky corner for thoughts and reminders.',start_url:location.href.split('#')[0],scope:location.href.replace(/[^/]*$/,''),display:'standalone',orientation:'any',background_color:'#1a0d2b',theme_color:'#ff7a18',icons:[{src:IC.i192,sizes:'192x192',type:'image/png',purpose:'any'},{src:IC.i512,sizes:'512x512',type:'image/png',purpose:'any'},{src:IC.m512,sizes:'512x512',type:'image/png',purpose:'maskable'}]};
     mf.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}))}}
 function restoreIcon(){
-  if(!iconOrig)return;const li=$('link[rel=icon]'),ap=$('link[rel=apple-touch-icon]'),mf=$('link[rel=manifest]');
-  if(li&&iconOrig.li){li.removeAttribute('type');li.href=iconOrig.li}if(ap&&iconOrig.ap)ap.href=iconOrig.ap;if(mf&&iconOrig.mf)mf.href=iconOrig.mf;iconOrig=null}
+  if(!iconOrig)return;const mf=$('link[rel=manifest]');
+  document.querySelectorAll('link[rel="shortcut icon"]').forEach(x=>x.remove());
+  if(iconOrig.li)swapIcon('icon',iconOrig.li);if(iconOrig.ap)swapIcon('apple-touch-icon',iconOrig.ap);if(mf&&iconOrig.mf)mf.href=iconOrig.mf;iconOrig=null}
 let active=false;
 function sync(){const a=on();
   if(a&&!active){active=true;addDots();addThemes();setIcon()}
