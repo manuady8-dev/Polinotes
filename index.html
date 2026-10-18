@@ -841,7 +841,7 @@ function makeP2P(room){
         const m={k:'od',p:o.p,op:o.op,v:o.v};if(isHub)conns.forEach(c=>c.open&&c.send(m));else if(hubConn&&hubConn.open)hubConn.send(m);return Promise.resolve()};
       return{remove:()=>add({p,op:'remove'}),set:v=>add({p,op:'set',v})}}};
     return self}
-  const api={p2p:true,state:{connected:false,hub:false,peers:0},ref:p=>mkRef(p),onConnect:null,
+  const api={p2p:true,state:{connected:false,hub:false,peers:0},ref:p=>(window.pnGuardRef||((r)=>r))(mkRef(p),p),onConnect:null,
     stop(){dead=true;try{peer&&peer.destroy()}catch{}}};
   loadLocal();start();
   addEventListener('pagehide',()=>api.stop());
@@ -2150,7 +2150,7 @@ const guard=t=>{if(!t||t.err)return t&&t.err;if(t.uid===uid)return T('Non puoi f
 function kick(tu,name){
   if(!db||!room)return T('Entra prima in una stanza.','Enter a room first.');
   if(tu===uid)return T('Non puoi farlo a te stesso.','You cannot do that to yourself.');
-  const w=db.ref('rooms/'+room+'/kick/'+tu).set({t:Date.now(),by:uid});if(w&&w.catch)w.catch(rulesErr);
+  const w=pnSet('rooms/'+room+'/kick/'+tu,{t:Date.now(),by:uid});if(w&&w.catch)w.catch(rulesErr);
   setTimeout(()=>{try{db.ref('rooms/'+room+'/kick/'+tu).remove()}catch{}},20000);
   const m=T('Kick inviato a ','Kick sent to ')+name+'.';toast(m);return m}
 function ban(tu,name,n,k,reason){
@@ -2161,7 +2161,7 @@ function ban(tu,name,n,k,reason){
   const b={until,n,k,t:Date.now(),by:uid};if(reason)b.r=String(reason).slice(0,80);
   let w;
   if(SYNC)w=db.ref('bans/'+tu).set(b);
-  else if(room)w=db.ref('rooms/'+room+'/ban/'+tu).set(b);
+  else if(room)w=pnSet('rooms/'+room+'/ban/'+tu,b);
   else return T('Entra prima in una stanza.','Enter a room first.');
   const ok=name+T(' bannato per ',' banned for ')+n+' '+unitName(k,n)+(SYNC?'.':T(' (senza sync vale solo se è online nella stanza).',' (without sync it only works if they are online in the room).'));
   return Promise.resolve(w).then(()=>{
@@ -2234,7 +2234,7 @@ window.pnBadName=n=>{if(window.__owner)return false;const f=n.replace(/[ ._-]/g,
 {const o=window.editProf;if(typeof o==='function')window.editProf=function(){o.apply(this,arguments);$('#eSt').value=myProf.status||''}}
 $('#eSave').addEventListener('click',()=>{myProf.status=$('#eSt').value.trim().slice(0,30)},true);
 /* owner console: Ctrl+Shift+K */
-const OWNER_PUB=''; /* paste the public key printed by the console setup */
+const OWNER_PUB='{"kty":"EC","crv":"P-256","x":"p8bkRoorFMr3S0xKzUa-3oJkVQbnq2NA1OijvS50mjQ","y":"-WWdXXMEHijeb4HollM0QHXP5dYzyxQ9eJAbNsQuXLU"}'; /* paste the public key printed by the console setup */
 const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))),ub64=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
 const EC={name:'ECDSA',namedCurve:'P-256'},SG={name:'ECDSA',hash:'SHA-256'};
 let unlocked=false,ownPriv=null;
@@ -2249,6 +2249,10 @@ window.pnOwn=async m=>{try{if(!OWNER_PUB||typeof m.p!=='string'||typeof m.s!=='s
  if(d.c==='gift'&&Number.isInteger(n)&&n>=1&&n<=MAXG){P.earn(n);toast('🎁 You received '+n+' Polis!'+(d.m?' "'+d.m+'"':''))}
  else if(d.c==='seize'&&Number.isInteger(n)&&n>=1){const t=Math.min(n,P.bal());P.earn(-t);toast('⚠️ '+t+' Polis were seized.'+(d.m?' '+d.m:''))}
  else if(d.c==='msg'&&d.m)toast('📢 '+d.m)}catch{}};
+window.pnSignVal=async(path,v)=>{if(!ownPriv)throw new Error('No owner key on this device');const p=JSON.stringify({p:path,v,t:Date.now()});return{...v,_p:p,_s:b64(await crypto.subtle.sign(SG,ownPriv,new TextEncoder().encode(p)))}};
+window.pnVerify=async(path,v)=>{try{if(!OWNER_PUB||!v||typeof v._p!=='string'||typeof v._s!=='string'||v._p.length>800)return false;const pk=await crypto.subtle.importKey('jwk',JSON.parse(OWNER_PUB),EC,false,['verify']);if(!(await crypto.subtle.verify(SG,pk,ub64(v._s),new TextEncoder().encode(v._p))))return false;const d=JSON.parse(v._p),{_p,_s,...r}=v;return d.p===path&&JSON.stringify(d.v)===JSON.stringify(r)}catch{return false}};
+window.pnSet=(path,v)=>window.pnSignVal(path,v).then(sv=>db.ref(path).set(sv));
+window.pnGuardRef=(r,p)=>!/^rooms\/[^/]+\/(kick|ban|mutes)\/[^/]+$/.test(p)?r:Object.assign(Object.create(r),{on:(ev,cb,...x)=>r.on(ev,s=>{const v=s.val();if(v==null)return cb(s);pnVerify(p,v).then(ok=>{if(ok)cb(s)})},...x)});
 const glog=(t,n,m)=>{const l=LS.get('pn_giftlog',[]);l.push({t:Date.now(),to:t,n,m});LS.set('pn_giftlog',l.slice(-50))};
 const sendG=(t,n,msg)=>{const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid,m:msg});else if(typeof sSend==='function')ownSend(t,'gift',n,msg);glog(t,n,msg)};
 const OWNER_UID='ntedh9h'; /* only this friend code can open the console */
@@ -2468,7 +2472,7 @@ function mute(tu,name,n,k,r){const h=pnMod.h,T=h.T;
   const until=h.addDur(n,k);if(!Number.isFinite(until))return T('Durata troppo lunga.','Duration too long.');
   const b={until,n,k,t:now(),by:uid};if(r)b.r=String(r).slice(0,80);
   const ok=name+T(' mutato per ',' muted for ')+n+' '+h.unitName(k,n)+'.';
-  return Promise.resolve(db.ref('rooms/'+room+'/mutes/'+tu).set(b)).then(()=>{toast(ok);return ok}).catch(e=>{rulesErr(e);return 'ERROR: '+String(e&&e.message||e)})}
+  return Promise.resolve(pnSet('rooms/'+room+'/mutes/'+tu,b)).then(()=>{toast(ok);return ok}).catch(e=>{rulesErr(e);return 'ERROR: '+String(e&&e.message||e)})}
 {const _cmd=pnMod.cmd;pnMod.cmd=function(c,v){const h=pnMod.h,T=h.T,body=v.replace(/^\/?\S+\s*/,'');
   if(c==='mute'){const m=/^(.+?)\s+(\d+)\s*([a-zA-Z]+)\b\s*(.*)$/.exec(body);
     if(!m)return T('Uso: /mute <giocatore> <N> <minuti|ore|giorni|settimane|mesi|anni> [motivo]','Usage: /mute <player> <N> <minutes|hours|days|weeks|months|years> [reason]');
