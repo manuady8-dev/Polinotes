@@ -1212,6 +1212,7 @@ function dmHead(){if(dmWith&&!SYNC)$('#chTitle').textContent=((profs[dmWith]||{}
 function sSetOn(u,v){if(!!fOn[u]===v)return;fOn[u]=v;renderStrips();
   if(chatOpen()){if(dmWith===u)dmHead();else if(tab==='friends'&&!dmWith)renderChat()}}
 const keepPfp=(u,c)=>{const o=profs[u];if(c&&!c.pfp&&o&&o.pfp)c.pfp=o.pfp;return c};
+const wantProf=new Set();
 function sTakeProf(u,p){if(!p||typeof p!=='object')return;const c=keepPfp(u,sClean(p));
   if(friends[u]){friends[u].p=c;profs[u]=c;sSave()}
   else if(reqIn[u]){reqIn[u].p=c;profs[u]=c;sSave()}
@@ -1315,6 +1316,8 @@ function sOn(u,m){
   if(m.k==='own'){window.pnOwn&&pnOwn(m);return}
   if(m.k==='gift'){window.pnGift&&pnGift(m.i,m.n,u,m.m);return}
   if(m.k==='preq'){if(friends[u]||sOut[u])sSendImgs(u);return}
+  if(m.k==='who'){sReply(u,{k:'hi',p:sProf()});return}
+  if(m.k==='hi'&&wantProf.has(u)&&m.p&&typeof m.p==='object'){profs[u]=sClean(m.p);renderFView()}
   if(m.k==='hi'){sTakeProf(u,m.p);if(friends[u]||reqIn[u]||sOut[u])refreshSoc();return}
   if(m.k==='req'){
     if(friends[u]){sSend(u,{k:'acc',p:sProf()});return}
@@ -1467,7 +1470,7 @@ function nStop(){clearTimeout(nTimer);if(nPeer){const p=nPeer;nPeer=null;try{p.d
 function nRetry(k,ms){clearTimeout(nTimer);nTimer=setTimeout(()=>{if(myKey===k&&!nPeer)nStart(k)},ms)}
 function nStart(k){
   if(typeof Peer==='undefined'||sDead)return;
-  let pr;try{pr=new Peer('pn-n-'+k)}catch(e){console.warn(e);return}
+  let pr;try{pr=new Peer('pn-n-'+k,PEER_OPTS)}catch(e){console.warn(e);return}
   nPeer=pr;
   pr.on('open',()=>{if(nPeer!==pr)return;nameTaken=false;renderFView()});
   pr.on('connection',c=>{c.on('data',m=>{if(m&&m.k==='who'){try{c.send({k:'me',u:uid,p:sProf()})}catch{}setTimeout(()=>{try{c.close()}catch{}},1500)}})});
@@ -1517,7 +1520,16 @@ async function fSearch(){
     try{if(SYNC){const s=await db.ref('users/'+code+'/p').once('value');ok=s.exists()}}catch(e){ok=true}
     fvBusy=false;
     if(!ok){fvResults=[];fvMsg='No user found with that friend code.';renderFView();return}
-    fvResults=[{u:code,key:code}];fvMsg=SYNC?'':'Code accepted. The request is delivered as soon as that person is online.';renderFView();return}
+    let pf=null;
+    if(!SYNC){
+      wantProf.add(code);fvMsg='Looking for that person…';renderFView();
+      const ask=()=>{try{const c=sConn.get(code);if(c&&c.open)c.send({k:'who'});else sConnect(code)}catch{}relayPost(code,{k:'who'})};
+      ask();
+      for(let i=0;i<14&&!(profs[code]&&profs[code].name);i++){await new Promise(r=>setTimeout(r,500));if(i===6)ask()}
+      pf=profs[code]&&profs[code].name?profs[code]:null;wantProf.delete(code)}
+    fvBusy=false;
+    fvResults=[{u:code,key:code,p:pf||undefined}];
+    fvMsg=SYNC?'':(pf?'':'That person is offline right now. The request will be delivered as soon as they open the site.');renderFView();return}
   const k=uname(raw);
   if(!k){fvResults=null;fvMsg='Type a friend code or username.';renderFView();return}
   fvBusy=true;fvResults=null;fvMsg='Searching…';renderFView();
