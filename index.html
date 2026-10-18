@@ -12,8 +12,6 @@
 <title>Poli-Notes</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0455a'/%3E%3Crect x='22' y='26' width='56' height='48' fill='%23fff'/%3E%3Cpath d='M32 42h36M32 54h36M32 66h22' stroke='%23f0455a' stroke-width='5'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@800&family=Caveat:wght@500;600&family=Fira+Code&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>try{var _b=JSON.parse(localStorage.getItem('pn_ban'));if(_b&&_b.until>Date.now()){document.documentElement.classList.add('banned');localStorage.removeItem('pn_code')}}catch(e){}
 try{if(sessionStorage.getItem('pn_kicked'))document.documentElement.classList.add('kicked')}catch(e){}</script>
@@ -368,6 +366,7 @@ main #tools input,main #tools select{border-radius:0}
 .gate .gpanel .nm-warn{margin:-4px 0 12px 2px;font:600 13.5px/1.35 var(--rb);color:#b32323}
 @media(max-width:480px){.gate .fbt{padding:0 7px}.gate .fgo{padding:0 14px}}
 </style>
+<style>#syncRow,#syncBox,#p2pRow{display:none!important}#pnInfo{position:fixed;left:8px;bottom:4px;z-index:2;max-width:92vw;font:10px/1.3 "Source Sans 3",sans-serif;opacity:.55;pointer-events:none}</style>
 </head>
 <body class="lines">
 
@@ -748,7 +747,7 @@ const SYNC=!!db;
 const TURN={username:'openrelayproject',credential:'openrelayproject'};
 const PEER_OPTS={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'},
   {urls:'turn:openrelay.metered.ca:80',...TURN},{urls:'turn:openrelay.metered.ca:443',...TURN},{urls:'turns:openrelay.metered.ca:443?transport=tcp',...TURN}]}};
-const p2pPref=()=>LS.get('pn_p2p',true)!==false;
+const p2pPref=()=>true;
 function makeP2P(room){
   const R='rooms/'+room+'/',hubId='pn-'+room,root={},L=[],myOds=[],connOds=new Map(),conns=new Map();
   const COLL=new Set(['notes','stickers','trash','chat','presence','cursors','boardlist','pp']);
@@ -798,6 +797,7 @@ function makeP2P(room){
   function applyOds(id,announce){const ods=connOds.get(id)||[];connOds.delete(id);
     ods.forEach(o=>{const v=o.op==='set'?o.v:null;setAt(o.p,v);fire(o.p);persistSoon(o.p);if(announce)sendW({k:'w',p:o.p,v:v==null?null:v},null)})}
   function onMsg(c,m){if(!m||typeof m!=='object')return;
+    try{if(JSON.stringify(m).length>3e6)return;const now=Date.now(),b=c._rl||(c._rl={t:now,n:0});if(now-b.t>1000){b.t=now;b.n=0}if(++b.n>60)return}catch{return}
     if(m.k==='w'){if(!okPath(m.p))return;setAt(m.p,m.v);fire(m.p);persistSoon(m.p);if(isHub)sendW(m,c.peer)}
     else if(m.k==='hello'){if(!isHub)return;c.send({k:'snap',tree:clone(getAt('rooms/'+room))||{}});myOds.forEach(o=>c.send({k:'od',p:o.p,op:o.op,v:o.v}));infoFire()}
     else if(m.k==='snap'){mergeTree(m.tree,true,null);try{api.onConnect&&api.onConnect()}catch(e){console.error(e)}c.send({k:'snap2',tree:ownTree()});infoFire();status()}
@@ -857,6 +857,7 @@ async function enter(code,pw){
   myName=myProf.name;
   /* private room without sync: the password is part of the room key (and of the p2p hub id),
      so strangers without it can't even find the room */
+  if(pw&&pw.length<8){toast('Room password: at least 8 characters.');eb.classList.remove('go');eb.textContent='Enter';return}
   privRoom=!SYNC&&p2pPref()&&!!pw;
   room=await sha(privRoom?code+'\u0000pw:'+pw:code);
   if(window.pnRoomGate&&!(await pnRoomGate(room,code))){eb.classList.remove('go');eb.textContent='Enter';room=undefined;privRoom=false;return}
@@ -1187,6 +1188,7 @@ function sOn(u,m){
   if(m.k==='pfull'){if(!friends[u]&&!reqIn[u]&&!sOut[u])return;
     if((m.kind!=='pfp'&&m.kind!=='ban')||typeof m.id!=='string'||typeof m.d!=='string'||!m.d.startsWith('data:image/gif')||!safeImg(m.d))return;
     lastFull[u+m.kind]=m.id;sStoreImg(u,m.kind,m.d);return}
+  if(m.k==='own'){window.pnOwn&&pnOwn(m);return}
   if(m.k==='gift'){window.pnGift&&pnGift(m.i,m.n,u,m.m);return}
   if(m.k==='preq'){if(friends[u]||sOut[u])sSendImgs(u);return}
   if(m.k==='hi'){sTakeProf(u,m.p);if(friends[u]||reqIn[u]||sOut[u])refreshSoc();return}
@@ -2232,19 +2234,33 @@ window.pnBadName=n=>{if(window.__owner)return false;const f=n.replace(/[ ._-]/g,
 {const o=window.editProf;if(typeof o==='function')window.editProf=function(){o.apply(this,arguments);$('#eSt').value=myProf.status||''}}
 $('#eSave').addEventListener('click',()=>{myProf.status=$('#eSt').value.trim().slice(0,30)},true);
 /* owner console: Ctrl+Shift+K */
-const OWNER_HASH='a72833c6d6f84440b8e5aed6b1d15e68';let unlocked=false; /* paste your owner code above (see console setup) */
+const OWNER_PUB=''; /* paste the public key printed by the console setup */
+const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))),ub64=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
+const EC={name:'ECDSA',namedCurve:'P-256'},SG={name:'ECDSA',hash:'SHA-256'};
+let unlocked=false,ownPriv=null;
+(async()=>{try{const j=LS.get('pn_okey',null);if(!j||!OWNER_PUB)return;const pj=JSON.parse(OWNER_PUB);if(j.x!==pj.x||j.y!==pj.y)return;ownPriv=await crypto.subtle.importKey('jwk',j,EC,false,['sign']);unlocked=true;window.__owner=1}catch{}})();
+async function ownSend(to,c,n,m){if(!ownPriv)return;const p=JSON.stringify({c,n,m:String(m||'').slice(0,80),to,t:Date.now(),i:Math.random().toString(36).slice(2)});const g=b64(await crypto.subtle.sign(SG,ownPriv,new TextEncoder().encode(p)));if(typeof sSend==='function')sSend(to,{k:'own',p,s:g})}
+window.pnOwn=async m=>{try{if(!OWNER_PUB||typeof m.p!=='string'||typeof m.s!=='string'||m.p.length>600)return;
+ const pk=await crypto.subtle.importKey('jwk',JSON.parse(OWNER_PUB),EC,false,['verify']);
+ if(!(await crypto.subtle.verify(SG,pk,ub64(m.s),new TextEncoder().encode(m.p))))return;
+ const d=JSON.parse(m.p);if(d.to!==uid||Math.abs(Date.now()-d.t)>6e5)return;
+ const sn=LS.get('pn_own_seen',[]);if(sn.includes(d.i))return;sn.push(d.i);LS.set('pn_own_seen',sn.slice(-200));
+ const n=Number(d.n),P=window.pnPolis;if(!P)return;
+ if(d.c==='gift'&&Number.isInteger(n)&&n>=1&&n<=MAXG){P.earn(n);toast('🎁 You received '+n+' Polis!'+(d.m?' "'+d.m+'"':''))}
+ else if(d.c==='seize'&&Number.isInteger(n)&&n>=1){const t=Math.min(n,P.bal());P.earn(-t);toast('⚠️ '+t+' Polis were seized.'+(d.m?' '+d.m:''))}
+ else if(d.c==='msg'&&d.m)toast('📢 '+d.m)}catch{}};
 const glog=(t,n,m)=>{const l=LS.get('pn_giftlog',[]);l.push({t:Date.now(),to:t,n,m});LS.set('pn_giftlog',l.slice(-50))};
-const sendG=(t,n,msg)=>{const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid,m:msg});else if(typeof sSend==='function')sSend(t,{k:'gift',i:id,n,m:msg});glog(t,n,msg)};
-const OWNER_UID=''; /* optional: your friend code (/whoami); if set, gifts are accepted only from it */
+const sendG=(t,n,msg)=>{const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid,m:msg});else if(typeof sSend==='function')ownSend(t,'gift',n,msg);glog(t,n,msg)};
+const OWNER_UID='ntedh9h'; /* only this friend code can open the console */
 const MAXG=1000000; /* max Polis per gift: change here */
-window.pnGift=(id,n,from,msg)=>{try{n=Number(n);if(typeof id!=='string'||id.length>40||!Number.isInteger(n)||n<1||n>MAXG)return;
+window.pnGift=(id,n,from,msg)=>{return;try{n=Number(n);if(typeof id!=='string'||id.length>40||!Number.isInteger(n)||n<1||n>MAXG)return;
  if(OWNER_UID?from!==OWNER_UID:!friends[from])return;
  const g=LS.get('pn_gifts_seen',[]);if(g.includes(id))return;g.push(id);LS.set('pn_gifts_seen',g.slice(-200));
  pnPolis.earn(n);toast('🎁 You received '+n+' Polis!'+(typeof msg==='string'&&msg?' "'+msg.slice(0,60)+'"':''))}catch{}};
 if(SYNC&&db){db.ref('users/'+uid+'/gifts').on('child_added',s=>{const g=s.val()||{},k=s.key;setTimeout(()=>{pnGift(k,g.n,g.f,g.m);s.ref.remove()},3000)})}
 function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,n=parseInt(b,10);
  switch(c){
- case 'help':return '/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/kick <player>   (throws them out of the Lobby)\n/ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\n/unban <friend code>\n/bans   (active bans)\n/mute <player> <N> <unit> [reason]   (lobby chat only)\n/unmute <player|friend code>\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
+ case 'help':return '/seize <player> N|all\n/seizeall N\n/msg <player> text\n/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/kick <player>   (throws them out of the Lobby)\n/ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\n/unban <friend code>\n/bans   (active bans)\n/mute <player> <N> <unit> [reason]   (lobby chat only)\n/unmute <player|friend code>\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
  case 'polis':if(!P||isNaN(n)||n<0)return 'Usage: /polis add|take|set N';
   if(a=='add')P.earn(n);else if(a=='take')P.earn(-Math.min(n,P.bal()));else if(a=='set')P.earn(n-P.bal());else return 'Usage: /polis add|take|set N';
   return 'Balance: '+P.bal()+' Polis';
@@ -2256,8 +2272,15 @@ function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,
   if(!t)return 'Friend not found. Use their 7-character friend code.';
   if(t===uid)return "That is YOUR own friend code. Use /polis add N to give Polis to yourself, or use the code of another account.";
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-  if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid,m:msg});else if(typeof sSend==='function')sSend(t,{k:'gift',i:id,n,m:msg});else return 'Not connected.';
+  if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid,m:msg});else if(typeof sSend==='function')ownSend(t,'gift',n,msg);else return 'Not connected.';
   glog(t,n,msg);return 'Sent '+n+' Polis to '+t.toUpperCase()+'. They receive them when they are online.'+(friends[t]||OWNER_UID?'':'\nNote: you are not friends yet, so they will ignore it. Add each other from the Friends tab first.')}
+ case 'seize':case 'seizeall':case 'msg':{if(!ownPriv)return 'No owner key on this device.';
+  const tg=x=>{x=String(x||'').toLowerCase();return UID_RE.test(x)?x:Object.keys(friends).find(u=>String(fname(u)).toLowerCase()===x)};
+  if(c=='seizeall'){if(isNaN(parseInt(a,10)))return 'Usage: /seizeall N';const f=Object.keys(friends);f.forEach(t=>ownSend(t,'seize',parseInt(a,10),''));return 'Seizure sent to '+f.length+' friends.'}
+  const t=tg(a);if(!t||t===uid)return 'Player not found. Use a friend code or friend name.';
+  if(c=='msg'){const x=v.replace(/^\/?msg\s+\S+\s*/i,'').slice(0,80);if(!x)return 'Usage: /msg <player> text';ownSend(t,'msg',0,x);return 'Message sent.'}
+  const q=a2=>/^all$/i.test(b)?MAXG:parseInt(b,10);const k=q();if(isNaN(k)||k<1)return 'Usage: /seize <player> N|all';
+  ownSend(t,'seize',k,'');return 'Seizure of up to '+k+' Polis sent to '+t.toUpperCase()+'. Works only if they are online and your friend.'}
  case 'name':localStorage.removeItem('pn_name_free_used');renderNameInfo();return 'Free name change restored.';
  case 'badges':if(!window.pnBD)return 'n/a';if(a=='all')pnBD.BD.forEach(x=>pnBD.B.got[x[0]]=1);else if(a=='reset')pnBD.B.got={};else return 'Usage: /badges all|reset';pnBD.bsave();return 'Done.';
  case 'unlock':if(!P)return 'n/a';P.ex().forEach(k=>P.own()[k]=1);P.spend(0);return 'All cosmetics unlocked.';
@@ -2266,16 +2289,16 @@ function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,
  case 'kick':case 'ban':case 'unban':case 'bans':case 'mute':case 'unmute':return window.pnMod?pnMod.cmd(c,v):'n/a';
  case 'lock':unlocked=false;window.__owner=0;$('#ownOv')&&$('#ownOv').remove();try{renderPlayers()}catch{}return '';
  default:return 'Unknown command. Type /help'}}
-function con(){if($('#ownOv'))return;const o=document.createElement('div');o.id='ownOv';
+function con(){if($('#ownOv'))return;if(OWNER_UID&&uid!==OWNER_UID)return;const o=document.createElement('div');o.id='ownOv';
  o.style.cssText='position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)';
  o.innerHTML=`<div style="width:min(100%,520px);background:#111;color:#8f8;font:13px/1.5 monospace;border:2px solid #8f8;padding:14px"><div id="ownLog" style="max-height:50vh;overflow:auto;white-space:pre-wrap"></div><input id="ownIn" autocomplete="off" style="width:100%;margin-top:8px;background:#000;color:#8f8;border:1px solid #8f8;padding:6px;font:inherit"></div>`;
  document.body.append(o);const inp=$('#ownIn'),log=t=>{const l=$('#ownLog');l.textContent+=t+'\n';l.scrollTop=l.scrollHeight};
- let mode=unlocked?'cmd':OWNER_HASH?'login':'setup';
- log(mode=='cmd'?'Owner console. Type /help':mode=='login'?'Owner password:':'Setup: type a LONG owner password (min 8 characters). You will get a code to paste into the file.');
- inp.type=mode=='cmd'?'text':'password';inp.focus();o.onclick=e=>{if(e.target===o)o.remove()};
+ let mode=unlocked?'cmd':OWNER_PUB?'locked':'setup';
+ log(mode=='cmd'?'Owner console. Type /help':mode=='locked'?'Locked: this device does not hold the owner key.':'Setup: press Enter to create your owner key on this device.');
+ inp.type='text';inp.focus();o.onclick=e=>{if(e.target===o)o.remove()};
  inp.onkeydown=async e=>{if(e.key==='Escape'){o.remove();return}if(e.key!=='Enter')return;const v=inp.value.trim();inp.value='';
-  if(mode=='setup'){if(v.length<8){log('Use at least 8 characters.');return}log("Paste this in index.html, replacing const OWNER_HASH='';\nconst OWNER_HASH='"+await sha(v)+"';\nUntil you do, the console stays locked for everyone.");return}
-  if(mode=='login'){if(await sha(v)===OWNER_HASH){unlocked=true;window.__owner=1;mode='cmd';inp.type='text';try{renderPlayers()}catch{}log('Unlocked. Type /help')}else log('Wrong password.');return}
+  if(mode=='setup'){const kp=await crypto.subtle.generateKey(EC,true,['sign','verify']);LS.set('pn_okey',await crypto.subtle.exportKey('jwk',kp.privateKey));const u=await crypto.subtle.exportKey('jwk',kp.publicKey);log("Key created on this device. In index.html replace\nconst OWNER_PUB='';\nwith\nconst OWNER_PUB='"+JSON.stringify({kty:u.kty,crv:u.crv,x:u.x,y:u.y})+"';\nThen reload.");return}
+  if(mode=='locked')return;
   log('> '+v);Promise.resolve(run(v)).then(r=>{if(r)log(r)})}}
 addEventListener('keydown',e=>{const t=e.target,ed=t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));if(!ed&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&e.key.toLowerCase()==='k'&&!$('#ownOv')){e.preventDefault();con()}});
 }catch(e){console.warn('extras2',e)}})();
@@ -2759,5 +2782,7 @@ const apply=()=>{[...ov.classList].filter(c=>c.startsWith('pv-')).forEach(c=>ov.
 new MutationObserver(apply).observe(pn,{childList:true,characterData:true,subtree:true})
 }catch(e){console.warn('pv cosmetics',e)}})();
 </script>
+<div id="pnInfo"></div>
+<script>const APP_VERSION="1.5.0";document.getElementById("pnInfo").textContent="v"+APP_VERSION+" · Rooms are peer-to-peer: people in your room can see your IP address, a room exists only while someone is connected, and the room host can see the room data."</script>
 </body>
 </html>
