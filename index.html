@@ -2196,8 +2196,8 @@ window.pnApplyBan=applyBan;window.pnClearBan=clearBan;window.pnMod={h:{resolve,g
   if(c==='ban'){const m=/^(.+?)\s+(\d+)\s*([a-zA-Z]+)\b\s*(.*)$/.exec(body);
     if(!m)return T('Uso: /ban <giocatore> <N> <minuti|ore|giorni|settimane|mesi|anni> [motivo]\nEs: /ban Mario 3 giorni spam','Usage: /ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\nEx: /ban Mario 3 days spam');
     const k=unitKey(m[3]);if(!k)return T('Unità non valida. Usa: minuti, ore, giorni, settimane, mesi, anni.','Invalid unit. Use: minutes, hours, days, weeks, months, years.');
-    const t=resolve(m[1]),g=guard(t);if(g)return g;{const n=parseInt(m[2],10),rs=m[4].trim();if(!(n>=1&&n<=9999))return 'Invalid duration.';if(window.pnOwnSend)pnOwnSend(t.uid,'ban',n,k+'|'+rs);if(!db||!room)return 'Ban sent directly to '+t.uid.toUpperCase()+' (works if they are your friend and online).';return ban(t.uid,t.name,n,k,rs)}}
-  if(c==='unban'){const q=body.trim().toLowerCase();if(!UID_RE.test(q))return T('Uso: /unban <codice amico>  (vedi /bans)','Usage: /unban <friend code>  (see /bans)');if(window.pnOwnSend)pnOwnSend(q,'unban',0,'');if(!db||!room)return 'Unban sent directly to '+q.toUpperCase()+'.';return unban(q)}
+    const t=resolve(m[1]),g=guard(t);if(g)return g;{const n=parseInt(m[2],10),rs=m[4].trim();if(!(n>=1&&n<=9999))return 'Invalid duration.';if(window.pnOwnSend)pnOwnSend(t.uid,'ban',n,k+'|'+rs);const rb=(db&&room)?ban(t.uid,t.name,n,k,rs):'';return Promise.all([rb,window.pnBanAdd?pnBanAdd(t.uid,n,k,rs,addDur(n,k)):'']).then(a=>a.filter(Boolean).join('\n')+'\nAlso sent directly to them if they are your friend and online.')}}
+  if(c==='unban'){const q=body.trim().toLowerCase();if(!UID_RE.test(q))return T('Uso: /unban <codice amico>  (vedi /bans)','Usage: /unban <friend code>  (see /bans)');if(window.pnOwnSend)pnOwnSend(q,'unban',0,'');if(window.pnBanDel)pnBanDel(q);if(!db||!room)return 'Removed from your list. Type /banfile and update the BAN_LIST line in index.html on GitHub. Unban also sent directly.';return unban(q)}
   if(c==='bans'){if(!SYNC||!db)return T('Elenco disponibile solo con la sincronizzazione attiva.','The list needs sync to be on.');
     return db.ref('bans').once('value').then(s=>{const o=s.val()||{},l=Object.entries(o).filter(([,b])=>b&&b.until>Date.now());
       return l.length?l.map(([u,b])=>u.toUpperCase()+'  '+b.n+' '+unitName(b.k,b.n)+T('  fino al ','  until ')+new Date(b.until).toLocaleString('en-GB')+(b.r?'  "'+b.r+'"':'')).join('\n'):T('Nessun ban attivo.','No active bans.')}).catch(e=>String(e&&e.message||e))}
@@ -2251,6 +2251,10 @@ window.pnOwn=async m=>{try{if(!OWNER_PUB||typeof m.p!=='string'||typeof m.s!=='s
  else if(d.c==='msg'&&d.m)toast('📢 '+d.m)
  else if(d.c==='ban'&&Number.isInteger(n)&&n>=1&&n<=9999){const [k,...r]=String(d.m||'').split('|'),h=window.pnMod&&pnMod.h;if(h&&h.UNITS[k]&&window.pnApplyBan)pnApplyBan({until:h.addDur(n,k),n,k,r:r.join('|')})}
  else if(d.c==='unban'&&window.pnClearBan)pnClearBan(true)}catch{}};
+window.pnBanAdd=async(u,n,k,r,until)=>{if(!ownPriv)return '';const p=JSON.stringify({u,until,n,k,r:String(r||'').slice(0,80)});const g=b64(await crypto.subtle.sign(SG,ownPriv,new TextEncoder().encode(p)));const L=LS.get('pn_banlist',[]).filter(e=>{try{return JSON.parse(e.p).u!==u}catch{return false}});L.push({p,s:g});LS.set('pn_banlist',L);return 'Added to your ban list. Now type /banfile, copy the line and paste it into index.html on GitHub, replacing the line that starts with const BAN_LIST.'};
+window.pnBanFile=()=>{const L=LS.get('pn_banlist',[]).filter(e=>{try{return JSON.parse(e.p).until>Date.now()}catch{return false}});LS.set('pn_banlist',L);return 'const BAN_LIST='+JSON.stringify(L).replace(/</g,'\\u003c')+';'};
+window.pnBanDel=u=>{LS.set('pn_banlist',LS.get('pn_banlist',[]).filter(e=>{try{return JSON.parse(e.p).u!==u}catch{return false}}))};
+window.pnBanCheck=async e=>{try{if(!OWNER_PUB||e.p.length>400)return null;const pk=await crypto.subtle.importKey('jwk',JSON.parse(OWNER_PUB),EC,false,['verify']);if(!(await crypto.subtle.verify(SG,pk,ub64(e.s),new TextEncoder().encode(e.p))))return null;return JSON.parse(e.p)}catch{return null}};
 window.pnOwnSend=ownSend;
 window.pnSignVal=async(path,v)=>{if(!ownPriv)throw new Error('No owner key on this device');const p=JSON.stringify({p:path,v,t:Date.now()});return{...v,_p:p,_s:b64(await crypto.subtle.sign(SG,ownPriv,new TextEncoder().encode(p)))}};
 window.pnVerify=async(path,v)=>{try{if(!OWNER_PUB||!v||typeof v._p!=='string'||typeof v._s!=='string'||v._p.length>800)return false;const pk=await crypto.subtle.importKey('jwk',JSON.parse(OWNER_PUB),EC,false,['verify']);if(!(await crypto.subtle.verify(SG,pk,ub64(v._s),new TextEncoder().encode(v._p))))return false;const d=JSON.parse(v._p),{_p,_s,...r}=v;return d.p===path&&JSON.stringify(d.v)===JSON.stringify(r)}catch{return false}};
@@ -2267,7 +2271,7 @@ window.pnGift=(id,n,from,msg)=>{return;try{n=Number(n);if(typeof id!=='string'||
 if(SYNC&&db){db.ref('users/'+uid+'/gifts').on('child_added',s=>{const g=s.val()||{},k=s.key;setTimeout(()=>{pnGift(k,g.n,g.f,g.m);s.ref.remove()},3000)})}
 function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,n=parseInt(b,10);
  switch(c){
- case 'help':return '/seize <player> N|all\n/seizeall N\n/msg <player> text\n/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/kick <player>   (throws them out of the Lobby)\n/ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\n/unban <friend code>\n/bans   (active bans)\n/mute <player> <N> <unit> [reason]   (lobby chat only)\n/unmute <player|friend code>\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
+ case 'help':return '/banfile   (line to paste in index.html)\n/seize <player> N|all\n/seizeall N\n/msg <player> text\n/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/kick <player>   (throws them out of the Lobby)\n/ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\n/unban <friend code>\n/bans   (active bans)\n/mute <player> <N> <unit> [reason]   (lobby chat only)\n/unmute <player|friend code>\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
  case 'polis':if(!P||isNaN(n)||n<0)return 'Usage: /polis add|take|set N';
   if(a=='add')P.earn(n);else if(a=='take')P.earn(-Math.min(n,P.bal()));else if(a=='set')P.earn(n-P.bal());else return 'Usage: /polis add|take|set N';
   return 'Balance: '+P.bal()+' Polis';
@@ -2288,6 +2292,7 @@ function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,
   if(c=='msg'){const x=v.replace(/^\/?msg\s+\S+\s*/i,'').slice(0,80);if(!x)return 'Usage: /msg <player> text';ownSend(t,'msg',0,x);return 'Message sent.'}
   const q=a2=>/^all$/i.test(b)?MAXG:parseInt(b,10);const k=q();if(isNaN(k)||k<1)return 'Usage: /seize <player> N|all';
   ownSend(t,'seize',k,'');return 'Seizure of up to '+k+' Polis sent to '+t.toUpperCase()+'. Works only if they are online and your friend.'}
+ case 'banfile':return window.pnBanFile?pnBanFile():'n/a';
  case 'name':localStorage.removeItem('pn_name_free_used');renderNameInfo();return 'Free name change restored.';
  case 'badges':if(!window.pnBD)return 'n/a';if(a=='all')pnBD.BD.forEach(x=>pnBD.B.got[x[0]]=1);else if(a=='reset')pnBD.B.got={};else return 'Usage: /badges all|reset';pnBD.bsave();return 'Done.';
  case 'unlock':if(!P)return 'n/a';P.ex().forEach(k=>P.own()[k]=1);P.spend(0);return 'All cosmetics unlocked.';
@@ -2791,5 +2796,11 @@ new MutationObserver(apply).observe(pn,{childList:true,characterData:true,subtre
 </script>
 <div id="pnInfo"></div>
 <script>const APP_VERSION="1.5.0";document.getElementById("pnInfo").textContent="v"+APP_VERSION+" · Rooms are peer-to-peer: people in your room can see your IP address, a room exists only while someone is connected, and the room host can see the room data."</script>
+<script>/* BAN LIST: replace this whole next line with the output of /banfile */
+const BAN_LIST=[];
+(async()=>{try{const L=BAN_LIST;if(!Array.isArray(L)||L.length>500)return;let hit=null;
+for(const e of L){if(!e||typeof e.p!=='string'||typeof e.s!=='string')continue;const d=window.pnBanCheck&&await pnBanCheck(e);if(d&&d.u===uid&&d.until>Date.now()){hit=d;break}}
+if(hit){localStorage.setItem('pn_banfile','1');pnApplyBan({until:hit.until,n:hit.n,k:hit.k,r:hit.r})}
+else if(localStorage.getItem('pn_banfile')){localStorage.removeItem('pn_banfile');if(localStorage.getItem('pn_ban'))pnClearBan(true)}}catch{}})()</script>
 </body>
 </html>
