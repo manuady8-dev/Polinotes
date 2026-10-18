@@ -415,6 +415,7 @@ main #tools input,main #tools select{border-radius:0}
           <table>
             <thead><tr><th colspan="2">What's new</th></tr></thead>
             <tbody>
+              <tr><td>✅</td><td>Other players can now see your profile frame, name color, stickers, badges and status</td></tr>
               <tr><td>✅</td><td>Themes now change the title color and the home background too</td></tr>
               <tr><td>✅</td><td>Notes look like real paper: tape, pins and folded corners</td></tr>
               <tr><td>✅</td><td>Small animations: falling notes, hover lift and smooth entrances</td></tr>
@@ -1065,8 +1066,13 @@ let sOut={},sQ=[],sPeer=null,sReady=false,sPoll=null,sDead=false;
 const sConn=new Map(),sPend=new Set();
 const sStrip=o=>JSON.parse(JSON.stringify(o,(k,v)=>k==='pfp'&&typeof v==='string'&&v.length>100000?'':v));
 const sSave=()=>{LS.set('pn_s_fr',sStrip(friends));LS.set('pn_s_rin',sStrip(reqIn));LS.set('pn_s_rout',sStrip(sOut));LS.set('pn_s_q',sQ.slice(-200))};
-const sClean=p=>({name:String((p&&p.name)||'Guest').slice(0,16),bio:String((p&&p.bio)||'').slice(0,120),bc:/^#[0-9a-f]{6}$/i.test((p&&p.bc)||'')?p.bc:'#f0455a',pfp:safeImg(p&&p.pfp)?p.pfp:'',t1:/^#[0-9a-f]{6}$/i.test((p&&p.t1)||'')?p.t1:'',t2:/^#[0-9a-f]{6}$/i.test((p&&p.t2)||'')?p.t2:''});
-const sProf=()=>({name:myProf.name,bio:myProf.bio||'',bc:myProf.bc||'#f0455a',pfp:myProf.pfp||'',t1:myProf.t1||'',t2:myProf.t2||''});
+/* equipped profile cosmetics (frame / name colour / weekly rare), whitelisted */
+const sEq=q=>{const o={};if(q&&typeof q==='object')['fr','nc','wk'].forEach(c=>{const v=q[c];if(typeof v==='string'&&new RegExp('^'+c+'_[a-z]{2,10}$').test(v))o[c]=v});return o};
+const sClean=p=>({name:String((p&&p.name)||'Guest').slice(0,16),bio:String((p&&p.bio)||'').slice(0,120),bc:/^#[0-9a-f]{6}$/i.test((p&&p.bc)||'')?p.bc:'#f0455a',pfp:safeImg(p&&p.pfp)?p.pfp:'',t1:/^#[0-9a-f]{6}$/i.test((p&&p.t1)||'')?p.t1:'',t2:/^#[0-9a-f]{6}$/i.test((p&&p.t2)||'')?p.t2:'',
+  status:String((p&&p.status)||'').slice(0,30),stk:Array.isArray(p&&p.stk)?p.stk.slice(0,5).map(e=>String(e).slice(0,8)):[],bdg:Array.isArray(p&&p.bdg)?p.bdg.slice(0,3).map(e=>String(e).slice(0,12)):[],
+  eq:sEq(p&&p.eq)});
+const sProf=()=>({name:myProf.name,bio:myProf.bio||'',bc:myProf.bc||'#f0455a',pfp:myProf.pfp||'',t1:myProf.t1||'',t2:myProf.t2||'',
+  status:myProf.status||'',stk:Array.isArray(myProf.stk)?myProf.stk.slice(0,5):[],bdg:Array.isArray(myProf.bdg)?myProf.bdg.slice(0,3):[],eq:myProf.eq||{}});
 const sHist=u=>{const h=LS.get('pn_s_dm_'+pair(u),[]);return Array.isArray(h)?h:[]};
 const sSaveHist=(u,h)=>LS.set('pn_s_dm_'+pair(u),h.slice(-100));
 function refreshSoc(){renderStrips();badges();if(chatOpen())renderChat();renderPlayers()}
@@ -1986,6 +1992,7 @@ td.onclick=()=>{Object.values(notes).forEach((n,i)=>{if(!n)return;n.cx=gridCx(i)
 $('#newBoard').after(td);
 /* shop cosmetics */
 window.pnApply=()=>{const e=window.pnPolis?pnPolis.eq():{};
+ try{const q={};['fr','nc','wk'].forEach(c=>{if(e[c])q[c]=e[c]});if(JSON.stringify(q)!==JSON.stringify(myProf.eq||{})){myProf.eq=q;if(typeof saveProf==='function')saveProf()}}catch{}
  [...document.body.classList].filter(c=>/^(fx|fr|nc|wk)-/.test(c)).forEach(c=>document.body.classList.remove(c));
  Object.values(e).forEach(k=>{if(k)document.body.classList.add(k.replace('_','-'))})};
 pnApply();
@@ -2724,5 +2731,33 @@ body.entered main>:nth-child(7){animation-delay:.26s}body.entered main>:nth-chil
   .gate .gnav a{font-size:17px}
 }
 </style>
+<style>
+/* ===== profile cosmetics of OTHER players (same looks as your own) ===== */
+#pOv.pv-fr-gold #pPfp{box-shadow:0 0 0 4px #f5c542}
+#pOv.pv-fr-red #pPfp{box-shadow:0 0 0 4px #e03a3a}
+#pOv.pv-fr-blue #pPfp{box-shadow:0 0 0 4px #3a82c4}
+#pOv.pv-fr-rb #pPfp{box-shadow:0 0 0 4px #f55,0 0 0 8px #fc3,0 0 0 12px #58f}
+#pOv.pv-nc-red #pName{color:#ff5a5a}
+#pOv.pv-nc-blue #pName{color:#6ab4ee}
+#pOv.pv-nc-gold #pName{color:#f5c542}
+#pOv.pv-nc-rb #pName{background:linear-gradient(90deg,#f55,#fc3,#5e8,#58f,#c4c);-webkit-background-clip:text;background-clip:text;color:transparent}
+#pOv.pv-wk-fire #pName{color:#ff7a18;text-shadow:0 0 8px #f33}
+#pOv.pv-wk-sun #pName{color:#ffd400;text-shadow:0 0 8px #fa0}
+#pOv.pv-wk-galaxy #pPfp{box-shadow:0 0 0 4px #7b5cff,0 0 0 8px #1b1b5e,0 0 18px #7b5cff}
+#pOv.pv-wk-candy #pPfp{box-shadow:0 0 0 4px #ff9ad5,0 0 0 8px #9bf6ff}
+#pOv.pv-fr-hw #pPfp{box-shadow:0 0 0 4px #ff7a18,0 0 0 8px #2a1038}
+#pOv.pv-nc-hw #pName{color:#ff7a18;text-shadow:0 0 8px #7a1fa2}
+</style>
+<script>
+/* show the equipped frame / name colour of the player whose profile is open */
+(()=>{try{
+const pn=document.getElementById('pName'),ov=document.getElementById('pOv');if(!pn||!ov)return;
+const ok=(c,v)=>typeof v==='string'&&new RegExp('^'+c+'_[a-z]{2,10}$').test(v);
+const apply=()=>{[...ov.classList].filter(c=>c.startsWith('pv-')).forEach(c=>ov.classList.remove(c));
+  if(pView===uid)return;const q=(profs[pView]||{}).eq;if(!q||typeof q!=='object')return;
+  ['fr','nc','wk'].forEach(c=>{if(ok(c,q[c]))ov.classList.add('pv-'+q[c].replace('_','-'))})};
+new MutationObserver(apply).observe(pn,{childList:true,characterData:true,subtree:true})
+}catch(e){console.warn('pv cosmetics',e)}})();
+</script>
 </body>
 </html>
