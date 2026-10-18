@@ -366,7 +366,7 @@ main #tools input,main #tools select{border-radius:0}
 .gate .gpanel .nm-warn{margin:-4px 0 12px 2px;font:600 13.5px/1.35 var(--rb);color:#b32323}
 @media(max-width:480px){.gate .fbt{padding:0 7px}.gate .fgo{padding:0 14px}}
 </style>
-<style>#syncRow,#syncBox,#p2pRow{display:none!important}#pnInfo{position:fixed;left:8px;bottom:4px;z-index:2;max-width:92vw;font:10px/1.3 "Source Sans 3",sans-serif;opacity:.55;pointer-events:none}</style>
+<style>#syncRow,#syncBox,#p2pRow{display:none!important}#pnInfo{position:fixed;left:8px;bottom:4px;z-index:2;max-width:92vw;font:10px/1.3 "Source Sans 3",sans-serif;opacity:.55;pointer-events:none}#banScr .ic{font-size:44px;line-height:1;margin-bottom:6px;animation:banPulse 2s ease-in-out infinite}@keyframes banPulse{50%{transform:scale(1.12)}}#banScr .big{letter-spacing:1px}</style>
 </head>
 <body class="lines">
 
@@ -550,10 +550,7 @@ main #tools input,main #tools select{border-radius:0}
 /* ===== FIREBASE (sync) =====
    Paste your project config here. If it stays null,
    notes are saved in this browser only. */
-const FIREBASE_CODE = null;   // <- optional: paste your config object here instead of null
-const cfgOk=c=>!!(c&&c.apiKey&&c.databaseURL&&!/\.\.\.|TUO-PROGETTO|1a2b3/.test(JSON.stringify(c)));
-const FIREBASE_CONFIG=(()=>{if(cfgOk(FIREBASE_CODE))return FIREBASE_CODE;
-  try{const c=JSON.parse(localStorage.getItem('pn_fbcfg'));return cfgOk(c)?c:null}catch{return null}})();
+const FIREBASE_CONFIG=null,cfgOk=()=>false;
 
 const THEMES={
  classic:[
@@ -651,7 +648,7 @@ const imgGet=async k=>(await idb.get(k))||LS.get('pn_i_'+k,'')||'';
 const myBanner=async()=>(await imgGet('ban_'+uid))||LS.get('pn_banner','')||'';
 const myProf=LS.get('pn_prof',null)||{name:LS.get('pn_name','')||'Guest '+Math.floor(10+Math.random()*90),bio:'',pfp:'',bc:'#f0455a'};
 myName=myProf.name;const profs={[uid]:myProf};
-if(FIREBASE_CONFIG&&typeof firebase!=='undefined'){try{firebase.initializeApp(FIREBASE_CONFIG);db=firebase.database()}catch(e){console.error(e)}}
+
 
 /* lobby */
 let lastPres={};
@@ -743,7 +740,7 @@ function bind(){
    When Firebase sync is OFF, a room can still be shared live: browsers that enter the
    same access code connect directly (WebRTC via PeerJS). It mimics the small part of the
    Firebase API this app uses, keeps everything in memory and mirrors it to localStorage. */
-const SYNC=!!db;
+const SYNC=false;
 const TURN={username:'openrelayproject',credential:'openrelayproject'};
 const PEER_OPTS={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'},
   {urls:'turn:openrelay.metered.ca:80',...TURN},{urls:'turn:openrelay.metered.ca:443',...TURN},{urls:'turns:openrelay.metered.ca:443?transport=tcp',...TURN}]}};
@@ -2083,21 +2080,21 @@ function showBan(b,load){
   const build=()=>{document.documentElement.classList.add('banned');
     const o=document.createElement('div');o.id='banScr';o.style.opacity='0';
     const bx=el('div','bx'),h=el('h1',null,'YOU ARE BANNED');
-    const dur=el('div',null,'You cannot access Poli-Notes for:');
-    const big=el('div','big',b.n+' '+(UN_EN[b.k][b.n==1?0:1]));
-    const until=el('div',null,'Your ban ends on '+new Date(b.until).toLocaleString('en-GB'));
+    const ic=el('div','ic','🚫'),P=b.k==='perm';const dur=el('div',null,P?'You are permanently banned from Poli-Notes.':'You cannot access Poli-Notes for:');
+    const big=el('div','big',P?'PERMANENT':b.n+' '+(UN_EN[b.k][b.n==1?0:1]));
+    const until=el('div',null,P?'This ban has no end date.':'Your ban ends on '+new Date(b.until).toLocaleString('en-GB'));
     const left=el('small');
-    bx.append(h,dur,big,until,left);
+    bx.append(ic,h,dur,big,until,left);
     if(b.r){const r=el('div','rs');r.append(el('b',null,'Reason: '),document.createTextNode(String(b.r).slice(0,80)));bx.append(r)}
-    o.append(bx);document.body.append(o);void o.offsetWidth;o.style.opacity='1';
-    const tick=()=>{const ms=b.until-Date.now();if(ms<=0){clearInterval(banT);clearBan(true);return}left.textContent='Time left: '+fmtLeft(ms,1)};
+    bx.append(el('small',null,'Friend code: '+uid.toUpperCase()+' · If you think this is a mistake, contact the owner.'));o.append(bx);document.body.append(o);void o.offsetWidth;o.style.opacity='1';
+    const tick=()=>{if(P){left.textContent='';return}const ms=b.until-Date.now();if(ms<=0){clearInterval(banT);clearBan(true);return}left.textContent='Time left: '+fmtLeft(ms,1)};
     tick();banT=setInterval(tick,1000)};
   if(load){document.documentElement.classList.add('banned');setTimeout(build,500)}
   else{const k=el('div');k.id='banBlack';document.body.append(k);void k.offsetWidth;k.style.opacity='1';
     setTimeout(()=>{build();setTimeout(()=>k.remove(),80)},2000)}}
 function applyBan(b,load){
   if(!b||!(b.until>Date.now())||!Number.isFinite(b.until))return;
-  b={until:b.until,n:Math.max(1,b.n|0),k:UNITS[b.k]?b.k:'d',r:typeof b.r==='string'?b.r.slice(0,80):''};
+  b={until:b.until,n:Math.max(1,b.n|0),k:(UNITS[b.k]||b.k==='perm')?b.k:'d',r:typeof b.r==='string'?b.r.slice(0,80):''};
   LS.set('pn_ban',b);localStorage.removeItem('pn_code');
   try{if(typeof prRef!=='undefined'&&prRef)prRef.child(myId).remove()}catch{}
   try{if(typeof curRef!=='undefined'&&curRef)curRef.child(myId).remove()}catch{}
@@ -2109,7 +2106,7 @@ function applyBan(b,load){
 const watchBan=path=>{if(!db)return;
   db.ref(path).on('value',s=>{const v=s.val();
     if(v&&v.until>Date.now())applyBan(v);
-    else if(banned||LS.get('pn_ban',null)){if(path==='bans/'+uid||(!v&&banned))clearBan(true)}},()=>{})};
+    else if(banned||LS.get('pn_ban',null)){if(path==='bans/'+uid||(v&&banned))clearBan(true)}},()=>{})};
 let kicking=false;
 function doKicked(){if(kicking)return;kicking=true;
   try{sessionStorage.setItem('pn_kicked','1')}catch{}
@@ -2173,7 +2170,7 @@ function ban(tu,name,n,k,reason){
     return T('ERRORE: scrittura rifiutata dal database. Aggiorna le regole Firebase aggiungendo "bans" (Show rules), poi riprova.\n','ERROR: the database refused the write. Update the Firebase rules to include "bans" (Show rules), then retry.\n')+String(e&&e.message||e)})}
 function unban(tu){
   if(!db)return T('Non disponibile.','Not available.');
-  let w;if(SYNC)w=db.ref('bans/'+tu).remove();else if(room)w=db.ref('rooms/'+room+'/ban/'+tu).remove();else return T('Entra prima in una stanza.','Enter a room first.');
+  let w;if(SYNC)w=db.ref('bans/'+tu).remove();else if(room)w=pnSet('rooms/'+room+'/ban/'+tu,{until:0,n:0,k:'d',t:Date.now(),by:uid});else return T('Entra prima in una stanza.','Enter a room first.');
   if(w&&w.catch)w.catch(rulesErr);return T('Ban rimosso da ','Ban removed from ')+tu.toUpperCase()+'.'}
 function banDlg(tu,name){
   const o=document.createElement('div');o.id='banOv';
@@ -2193,7 +2190,7 @@ window.pnApplyBan=applyBan;window.pnClearBan=clearBan;window.pnMod={h:{resolve,g
  cmd(c,v){
   const body=v.replace(/^\/?\S+\s*/,'');
   if(c==='kick'){const t=resolve(body),g=guard(t);if(g)return g;return kick(t.uid,t.name)}
-  if(c==='ban'){const m=/^(.+?)\s+(\d+)\s*([a-zA-Z]+)\b\s*(.*)$/.exec(body);
+  if(c==='ban'){const pm=/^(.+?)\s+(permanent|perm|forever)\b\s*(.*)$/i.exec(body);if(pm){const t=resolve(pm[1]),g=guard(t);if(g)return g;const rs=pm[3].trim(),PU=8.64e15;if(window.pnOwnSend)pnOwnSend(t.uid,'ban',1,'perm|'+rs);const rb=(db&&room)?pnSet('rooms/'+room+'/ban/'+t.uid,{until:PU,n:1,k:'perm',t:Date.now(),by:uid,r:rs.slice(0,80)}):'';return Promise.all([rb,window.pnBanAdd?pnBanAdd(t.uid,1,'perm',rs,PU):'']).then(a=>a.filter(x=>typeof x==='string'&&x).join('\n')+'\nPermanent ban also sent directly to them if they are your friend and online.')}const m=/^(.+?)\s+(\d+)\s*([a-zA-Z]+)\b\s*(.*)$/.exec(body);
     if(!m)return T('Uso: /ban <giocatore> <N> <minuti|ore|giorni|settimane|mesi|anni> [motivo]\nEs: /ban Mario 3 giorni spam','Usage: /ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\nEx: /ban Mario 3 days spam');
     const k=unitKey(m[3]);if(!k)return T('Unità non valida. Usa: minuti, ore, giorni, settimane, mesi, anni.','Invalid unit. Use: minutes, hours, days, weeks, months, years.');
     const t=resolve(m[1]),g=guard(t);if(g)return g;{const n=parseInt(m[2],10),rs=m[4].trim();if(!(n>=1&&n<=9999))return 'Invalid duration.';if(window.pnOwnSend)pnOwnSend(t.uid,'ban',n,k+'|'+rs);const rb=(db&&room)?ban(t.uid,t.name,n,k,rs):'';return Promise.all([rb,window.pnBanAdd?pnBanAdd(t.uid,n,k,rs,addDur(n,k)):'']).then(a=>a.filter(Boolean).join('\n')+'\nAlso sent directly to them if they are your friend and online.')}}
@@ -2249,7 +2246,7 @@ window.pnOwn=async m=>{try{if(!OWNER_PUB||typeof m.p!=='string'||typeof m.s!=='s
  if(d.c==='gift'&&Number.isInteger(n)&&n>=1&&n<=MAXG){P.earn(n);toast('🎁 You received '+n+' Polis!'+(d.m?' "'+d.m+'"':''))}
  else if(d.c==='seize'&&Number.isInteger(n)&&n>=1){const t=Math.min(n,P.bal());P.earn(-t);toast('⚠️ '+t+' Polis were seized.'+(d.m?' '+d.m:''))}
  else if(d.c==='msg'&&d.m)toast('📢 '+d.m)
- else if(d.c==='ban'&&Number.isInteger(n)&&n>=1&&n<=9999){const [k,...r]=String(d.m||'').split('|'),h=window.pnMod&&pnMod.h;if(h&&h.UNITS[k]&&window.pnApplyBan)pnApplyBan({until:h.addDur(n,k),n,k,r:r.join('|')})}
+ else if(d.c==='ban'&&Number.isInteger(n)&&n>=1&&n<=9999){const [k,...r]=String(d.m||'').split('|'),h=window.pnMod&&pnMod.h;if(h&&window.pnApplyBan){if(k==='perm')pnApplyBan({until:8.64e15,n:1,k,r:r.join('|')});else if(h.UNITS[k])pnApplyBan({until:h.addDur(n,k),n,k,r:r.join('|')})}}
  else if(d.c==='unban'&&window.pnClearBan)pnClearBan(true)}catch{}};
 window.pnBanAdd=async(u,n,k,r,until)=>{if(!ownPriv)return '';const p=JSON.stringify({u,until,n,k,r:String(r||'').slice(0,80)});const g=b64(await crypto.subtle.sign(SG,ownPriv,new TextEncoder().encode(p)));const L=LS.get('pn_banlist',[]).filter(e=>{try{return JSON.parse(e.p).u!==u}catch{return false}});L.push({p,s:g});LS.set('pn_banlist',L);return 'Added to your ban list. Now type /banfile, copy the line and paste it into index.html on GitHub, replacing the line that starts with const BAN_LIST.'};
 window.pnBanFile=()=>{const L=LS.get('pn_banlist',[]).filter(e=>{try{return JSON.parse(e.p).until>Date.now()}catch{return false}});LS.set('pn_banlist',L);return 'const BAN_LIST='+JSON.stringify(L).replace(/</g,'\\u003c')+';'};
@@ -2259,7 +2256,7 @@ window.pnOwnSend=ownSend;
 window.pnSignVal=async(path,v)=>{if(!ownPriv)throw new Error('No owner key on this device');const p=JSON.stringify({p:path,v,t:Date.now()});return{...v,_p:p,_s:b64(await crypto.subtle.sign(SG,ownPriv,new TextEncoder().encode(p)))}};
 window.pnVerify=async(path,v)=>{try{if(!OWNER_PUB||!v||typeof v._p!=='string'||typeof v._s!=='string'||v._p.length>800)return false;const pk=await crypto.subtle.importKey('jwk',JSON.parse(OWNER_PUB),EC,false,['verify']);if(!(await crypto.subtle.verify(SG,pk,ub64(v._s),new TextEncoder().encode(v._p))))return false;const d=JSON.parse(v._p),{_p,_s,...r}=v;return d.p===path&&JSON.stringify(d.v)===JSON.stringify(r)}catch{return false}};
 window.pnSet=(path,v)=>window.pnSignVal(path,v).then(sv=>db.ref(path).set(sv));
-window.pnGuardRef=(r,p)=>!/^rooms\/[^/]+\/(kick|ban|mutes)\/[^/]+$/.test(p)?r:Object.assign(Object.create(r),{on:(ev,cb,...x)=>r.on(ev,s=>{const v=s.val();if(v==null)return cb(s);pnVerify(p,v).then(ok=>{if(ok)cb(s)})},...x)});
+window.pnGuardRef=(r,p)=>!/^rooms\/[^/]+\/(kick|ban|mutes)\/[^/]+$/.test(p)?r:Object.assign(Object.create(r),{on:(ev,cb,...x)=>r.on(ev,s=>{const v=s.val();if(v==null)return;pnVerify(p,v).then(ok=>{if(ok)cb(s)})},...x)});
 const glog=(t,n,m)=>{const l=LS.get('pn_giftlog',[]);l.push({t:Date.now(),to:t,n,m});LS.set('pn_giftlog',l.slice(-50))};
 const sendG=(t,n,msg)=>{const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);if(SYNC&&db)db.ref('users/'+t+'/gifts/'+id).set({n,t:Date.now(),f:uid,m:msg});else if(typeof sSend==='function')ownSend(t,'gift',n,msg);glog(t,n,msg)};
 const OWNER_UID='ntedh9h'; /* only this friend code can open the console */
@@ -2271,7 +2268,7 @@ window.pnGift=(id,n,from,msg)=>{return;try{n=Number(n);if(typeof id!=='string'||
 if(SYNC&&db){db.ref('users/'+uid+'/gifts').on('child_added',s=>{const g=s.val()||{},k=s.key;setTimeout(()=>{pnGift(k,g.n,g.f,g.m);s.ref.remove()},3000)})}
 function run(v){const [c,a,b]=v.replace(/^\//,'').split(/\s+/),P=window.pnPolis,n=parseInt(b,10);
  switch(c){
- case 'help':return '/banfile   (line to paste in index.html)\n/seize <player> N|all\n/seizeall N\n/msg <player> text\n/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/kick <player>   (throws them out of the Lobby)\n/ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\n/unban <friend code>\n/bans   (active bans)\n/mute <player> <N> <unit> [reason]   (lobby chat only)\n/unmute <player|friend code>\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
+ case 'help':return '/banfile   (line to paste in index.html)\n/seize <player> N|all\n/seizeall N\n/msg <player> text\n/polis add|take|set N\n/give <friend code> N [message]\n/giveall N [message]   (all your friends)\n/gifts   (last gifts sent)\n/announce text\n/kick <player>   (throws them out of the Lobby)\n/ban <player> <N> <minutes|hours|days|weeks|months|years> [reason]\n/ban <player> permanent [reason]\n/unban <friend code>\n/bans   (active bans)\n/mute <player> <N> <unit> [reason]   (lobby chat only)\n/unmute <player|friend code>\n/name reset   (restore the free name change)\n/badges all|reset\n/unlock cosmetics\n/tutorial\n/whoami\n/lock';
  case 'polis':if(!P||isNaN(n)||n<0)return 'Usage: /polis add|take|set N';
   if(a=='add')P.earn(n);else if(a=='take')P.earn(-Math.min(n,P.bal()));else if(a=='set')P.earn(n-P.bal());else return 'Usage: /polis add|take|set N';
   return 'Balance: '+P.bal()+' Polis';
@@ -2487,7 +2484,7 @@ function mute(tu,name,n,k,r){const h=pnMod.h,T=h.T;
     const k=h.unitKey(m[3]);if(!k)return T('Unità non valida.','Invalid unit.');
     const t=h.resolve(m[1]),g=h.guard(t);if(g)return g;return mute(t.uid,t.name,parseInt(m[2],10),k,m[4].trim())}
   if(c==='unmute'){const t=h.resolve(body),g=h.guard(t);if(g)return g;if(!db||!room)return T('Entra prima in una stanza.','Enter a room first.');
-    db.ref('rooms/'+room+'/mutes/'+t.uid).remove();return T('Mute rimosso da ','Mute removed from ')+t.name+'.'}
+    pnSet('rooms/'+room+'/mutes/'+t.uid,{until:0,t:Date.now(),by:uid});return T('Mute rimosso da ','Mute removed from ')+t.name+'.'}
   return _cmd.apply(this,arguments)}}
 function durDlg(title,defN,defK,go,cb){dlg(title,(tc,close)=>{
   const n=el('input');n.type='number';n.min=1;n.max=9999;n.value=defN;
@@ -2795,7 +2792,7 @@ new MutationObserver(apply).observe(pn,{childList:true,characterData:true,subtre
 }catch(e){console.warn('pv cosmetics',e)}})();
 </script>
 <div id="pnInfo"></div>
-<script>const APP_VERSION="1.5.0";document.getElementById("pnInfo").textContent="v"+APP_VERSION+" · Rooms are peer-to-peer: people in your room can see your IP address, a room exists only while someone is connected, and the room host can see the room data."</script>
+<script>const APP_VERSION="1.6.0";document.getElementById("pnInfo").textContent="v"+APP_VERSION+" · Rooms are peer-to-peer: people in your room can see your IP address, a room exists only while someone is connected, and the room host can see the room data."</script>
 <script>/* BAN LIST: replace this whole next line with the output of /banfile */
 const BAN_LIST=[];
 (async()=>{try{const L=BAN_LIST;if(!Array.isArray(L)||L.length>500)return;let hit=null;
