@@ -2844,7 +2844,9 @@ else if(localStorage.getItem('pn_banfile')){localStorage.removeItem('pn_banfile'
 @media(max-width:700px){#hwDecor .web{width:70px;height:70px}#hwDecor .ghost{font-size:30px;bottom:84px}#hwDecor .pk{font-size:26px}}
 /* title / logo */
 html.hw.hw-bg{--logo:#ff7a18!important;--logo-ink:#1a0d2b!important}
-html.hw .mlogo .lg::after,html.hw .gate .glogo .lg::after{content:" 🎃";font-size:.7em;text-shadow:none}
+html.hw .mlogo .lg,html.hw .gate .glogo .lg{position:relative}
+/* pumpkin hangs on the top-right corner of the title: it can never wrap onto a second line */
+html.hw .mlogo .lg::after,html.hw .gate .glogo .lg::after{content:"🎃";position:absolute;top:-14px;right:-14px;font-size:.55em;line-height:1;text-shadow:none;letter-spacing:0;transform:rotate(14deg);filter:drop-shadow(0 0 6px rgba(255,122,24,.85));pointer-events:none}
 html.hw .mlogo .tag,html.hw .gate .glogo .tag{background:rgba(42,16,56,.9);border:2px solid #ff7a18}
 html.hw .gate .glogo .lg,html.hw .mlogo .lg{border-color:#2a1038}
 /* home (gate) */
@@ -2990,6 +2992,133 @@ function sync(){const a=on();
   else if(!a)resetHwTheme()}
 sync();setInterval(sync,30000);
 }catch(e){console.warn('halloween2',e)}})();
+</script>
+<!-- ===== HALLOWEEN 3: candy hunt, trick or treat, costumes, boo, vanishing messages, lightning, countdown (event-only, same window as the skin) ===== -->
+<style>
+#hwHub{position:fixed;left:12px;bottom:76px;z-index:60;width:46px;height:46px;border-radius:50%;border:2px solid #ff7a18;background:#1a0d2b;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 0 12px rgba(255,122,24,.6)}
+#hwPanel{position:fixed;left:12px;bottom:130px;z-index:61;width:min(300px,calc(100vw - 24px));max-height:68vh;overflow:auto;background:#1a0d2b;color:#f4e9ff;border:2px solid #ff7a18;box-shadow:5px 5px 0 rgba(122,31,162,.55);padding:12px;font:15px 'Source Sans 3',Arial,sans-serif;display:none}
+#hwPanel.open{display:block}
+#hwPanel h4{margin:10px 0 6px;color:#ffb25b;font-size:13px;text-transform:uppercase}
+#hwPanel h4:first-child{margin-top:0}
+#hwPanel button{background:#ff7a18;color:#1a0d2b;border:0;padding:6px 10px;margin:2px 4px 2px 0;font:700 14px 'Source Sans 3',Arial,sans-serif;cursor:pointer}
+.hwc{position:fixed;z-index:60;font-size:30px;cursor:pointer;animation:hwBob 2s ease-in-out infinite,hwGlow 2.6s ease-in-out infinite}
+#hwFl{position:fixed;inset:0;z-index:70;background:#fff;opacity:0;pointer-events:none}
+#hwFl.on{animation:hwL .55s}
+@keyframes hwL{0%{opacity:0}10%{opacity:.55}20%{opacity:.05}35%{opacity:.4}100%{opacity:0}}
+.hwt{position:fixed;z-index:59;pointer-events:none;font-size:14px;animation:hwT .9s forwards}
+@keyframes hwT{to{opacity:0;transform:translateY(16px) scale(.6)}}
+html.hw-trick body{animation:hwGh 3s ease-in-out infinite}
+@keyframes hwGh{50%{filter:grayscale(.8) blur(.6px);opacity:.85}}
+#hwBoo{position:fixed;inset:0;z-index:80;display:grid;place-items:center;font-size:30vw;pointer-events:none;animation:hwB 1.4s forwards}
+@keyframes hwB{0%{opacity:0;transform:scale(.3)}25%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.4)}}
+#chInput .hwb{padding:0 8px;margin-left:4px}
+#chInput .hwb.on{outline:2px solid #ff7a18}
+/* transitions for every Halloween addition */
+@keyframes hwPop{0%{opacity:0;transform:scale(.2)}100%{opacity:1;transform:scale(1)}}
+@keyframes hwBump{50%{transform:scale(1.25)}}
+@keyframes hwRowIn{from{opacity:0;transform:translateX(-10px)}}
+#hwPanel{display:block!important;opacity:0;visibility:hidden;transform:translateY(14px) scale(.96);transform-origin:bottom left;transition:opacity .25s,transform .3s cubic-bezier(.2,.9,.3,1.2),visibility 0s .3s}
+#hwPanel.open{opacity:1;visibility:visible;transform:none;transition:opacity .25s,transform .3s cubic-bezier(.2,.9,.3,1.2)}
+#hwHub{animation:hwPop .5s cubic-bezier(.2,.9,.3,1.4);transition:transform .25s cubic-bezier(.2,.9,.3,1.4),box-shadow .25s}
+#hwHub:hover{transform:scale(1.1) rotate(-8deg);box-shadow:0 0 18px rgba(255,160,60,.9)}#hwHub:active{transform:scale(.92)}
+#hwPanel button,#chInput .hwb{transition:transform .15s,filter .2s,outline-color .2s}
+#hwPanel button:hover,#chInput .hwb:hover{filter:brightness(1.15);transform:translateY(-1px) scale(1.04)}#hwPanel button:active,#chInput .hwb:active{transform:scale(.93)}
+.hwc{animation:hwPop .4s cubic-bezier(.2,.9,.3,1.4),hwBob 2s ease-in-out .4s infinite,hwGlow 2.6s ease-in-out infinite;transition:opacity .3s,transform .3s}
+.hwc.out{animation:none;opacity:0;transform:scale(.3);pointer-events:none}
+#hwShop{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:rgba(15,5,25,.7);opacity:0;visibility:hidden;transition:opacity .25s,visibility 0s .25s}
+#hwShop.open{opacity:1;visibility:visible;transition:opacity .25s}
+#hwShop .hwBox{width:min(470px,94vw);max-height:86vh;overflow:auto;background:#1a0d2b;color:#f4e9ff;border:2px solid #ff7a18;box-shadow:6px 6px 0 rgba(122,31,162,.6);padding:14px;font:15px 'Source Sans 3',Arial,sans-serif;transform:translateY(16px) scale(.96);transition:transform .3s cubic-bezier(.2,.9,.3,1.2)}
+#hwShop.open .hwBox{transform:none}
+#hwShop h3{margin:0 0 8px;color:#ff9a3c;display:flex;justify-content:space-between;align-items:center}
+#hwShop h4{margin:12px 0 6px;color:#ffb25b;font-size:13px;text-transform:uppercase}
+#hwShop button{background:#ff7a18;color:#1a0d2b;border:0;padding:6px 10px;margin:2px 4px 2px 0;font:700 14px 'Source Sans 3',Arial,sans-serif;cursor:pointer;transition:transform .15s,filter .2s}
+#hwShop button:hover{filter:brightness(1.15);transform:translateY(-1px)}#hwShop button:active{transform:scale(.94)}
+.hwG{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.hwI{border:1px solid #ff7a18;padding:8px;text-align:center;font-size:13px}.hwI b{display:block;font-size:26px}
+.hwCandy{cursor:pointer}
+.hwRow{animation:hwRowIn .5s both}
+.hwCandy{display:inline-flex;align-items:center;gap:4px;animation:hwPop .4s}.hwCandy.bump{animation:hwBump .35s}
+</style>
+<script>
+(()=>{try{
+const on=()=>!!(window.PN_HW&&PN_HW()),H=document.documentElement,$=s=>document.querySelector(s);
+const LG=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch{return d}},SV=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+const T=m=>window.toast&&toast(m),PL=()=>window.pnPolis;
+let C=LG('pn_hw_c',0),own=LG('pn_hw_own',{}),eq=LG('pn_hw_eq',''),trail=LG('pn_hw_tr',true),snd=LG('pn_hw_snd',false);
+let trailE=LG('pn_hw_trs','🦇'),dbl=LG('pn_hw_dbl',0),shop;
+let built=false,hub,pan,ob,ob2,ac,trickUntil=0,lastSent=0,lastBoo=0,vanish=false,tms=[];
+const ITEMS=[['🐺','🐺','Werewolf costume',35,'cos'],['🧞','🧞','Genie costume',20,'cos'],['👹','👹','Ogre costume',50,'cos'],['t:👻','👻','Ghost trail',15,'trail'],['t:🎃','🎃','Pumpkin trail',15,'trail'],['t:✨','✨','Sparkle trail',20,'trail'],['x:knock','🚪','Extra trick or treat today',15,'use'],['x:dbl','🍭','Double candy, 10 min',20,'use']];
+const COS=[['🧙','Witch hat',150],['🧛','Vampire',200],['🧟','Zombie',200],['🎩','Magician',150],['🦸','Candy King',0]],NEED=25;
+const cdText=()=>{const n=new Date(),e=new Date(n.getFullYear(),10,7,8),m=Math.max(0,Math.floor((e-n)/6e4));return 'Halloween ends in '+Math.floor(m/1440)+'d '+Math.floor(m%1440/60)+'h '+m%60+'m'};
+function rows(add){document.querySelectorAll('.hwRow').forEach(r=>r.remove());if(!add)return;const tb=$('#gAbout tbody');if(!tb)return;
+  tb.insertAdjacentHTML('afterbegin','<tr class="hwRow"><td>🎃</td><td id="hwCd">'+cdText()+'</td></tr><tr class="hwRow"><td>✅</td><td>Halloween update: candy hunt, trick or treat, costumes, boo, vanishing messages, lightning</td></tr>')}
+function render(){if(!pan)return;const t=localStorage.getItem('pn_hw_t')===new Date().toDateString();
+  pan.innerHTML='<h4>🎃 '+cdText()+'</h4><button data-a="shop">🍬 Candy shop</button><h4>🍬 Candy hunt</h4><div>'+C+' / '+NEED+' candies · click the pumpkins and candies that pop up</div>'
+  +'<h4>Trick or treat</h4><button data-a="tt">'+(t?'Come back tomorrow':'Knock knock!')+'</button>'
+  +'<h4>Costumes (shown in your chat messages)</h4>'+COS.map(([e,n,p])=>'<button data-c="'+e+'">'+e+' '+n+' · '+(eq===e?'Unequip':own[e]?'Equip':p?p+' Polis':C>=NEED?'Unlock':'🔒 '+NEED+' candy')+'</button>').join('')
+  +'<h4>Atmosphere</h4><button data-a="tr">Bat trail: '+(trail?'on':'off')+'</button><button data-a="sn">Thunder sound: '+(snd?'on':'off')+'</button>'
+  +'<h4>Chat</h4><div>👻 sends a Boo to the chat, 🦇 a bat, 🕯️ makes your next messages vanish after 10 s.</div>';
+  hub.textContent=eq||'🎃';pills();if(shop&&shop.classList.contains('open'))shopRender()}
+function pills(){if(!built)return;
+  document.querySelectorAll('.gmPill:not(.hwCandy)').forEach(p=>{const n=p.nextElementSibling;if(!(n&&n.classList.contains('hwCandy')))p.insertAdjacentHTML('afterend','<span class="gmPill hwCandy">🍬 <b class="hwCN">'+C+'</b></span>')});
+  document.querySelectorAll('.gmBal').forEach(b=>{const p=b.parentElement;if(p&&!p.querySelector('.hwCandy'))p.insertAdjacentHTML('beforeend',' <span class="hwCandy">· 🍬 <b class="hwCN">'+C+'</b></span>')});
+  document.querySelectorAll('.hwCN').forEach(n=>{if(n.textContent!=C){n.textContent=C;const h=n.closest('.hwCandy');h.classList.remove('bump');void h.offsetWidth;h.classList.add('bump')}})}
+function flash(){const f=$('#hwFl');if(!f)return;f.classList.remove('on');void f.offsetWidth;f.classList.add('on');
+  if(snd)try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const n=ac.sampleRate*1.4,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);let l=0;for(let i=0;i<n;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.5*(1-i/n)}const s=ac.createBufferSource(),g=ac.createGain();g.gain.value=.5;s.buffer=b;s.connect(g);g.connect(ac.destination);s.start()}catch{}}
+const pop=c=>{c.classList.add('out');setTimeout(()=>c.remove(),320)};
+function shopRender(){if(!shop)return;const pl=PL()?PL().bal():0;
+  shop.firstChild.innerHTML='<h3>🍬 Candy shop<button data-a="x">✕</button></h3><div>🍬 <b>'+C+'</b> candies · '+pl+' Polis'+(Date.now()<dbl?' · 🍭 double candy on':'')+'</div>'
+  +'<h4>How to get candies</h4><div>• Click the 🎃🍬🍭🍫 that pop up on screen (2 every 40 s)<br>• Trick or treat once a day: a treat also gives 3–6 candies<br>• Exchange Polis below</div>'
+  +'<h4>Exchange</h4><button data-a="x1">10 Polis → 1 🍬</button><button data-a="x5">50 Polis → 5 🍬</button><button data-a="s5">5 🍬 → 25 Polis</button>'
+  +'<h4>Buy with candies</h4><div class="hwG">'+ITEMS.map(([k,e,n,p,ty])=>{const o=ty!='use'&&own[k],a=ty=='cos'?(eq==e?'Unequip':'Equip'):(trailE==e?'Stop':'Use');return '<div class="hwI"><b>'+e+'</b>'+n+'<br><button data-b="'+k+'">'+(o?a:'🍬 '+p)+'</button></div>'}).join('')+'</div>'}
+function openShop(){if(!shop)return;shopRender();shop.classList.add('open')}
+function shopClick(e){if(e.target===shop){shop.classList.remove('open');return}const b=e.target.closest('button');if(!b)return;const a=b.dataset.a,k=b.dataset.b;
+  if(a=='x'){shop.classList.remove('open');return}
+  if(a=='x1'||a=='x5'){const n=a=='x1'?1:5;if(PL()&&PL().spend(n*10))C+=n;else T('You need '+n*10+' Polis')}
+  else if(a=='s5'){if(C>=5&&PL()){C-=5;PL().earn(25)}else T('You need 5 candies')}
+  else if(k){const it=ITEMS.find(x=>x[0]==k),e2=it[1],p=it[3],ty=it[4];
+    if(ty=='use'){if(C>=p){C-=p;if(k=='x:knock'){try{localStorage.removeItem('pn_hw_t')}catch{}T('🚪 Extra knock ready!')}else{dbl=Date.now()+6e5;SV('pn_hw_dbl',dbl);T('🍭 Double candy for 10 minutes!')}}else T('Not enough candies')}
+    else if(own[k]){if(ty=='cos')eq=eq==e2?'':e2;else trailE=trailE==e2?'🦇':e2}
+    else if(C>=p){C-=p;own[k]=1;if(ty=='cos')eq=e2;else trailE=e2}else T('Not enough candies')}
+  SV('pn_hw_c',C);SV('pn_hw_own',own);SV('pn_hw_eq',eq);SV('pn_hw_trs',trailE);render()}
+function candy(){if(!on()||document.hidden)return;for(let i=0;i<2;i++){const c=document.createElement('span');c.className='hwc';c.textContent=['🎃','🍬','🍭','🍫'][Math.random()*4|0];
+  c.style.left=(5+Math.random()*85)+'vw';c.style.top=(12+Math.random()*70)+'vh';
+  c.onclick=()=>{pop(c);const k=Date.now()<dbl?2:1;C+=k;SV('pn_hw_c',C);if(C%5<k)T('🍬 '+C+' candies!');if(C>=NEED&&C-k<NEED)T('🦸 Candy King costume unlocked!');render()};
+  document.body.append(c);setTimeout(()=>pop(c),12000)}}
+function prep(){const i=$('#chText');if(!i||!on())return;const t=i.value.trim();if(!t)return;
+  const pre=(vanish?'🕯️ ':'')+(Date.now()<trickUntil?'👻 ':'')+(eq?eq+' ':'');if(pre&&!t.startsWith(pre))i.value=(pre+t).slice(0,300);lastSent=Date.now()}
+function send(txt){const i=$('#chText');if(!i)return;i.value=txt;prep();$('#chSend').click()}
+function build(){if(built)return;built=true;
+  hub=document.createElement('button');hub.id='hwHub';hub.setAttribute('aria-label','Halloween');hub.onclick=()=>{pan.classList.toggle('open');render()};
+  pan=document.createElement('div');pan.id='hwPanel';
+  pan.onclick=e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.a=='shop'){openShop();return}
+    if(b.dataset.a=='tt'){if(localStorage.getItem('pn_hw_t')===new Date().toDateString())T('You already knocked today 🎃');else{try{localStorage.setItem('pn_hw_t',new Date().toDateString())}catch{}
+      if(Math.random()<.7&&PL()){const n=20+(Math.random()*41|0);PL().earn(n);const k=3+(Math.random()*4|0);C+=k;SV('pn_hw_c',C);T('🍬 Treat! +'+n+' Polis, +'+k+' candies')}else{trickUntil=Date.now()+6e4;H.classList.add('hw-trick');tms.push(setTimeout(()=>H.classList.remove('hw-trick'),6e4));T('👻 Trick! You are a ghost for 1 minute')}}}
+    else if(b.dataset.a=='tr'){trail=!trail;SV('pn_hw_tr',trail)}
+    else if(b.dataset.a=='sn'){snd=!snd;SV('pn_hw_snd',snd);if(snd)flash()}
+    else if(b.dataset.c){const e2=b.dataset.c,co=COS.find(x=>x[0]==e2);
+      if(eq==e2)eq='';else if(own[e2])eq=e2;else if(!co[2]){if(C>=NEED){own[e2]=1;eq=e2}else T('Collect '+NEED+' candies first')}
+      else if(PL()&&PL().spend(co[2])){own[e2]=1;eq=e2}else T('You need '+co[2]+' Polis');SV('pn_hw_own',own);SV('pn_hw_eq',eq)}
+    render()};
+  const fl=document.createElement('div');fl.id='hwFl';shop=document.createElement('div');shop.id='hwShop';shop.innerHTML='<div class="hwBox"></div>';shop.onclick=shopClick;document.body.append(hub,pan,fl,shop);
+  const ci=$('#chInput');if(ci){ci.addEventListener('click',e=>{if(e.target.id=='chSend')prep()},true);ci.addEventListener('keydown',e=>{if(e.key=='Enter')prep()},true);
+    [['👻','Boo!','hwBoo'],['🦇','Bat','hwBat'],['🕯️','Vanishing messages','hwVan']].forEach(([e,t,id])=>{const b=document.createElement('button');b.className='btn hwb';b.id=id;b.textContent=e;b.title=t;
+      b.onclick=()=>{if(id=='hwVan'){vanish=!vanish;b.classList.toggle('on',vanish);return}
+        if(id=='hwBoo'){if(Date.now()-lastBoo<1e4){T('Wait a few seconds before the next Boo');return}lastBoo=Date.now();send('👻 BOO!')}else send('🦇')};ci.append(b)})}
+  const cb=$('#chBody');if(cb){ob=new MutationObserver(rs=>{const ns=[];rs.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType==1)ns.push(n)}));
+    ns.forEach(n=>{const x=n.textContent||'';if(x.includes('🕯️ ')){tms.push(setTimeout(()=>{n.style.transition='opacity .6s,transform .6s';n.style.opacity=0;n.style.transform='translateY(-6px)'},9400));tms.push(setTimeout(()=>n.remove(),1e4))}
+      if(ns.length==1&&x.includes('👻 BOO!')&&Date.now()-lastSent>2500){const g=document.createElement('div');g.id='hwBoo';g.textContent='👻';document.body.append(g);setTimeout(()=>g.remove(),1400);try{navigator.vibrate&&navigator.vibrate(200)}catch{}}})});
+    ob.observe(cb,{childList:true,subtree:true})}
+  ob2=new MutationObserver(()=>requestAnimationFrame(pills));ob2.observe(document.body,{childList:true,subtree:true});
+  rows(true);render()}
+function tear(){built=false;[hub,pan,shop,$('#hwFl')].forEach(e=>e&&e.remove());shop=null;document.querySelectorAll('.hwb,.hwc,#hwBoo').forEach(e=>e.remove());if(ob)ob.disconnect();if(ob2)ob2.disconnect();document.querySelectorAll('.hwCandy').forEach(e=>e.remove());tms.forEach(clearTimeout);tms=[];H.classList.remove('hw-trick');rows(false);vanish=false}
+document.addEventListener('click',e=>{const p=built&&e.target.closest&&e.target.closest('.hwCandy');if(p){e.stopPropagation();e.preventDefault();openShop()}},true);
+document.addEventListener('mousemove',e=>{if(!built||!trail||!on()||Math.random()<.5)return;const s=document.createElement('span');s.className='hwt';s.textContent=trailE;s.style.left=e.clientX+8+'px';s.style.top=e.clientY+8+'px';document.body.append(s);setTimeout(()=>s.remove(),900)});
+const tick=()=>{const a=on();if(a&&!built)build();else if(!a&&built)tear();if(built){const c=$('#hwCd');if(c)c.textContent=cdText()}};
+setInterval(candy,40000);setInterval(()=>{if(built&&Math.random()<.5)flash()},25000);setInterval(tick,20000);
+if(document.readyState=='loading')document.addEventListener('DOMContentLoaded',tick);else tick();
+}catch(e){console.warn('halloween3',e)}})();
 </script>
 </body>
 </html>
