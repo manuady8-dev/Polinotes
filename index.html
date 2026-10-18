@@ -366,7 +366,13 @@ main #tools input,main #tools select{border-radius:0}
 .gate .gpanel .nm-warn{margin:-4px 0 12px 2px;font:600 13.5px/1.35 var(--rb);color:#b32323}
 @media(max-width:480px){.gate .fbt{padding:0 7px}.gate .fgo{padding:0 14px}}
 </style>
-<style>#syncRow,#syncBox,#p2pRow{display:none!important}#pnInfo{position:fixed;left:8px;bottom:4px;z-index:2;max-width:92vw;font:10px/1.3 "Source Sans 3",sans-serif;opacity:.55;pointer-events:none}#banScr .ic{font-size:44px;line-height:1;margin-bottom:6px;animation:banPulse 2s ease-in-out infinite}@keyframes banPulse{50%{transform:scale(1.12)}}#banScr .big{letter-spacing:1px}#banScr{background:#0b0b0c!important;color:#fff}
+<style>#syncRow,#syncBox,#p2pRow{display:none!important}#pnInfo{position:fixed;left:8px;bottom:4px;z-index:2;max-width:92vw;font:10px/1.3 "Source Sans 3",sans-serif;opacity:.55;pointer-events:none}#banScr .ic{font-size:44px;line-height:1;margin-bottom:6px;animation:banPulse 2s ease-in-out infinite}@keyframes banPulse{50%{transform:scale(1.12)}}#banScr .big{letter-spacing:1px}#banScr{background-color:#fdfdfd!important;background-image:repeating-linear-gradient(to bottom,transparent 0 15px,rgba(0,0,0,.07) 15px 16px),repeating-linear-gradient(to right,transparent 0 15px,rgba(0,0,0,.07) 15px 16px)!important;color:#222;display:flex!important;flex-direction:column;padding:0!important}
+.bkn{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px 24px;padding:14px 20px;background:#fff;border-bottom:1px solid #ddd;font-family:'Source Sans 3',Arial,sans-serif}
+.bkl{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:800;color:#2b3036}
+.bkp{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:8px;background:#e03a3a;color:#fff;font:800 22px Rubik,sans-serif;transform:rotate(-6deg)}.bkp.s{width:18px;height:18px;font-size:11px;border-radius:4px;transform:none}
+.bkto{display:flex;gap:22px;font-weight:600;color:#666}.bkto .on{color:#f0455a;box-shadow:0 4px 0 #f0455a}
+.bkpill{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff}
+.bkn i{font-size:14px;color:#777}.bkw{flex:1;display:grid;place-items:center;padding:16px}
 .bkc{width:min(100%,600px);background:#18191c;border-radius:16px;padding:20px;text-align:left;font:16px/1.5 'Source Sans 3',Arial,sans-serif;animation:banPop .9s cubic-bezier(.2,.8,.2,1) .35s backwards;box-shadow:0 10px 40px rgba(0,0,0,.5)}
 .bkh{display:flex;align-items:center;gap:10px;font-size:20px;margin-bottom:14px}.bkm{margin:0 0 14px}.bkt{font-weight:700;margin-bottom:8px}
 .bkb{background:#26272b;border-radius:12px;padding:14px}.bkr{margin-bottom:10px}.bkr b{display:block}
@@ -2101,7 +2107,9 @@ function showBan(b,load){
     rb.onclick=()=>{const t='Hi, I think my Poli-Notes ban is a mistake. My friend code is '+code+'.';try{navigator.clipboard.writeText(t)}catch{}rb.textContent='Copied: send it to the owner'};
     ft.append(rb);
     card.append(hd,msg,el('div','bkt','Latest activity we reviewed'),box,el('div','bkid',code),ft);
-    o.append(card);document.body.append(o);void o.offsetWidth;o.style.opacity='1';
+    const bal=(()=>{try{return(JSON.parse(localStorage.getItem('pn_games_v1'))||{}).c||0}catch{return 0}})(),nav=el('div','bkn');
+    nav.innerHTML='<div class="bkl"><span class="bkp">P</span>Poli-Notes</div><div class="bkto"><span class="on">Play</span><span>About</span><span>Friends</span></div><div class="bkpill"><span class="bkp s">P</span><b id="bkBal"></b> Polis</div><i>Our private corner for thoughts and reminders</i>';
+    nav.querySelector('#bkBal').textContent=bal;const w=el('div','bkw');w.append(card);o.append(nav,w);document.body.append(o);void o.offsetWidth;o.style.opacity='1';
     const tick=()=>{if(P)return;const ms=b.until-Date.now();if(ms<=0){clearInterval(banT);clearBan(true);return}tl.textContent=fmtLeft(ms,1)};
     tick();banT=setInterval(tick,1000)};
   if(load){document.documentElement.classList.add('banned');setTimeout(build,500)}
