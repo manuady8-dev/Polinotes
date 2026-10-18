@@ -385,6 +385,78 @@ main #tools input,main #tools select{border-radius:0}
 .bkv{margin:2px 0 6px;padding:0;border:0;background:none;color:#c0283c;text-decoration:underline;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer}
 .bkf{display:flex;justify-content:center;margin-top:22px}
 .bkf button{padding:10px 20px;border:2px solid #c0283c;background:#fff;color:#c0283c;box-shadow:3px 3px 0 rgba(0,0,0,.12);font-weight:700;font-size:15px;font-family:inherit;cursor:pointer}</style>
+<style id="plStyle">
+/* ===== PLANNER MODE ===== */
+.plModes{display:inline-flex;margin:4px 0 18px;padding:3px;gap:3px;background:#fff;border:2px solid var(--accent);border-radius:999px;box-shadow:3px 3px 0 rgba(0,0,0,.1)}
+.plModes button{border:0;background:transparent;color:#444;font-size:12px;padding:7px 18px;border-radius:999px;cursor:pointer;transition:background .2s,color .2s,transform .15s}
+.plModes button:hover{transform:scale(1.04)}
+.plModes button.on{background:var(--accent);color:#fff}
+body.pl-on .composer,body.pl-on #tools,body.pl-on #wrap,body.pl-on #board,body.pl-on #stickers,body.pl-on #cursors{display:none!important}
+#planner[hidden]{display:none}
+#planner{color:#2b2b2b;text-align:center}
+#planner *{box-sizing:border-box}
+#planner .pl-toolbar{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+#planner .pl-btn{border:0;border-radius:6px;padding:7px 12px;background:var(--accent);color:#fff;font-size:11px;cursor:pointer;transition:transform .15s,filter .2s}
+#planner .pl-btn:hover{filter:brightness(1.1)}#planner .pl-btn:active{transform:scale(.94)}
+#planner .pl-btn.ghost{background:#fff;color:#2b2b2b;border:1px solid #ccc}
+#planner .pl-wlabel{min-width:190px;font-size:12px;font-weight:600;padding:6px 10px;background:#fff;border:1px solid #e3e3e3;border-radius:6px}
+#planner .pl-months{display:flex;gap:4px;overflow-x:auto;padding:4px 2px 10px;justify-content:center;flex-wrap:wrap}
+#planner .pl-mt{border:0;border-radius:6px 6px 0 0;padding:5px 9px;font-size:10px;cursor:pointer;color:#444;transition:transform .15s}
+#planner .pl-mt:hover{transform:translateY(-2px)}
+#planner .pl-mt.on{box-shadow:0 3px 0 var(--accent);font-weight:700}
+#planner .pl-book{display:grid;grid-template-columns:1.15fr 1fr;text-align:left;background:#fff;border:3px dashed #f3a9b5;border-radius:22px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.12);position:relative}
+#planner .pl-book::after{content:"";position:absolute;left:53.5%;top:18px;bottom:18px;width:2px;background:repeating-linear-gradient(to bottom,#e7bcc4 0 10px,transparent 10px 22px);opacity:.8}
+#planner .pl-page{padding:6px 14px}
+#planner .pl-mname{font:800 15px 'Rubik',sans-serif;letter-spacing:2px;margin:0 0 8px;color:#444;text-transform:uppercase}
+#planner .pl-days{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d9d9d9}
+#planner .pl-day{min-height:128px;padding:5px 8px 8px;border:1px solid #e6e6e6;position:relative;background-image:linear-gradient(rgba(0,0,0,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.05) 1px,transparent 1px);background-size:14px 14px}
+#planner .pl-day.today{outline:2px solid var(--accent);outline-offset:-2px;z-index:1}
+#planner .pl-dlabel{font-size:8px;letter-spacing:.5px;text-transform:uppercase;color:#555;margin-bottom:2px;display:flex;justify-content:space-between}
+#planner textarea{margin:0;border-radius:0}
+#planner .pl-day textarea,#planner .pl-paper textarea{width:100%;min-height:100px;height:auto;resize:none;border:0;background:transparent;font:600 17px/1.15 'Caveat',cursive;color:#222;padding:0}
+#planner textarea:focus,#planner .pl-pri:focus,#planner .pl-ti input[type=text]:focus,#planner .pl-hab:focus{outline:none;background:rgba(255,255,255,.55)}
+#planner .pl-quote{display:flex;align-items:center;justify-content:center;padding:12px}
+#planner .pl-card{width:100%;min-height:96px;background:var(--accent);color:#fff;text-align:center;border:4px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;padding:6px}
+#planner .pl-card textarea{min-height:0;height:78px;text-align:center;color:#fff;font:600 22px/1.05 'Caveat',cursive}
+#planner .pl-card textarea::placeholder{color:rgba(255,255,255,.7)}
+#planner .pl-box{border:1px solid #d9d9d9;margin-bottom:12px}
+#planner .pl-bh{font-size:9px;letter-spacing:1px;text-align:center;text-transform:uppercase;padding:4px;background:#ececec;color:#555;border-bottom:1px solid #d9d9d9}
+#planner .pl-pri{display:block;width:100%;border:0;border-bottom:1px solid #d9d9d9;border-radius:0;background:#fbf8bf;text-align:center;font:600 17px 'Caveat',cursive;padding:6px;color:#222}
+#planner .pl-pri:last-child{border-bottom:0}
+#planner .pl-rgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#planner .pl-paper{background:#fff repeating-linear-gradient(to bottom,transparent 0 21px,rgba(0,0,0,.08) 21px 22px)}
+#planner .pl-paper textarea{min-height:150px;padding:6px 8px;line-height:22px}
+#planner .pl-todo{background:linear-gradient(#f3e4f5,#dbe9fb)}
+#planner .pl-ti{display:flex;align-items:center;gap:6px;padding:3px 6px;border-bottom:1px solid rgba(0,0,0,.1)}
+#planner .pl-ti input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;margin:0;cursor:pointer}
+#planner .pl-ti input[type=text]{flex:1;min-width:0;border:0;background:transparent;font:600 16px 'Caveat',cursive;color:#222;padding:1px 2px}
+#planner .pl-ti.d input[type=text]{text-decoration:line-through;opacity:.5}
+#planner .pl-ti button{border:0;background:none;cursor:pointer;opacity:.35;font-size:12px;padding:0;color:#222}
+#planner .pl-ti button:hover{opacity:1}
+#planner .pl-add{display:block;width:100%;border:0;background:rgba(255,255,255,.5);font-size:10px;padding:5px;cursor:pointer;color:#555}
+#planner .pl-add:hover{background:rgba(255,255,255,.85)}
+#planner .pl-habs{width:100%;border-collapse:collapse;background:#f3ecfa}
+#planner .pl-habs th{font-size:9px;font-weight:600;color:#555;padding:4px 0}
+#planner .pl-habs td{padding:3px 0;text-align:center;border-top:1px solid rgba(0,0,0,.08)}
+#planner .pl-hab{width:100%;border:0;background:transparent;font:600 16px 'Caveat',cursive;padding:0 6px;color:#222}
+#planner .pl-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid #b9a6e0;background:transparent;cursor:pointer;padding:0;transition:transform .15s,background .2s}
+#planner .pl-dot:hover{transform:scale(1.2)}
+#planner .pl-dot.on{background:#8b7be0;border-color:#8b7be0}
+#planner .pl-hint{margin-top:14px;font-size:10px;font-style:italic;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.55);display:inline-block}
+#plToast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(30px);opacity:0;background:#222;color:#fff;font-size:11px;padding:7px 14px;border-radius:8px;transition:all .3s var(--ease);z-index:50;pointer-events:none}
+#plToast.show{opacity:1;transform:translateX(-50%)}
+@media(max-width:820px){
+ #planner .pl-book{grid-template-columns:1fr;padding:10px}
+ #planner .pl-book::after{display:none}
+ #planner .pl-page{padding:4px 2px}
+ #planner .pl-rgrid{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+ #planner .pl-days{grid-template-columns:1fr}
+ #planner .pl-day{min-height:110px}
+}
+</style>
+
 </head>
 <body class="lines">
 
@@ -462,6 +534,7 @@ main #tools input,main #tools select{border-radius:0}
 
 <main>
   <div class="mlogo"><span class="lg">POLI-NOTES</span><span class="tag">Our private corner for thoughts and reminders.</span></div><br>
+  <div class="plModes" id="plModes" role="tablist"><button id="plModeNotes" class="on" role="tab">📝 Notes</button><button id="plModePlanner" role="tab">📅 Planner</button></div><br>
   <div id="online" aria-live="polite"></div>
   <div id="fBar" class="strip" hidden></div>
   <section class="composer">
@@ -490,6 +563,42 @@ main #tools input,main #tools select{border-radius:0}
     <button class="dot c-red" data-f="c-red" aria-label="Red"></button><button class="dot c-blue" data-f="c-blue" aria-label="Blue"></button><button class="dot c-green" data-f="c-green" aria-label="Green"></button>
   </div>
   <div id="wrap"></div>
+  <section id="planner" hidden>
+    <div class="pl-toolbar">
+      <button class="pl-btn ghost" id="pl-prev" title="Previous week">‹</button>
+      <div class="pl-wlabel" id="pl-wlabel"></div>
+      <button class="pl-btn ghost" id="pl-next" title="Next week">›</button>
+      <button class="pl-btn" id="pl-today">Today</button>
+      <button class="pl-btn ghost" id="pl-export" title="Download a backup">Export</button>
+      <button class="pl-btn ghost" id="pl-import" title="Restore a backup">Import</button>
+      <input type="file" id="pl-file" accept="application/json" hidden>
+    </div>
+    <div class="pl-months" id="pl-months"></div>
+    <div class="pl-book">
+      <section class="pl-page">
+        <h2 class="pl-mname" id="pl-mname"></h2>
+        <div class="pl-days" id="pl-days"></div>
+      </section>
+      <section class="pl-page">
+        <div class="pl-box">
+          <div class="pl-bh">Top priorities</div>
+          <input class="pl-pri" data-p="0" placeholder="Priority 1">
+          <input class="pl-pri" data-p="1" placeholder="Priority 2">
+          <input class="pl-pri" data-p="2" placeholder="Priority 3">
+        </div>
+        <div class="pl-rgrid">
+          <div class="pl-box pl-paper"><div class="pl-bh">Notes</div><textarea id="pl-notes" placeholder="Anything else…"></textarea></div>
+          <div class="pl-box pl-todo"><div class="pl-bh">To do</div><div id="pl-todos"></div><button class="pl-add" id="pl-addTodo">+ add task</button></div>
+        </div>
+        <div class="pl-box">
+          <div class="pl-bh">Habits</div>
+          <table class="pl-habs" id="pl-habs"></table>
+          <button class="pl-add" id="pl-addHab">+ add habit</button>
+        </div>
+      </section>
+    </div>
+    <p class="pl-hint">The planner saves automatically on this device. Use Export to keep a backup or move it to another device.</p>
+  </section>
 </main>
 
 <section id="board"></section><div id="stickers"></div><div id="cursors"></div>
@@ -3120,5 +3229,199 @@ setInterval(candy,40000);setInterval(()=>{if(built&&Math.random()<.5)flash()},25
 if(document.readyState=='loading')document.addEventListener('DOMContentLoaded',tick);else tick();
 }catch(e){console.warn('halloween3',e)}})();
 </script>
+<div id="plToast"></div>
+<script>
+/* ===== PLANNER MODE ===== */
+(function(){
+'use strict';
+var KEY='pn_planner_v1',MODE='pn_mode';
+var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+var DSHORT=['M','T','W','T','F','S','S'];
+var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var COLORS=['#f3e4f5','#fbdfe3','#fbe9d8','#fdf6c9','#e4f4d6','#d7f1ec','#dbe9fb'];
+var MCOL=['#f3e4f5','#fbdfe3','#fbe9d8','#fdf6c9','#e4f4d6','#d7f1ec','#dbe9fb','#f8d3e0','#f3e4f5','#fbdfe3','#fbe9d8','#fdf6c9'];
+function $(id){return document.getElementById('pl-'+id)}
+
+var db={weeks:{},habits:['Exercise','Vitamins','Skincare']};
+try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&p.weeks)db=p;if(!Array.isArray(db.habits))db.habits=[]}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){toast('Could not save (storage full or blocked)')}}
+function toast(t){var el=document.getElementById('plToast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){el.classList.remove('show')},2200)}
+function pad(n){return n<10?'0'+n:''+n}
+function keyOf(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function mondayOf(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-(x.getDay()+6)%7);return x}
+function addDays(d,n){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()+n);return x}
+var cur=mondayOf(new Date());
+
+function wk(){
+  var k=keyOf(cur);
+  if(!db.weeks[k])db.weeks[k]={};
+  var w=db.weeks[k];
+  if(!Array.isArray(w.days))w.days=['','','','','','',''];
+  if(!Array.isArray(w.pri))w.pri=['','',''];
+  if(!Array.isArray(w.todos))w.todos=[];
+  if(!w.habits||typeof w.habits!=='object')w.habits={};
+  if(typeof w.quote!=='string')w.quote='';
+  if(typeof w.notes!=='string')w.notes='';
+  return w;
+}
+function prune(){
+  Object.keys(db.weeks).forEach(function(k){
+    var w=db.weeks[k];
+    var empty=!(w.days||[]).some(Boolean)&&!w.quote&&!(w.pri||[]).some(Boolean)&&!w.notes&&!(w.todos||[]).length&&
+      !Object.keys(w.habits||{}).some(function(h){return(w.habits[h]||[]).some(Boolean)});
+    if(empty)delete db.weeks[k];
+  });
+}
+
+function render(){
+  var w=wk(),end=addDays(cur,6),today=keyOf(new Date()),thu=addDays(cur,3);
+  $('wlabel').textContent=cur.getDate()+' '+MONTHS[cur.getMonth()].slice(0,3)+' – '+end.getDate()+' '+MONTHS[end.getMonth()].slice(0,3)+' '+end.getFullYear();
+  $('mname').textContent=MONTHS[thu.getMonth()]+' '+thu.getFullYear();
+  var mt=$('months');mt.innerHTML='';
+  MONTHS.forEach(function(m,i){
+    var b=document.createElement('button');b.className='pl-mt'+(i===thu.getMonth()?' on':'');
+    b.textContent=m.slice(0,3).toUpperCase();b.style.background=MCOL[i];
+    b.onclick=function(){
+      var c=mondayOf(new Date(thu.getFullYear(),i,1));
+      if(addDays(c,3).getMonth()!==i)c=addDays(c,7);
+      cur=c;render();
+    };
+    mt.appendChild(b);
+  });
+  var dg=$('days');dg.innerHTML='';
+  for(var i=0;i<7;i++){(function(i){
+    var d=addDays(cur,i),el=document.createElement('div');
+    el.className='pl-day'+(keyOf(d)===today?' today':'');el.style.backgroundColor=COLORS[i];
+    var lb=document.createElement('div');lb.className='pl-dlabel';
+    lb.innerHTML='<span>'+DAYS[i]+'</span><span>'+d.getDate()+'</span>';el.appendChild(lb);
+    var ta=document.createElement('textarea');ta.value=w.days[i]||'';ta.placeholder='…';
+    ta.oninput=function(){w.days[i]=ta.value;save()};
+    el.appendChild(ta);dg.appendChild(el);
+  })(i)}
+  var q=document.createElement('div');q.className='pl-day pl-quote';q.style.backgroundColor='#f8d3e0';
+  q.innerHTML='<div class="pl-card"><textarea placeholder="Everything will be ok"></textarea></div>';
+  var qt=q.querySelector('textarea');qt.value=w.quote;qt.oninput=function(){w.quote=qt.value;save()};
+  dg.appendChild(q);
+  document.querySelectorAll('#planner .pl-pri').forEach(function(inp){
+    var n=+inp.dataset.p;inp.value=w.pri[n]||'';inp.oninput=function(){w.pri[n]=inp.value;save()};
+  });
+  var nt=$('notes');nt.value=w.notes;nt.oninput=function(){w.notes=nt.value;save()};
+  renderTodos();renderHabits();
+}
+
+function renderTodos(){
+  var w=wk(),box=$('todos');box.innerHTML='';
+  w.todos.forEach(function(t,i){
+    var r=document.createElement('div');r.className='pl-ti'+(t.d?' d':'');
+    var c=document.createElement('input');c.type='checkbox';c.checked=!!t.d;
+    var x=document.createElement('input');x.type='text';x.value=t.t||'';x.placeholder='task';
+    var del=document.createElement('button');del.textContent='✕';del.title='Delete';
+    c.onchange=function(){t.d=c.checked;r.classList.toggle('d',t.d);save()};
+    x.oninput=function(){t.t=x.value;save()};
+    x.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();addTodo(i+1)}};
+    del.onclick=function(){w.todos.splice(i,1);save();renderTodos()};
+    r.appendChild(c);r.appendChild(x);r.appendChild(del);box.appendChild(r);
+  });
+  if(!w.todos.length){var e=document.createElement('div');e.className='pl-ti';e.style.cssText='opacity:.5;font-size:10px';e.textContent='No tasks yet';box.appendChild(e)}
+}
+function addTodo(at){
+  var w=wk();if(at==null)at=w.todos.length;
+  w.todos.splice(at,0,{t:'',d:false});save();renderTodos();
+  var ins=$('todos').querySelectorAll('input[type=text]');if(ins[at])ins[at].focus();
+}
+
+function renderHabits(){
+  var w=wk(),t=$('habs');
+  t.innerHTML='<tr><th></th>'+DSHORT.map(function(s){return'<th>'+s+'</th>'}).join('')+'<th></th></tr>';
+  db.habits.forEach(function(h,hi){
+    var tr=document.createElement('tr'),td=document.createElement('td');td.style.textAlign='left';
+    var inp=document.createElement('input');inp.className='pl-hab';inp.value=h;
+    inp.onchange=function(){
+      var old=db.habits[hi],nu=inp.value.trim();
+      if(!nu||(nu!==old&&db.habits.indexOf(nu)>-1)){inp.value=old;return}
+      if(nu===old)return;
+      Object.keys(db.weeks).forEach(function(k){var hh=db.weeks[k].habits;if(hh&&hh[old]){hh[nu]=hh[old];delete hh[old]}});
+      db.habits[hi]=nu;h=nu;save();
+    };
+    td.appendChild(inp);tr.appendChild(td);
+    var arr=w.habits[h]||(w.habits[h]=[0,0,0,0,0,0,0]);
+    for(var d=0;d<7;d++){(function(d){
+      var c=document.createElement('td'),b=document.createElement('button');
+      b.className='pl-dot'+(arr[d]?' on':'');b.setAttribute('aria-label',DAYS[d]);
+      b.onclick=function(){var cur_=wk().habits[db.habits[hi]];cur_[d]=cur_[d]?0:1;b.classList.toggle('on',!!cur_[d]);save()};
+      c.appendChild(b);tr.appendChild(c);
+    })(d)}
+    var dc=document.createElement('td'),x=document.createElement('button');
+    x.textContent='✕';x.title='Remove habit';x.style.cssText='border:0;background:none;cursor:pointer;opacity:.35;font-size:11px;color:#222';
+    x.onclick=function(){
+      var name=db.habits[hi];
+      if(confirm('Remove "'+name+'" from all weeks?')){
+        db.habits.splice(hi,1);
+        Object.keys(db.weeks).forEach(function(k){if(db.weeks[k].habits)delete db.weeks[k].habits[name]});
+        save();renderHabits();
+      }
+    };
+    dc.appendChild(x);tr.appendChild(dc);t.appendChild(tr);
+  });
+}
+
+$('addTodo').onclick=function(){addTodo()};
+$('addHab').onclick=function(){
+  var n=prompt('Habit name?');if(!n)return;n=n.trim();if(!n)return;
+  if(db.habits.indexOf(n)>-1){toast('Habit already exists');return}
+  db.habits.push(n);save();renderHabits();
+};
+$('prev').onclick=function(){prune();save();cur=addDays(cur,-7);render()};
+$('next').onclick=function(){prune();save();cur=addDays(cur,7);render()};
+$('today').onclick=function(){cur=mondayOf(new Date());render()};
+document.addEventListener('keydown',function(e){
+  if(!document.body.classList.contains('pl-on'))return;
+  if(/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName))return;
+  if(e.key==='ArrowLeft')$('prev').click();
+  if(e.key==='ArrowRight')$('next').click();
+});
+
+$('export').onclick=function(){
+  prune();save();
+  var blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='poli-planner-backup.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
+  toast('Backup downloaded');
+};
+$('import').onclick=function(){$('file').click()};
+$('file').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(!d||typeof d.weeks!=='object')throw 0;
+      if(!confirm('Replace the current planner with this backup?'))return;
+      db={weeks:d.weeks,habits:Array.isArray(d.habits)?d.habits:[]};save();render();toast('Backup restored');
+    }catch(err){toast('That file is not a valid backup')}
+  };
+  r.readAsText(f);e.target.value='';
+};
+window.addEventListener('pagehide',function(){prune();save()});
+
+/* mode switch: Notes <-> Planner */
+var bN=document.getElementById('plModeNotes'),bP=document.getElementById('plModePlanner'),sec=document.getElementById('planner');
+function setMode(m,first){
+  var pl=m==='planner';
+  document.body.classList.toggle('pl-on',pl);
+  sec.hidden=!pl;
+  bN.classList.toggle('on',!pl);bP.classList.toggle('on',pl);
+  bN.setAttribute('aria-selected',!pl);bP.setAttribute('aria-selected',pl);
+  try{localStorage.setItem(MODE,m)}catch(e){}
+  if(pl)render();
+  if(!first)setTimeout(function(){window.dispatchEvent(new Event('resize'))},30);
+}
+bN.onclick=function(){setMode('notes')};
+bP.onclick=function(){setMode('planner')};
+var saved='notes';try{saved=localStorage.getItem(MODE)||'notes'}catch(e){}
+setMode(saved==='planner'?'planner':'notes',true);
+})();
+</script>
+
 </body>
 </html>
