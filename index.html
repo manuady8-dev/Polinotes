@@ -463,7 +463,7 @@ body.pl-on .composer,body.pl-on #tools,body.pl-on #wrap,body.pl-on #board,body.p
 <div class="gate" id="gate">
   <header class="gbar"><div>
     <span class="glogo-s"><i>P</i>Poli-Notes</span>
-    <nav class="gnav"><a class="sel" id="navPlay" data-v="play">Play</a><a id="navAbout" data-v="about">About</a><a id="navFriends" data-v="friends">Friends<i id="navBadge" hidden></i></a></nav>
+    <nav class="gnav"><a class="sel" id="navPlay" data-v="play">Play</a><a id="navAbout" data-v="about">About</a><a id="navFriends" data-v="friends">Friends<i id="navBadge" hidden></i></a><a id="navAI">Polis.AI</a></nav>
     <span class="sp"></span><span class="gbadge">Our private corner for thoughts and reminders</span>
   </div></header>
   <div class="gmain">
@@ -504,6 +504,7 @@ body.pl-on .composer,body.pl-on #tools,body.pl-on #wrap,body.pl-on #board,body.p
           <table>
             <thead><tr><th colspan="2">What's new</th></tr></thead>
             <tbody>
+              <tr><td>✅</td><td>New Polis.AI assistant, available in the home menu, the lobby menu and the Polis window</td></tr>
               <tr><td>✅</td><td>Other players can now see your profile frame, name color, stickers, badges and status</td></tr>
               <tr><td>✅</td><td>Themes now change the title color and the home background too</td></tr>
               <tr><td>✅</td><td>Notes look like real paper: tape, pins and folded corners</td></tr>
@@ -637,6 +638,7 @@ body.pl-on .composer,body.pl-on #tools,body.pl-on #wrap,body.pl-on #board,body.p
     <div class="rtabs">
       <button class="rtab sel" data-p="players"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.7a3.4 3.4 0 010 6.3M18.5 14.4c2 .8 3 2.7 3 5.6"/></svg>Players</button>
       <button class="rtab" data-p="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg>Settings</button>
+      <button class="rtab" id="rtabAI" type="button"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>Polis.AI</button>
     </div>
     <div class="rpane" id="paPlayers"></div>
     <div class="rpane rset" id="paSettings" hidden>
@@ -2072,7 +2074,8 @@ document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
 {const tx=document.getElementById('text');if(tx)tx.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)&&e.target.value.trim())prog('n',1)},true)}
 {const o=window.addSticker;if(typeof o==='function')window.addSticker=function(){prog('s',1);return o.apply(this,arguments)}}
 function hub(t){halt();
- const nav=[['h','Home'],['t','Tasks'],['s','Shop'],['b','Badges']].map(([k,n])=>`<a data-t="${k}" class="${t==k?'sel':''}">${n}</a>`).join('');
+ if(t=='a'){close();if(window.pnAI)pnAI.open();return}
+ const nav=[['h','Home'],['t','Tasks'],['s','Shop'],['b','Badges'],['a','Polis.AI']].map(([k,n])=>`<a data-t="${k}" class="${t==k?'sel':''}">${n}</a>`).join('');
  P.innerHTML=head('',0,nav)+'<div class="gmBody" id="gmL"></div>';
  P.querySelector('#gmX').onclick=close;P.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>hub(b.dataset.t));
  const L=P.querySelector('#gmL');if(t=='h')home(L);else if(t=='t')tasks(L);else if(t=='b'&&window.pnBadges)pnBadges(L);else shop(L)}
@@ -3435,5 +3438,92 @@ setMode(saved==='planner'?'planner':'notes',true);
 })();
 </script>
 
+
+<style id="paiCss">
+#paiOv{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.45)}
+#paiOv.open{display:flex}
+.paiP{display:flex;flex-direction:column;width:min(100%,640px);height:min(88vh,700px);color:#2b2b2b;font:16px 'Source Sans 3','Segoe UI',Arial,sans-serif;background-color:#fffdf8;background-image:linear-gradient(rgba(74,134,196,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(74,134,196,.16) 1px,transparent 1px);background-size:26px 26px;border:2px solid #2b2b2b;box-shadow:8px 8px 0 rgba(0,0,0,.28);animation:paiIn .3s var(--ease,ease) backwards}
+@keyframes paiIn{from{opacity:0;transform:translateY(26px) rotate(-1.2deg) scale(.97)}}
+.paiH{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:2px dashed rgba(0,0,0,.28)}
+.paiH i{display:grid;place-items:center;width:32px;height:32px;background:var(--accent,#f0455a);color:#fff;font:800 19px 'Rubik',sans-serif;font-style:normal;border-radius:4px;transform:rotate(-6deg)}
+.paiH b{font:700 20px 'Source Sans 3',Arial,sans-serif}.paiH small{opacity:.6;flex:1}
+.paiH button{border:0;background:none;font-size:20px;cursor:pointer;padding:4px 8px;color:inherit}
+.paiM{flex:1;min-height:0;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.paiB{max-width:86%;padding:8px 12px;border:2px solid #2b2b2b;white-space:pre-wrap;word-wrap:break-word;line-height:1.35}
+.paiB.u{align-self:flex-end;background:var(--accent,#f0455a);color:#fff}
+.paiB.a{align-self:flex-start;background:#fff}
+.paiB.e{align-self:flex-start;background:#ffe3e3;border-color:#c0283c;color:#8a1022}
+.paiB.t{opacity:.6;font-style:italic}
+.paiS{display:none;padding:12px 14px;background:#fff;border-bottom:2px dashed rgba(0,0,0,.28);font-size:14px}
+.paiS.open{display:block}.paiS input{width:100%;box-sizing:border-box;margin:6px 0;padding:8px;border:2px solid #2b2b2b;font:14px 'Fira Code',monospace}
+.paiS small{display:block;opacity:.7;margin-top:4px}
+.paiF{display:flex;gap:8px;padding:10px 14px;background:#fff;border-top:2px dashed rgba(0,0,0,.28)}
+.paiF textarea{flex:1;resize:none;height:44px;padding:8px;border:2px solid #2b2b2b;font:16px 'Source Sans 3',Arial,sans-serif;box-sizing:border-box}
+.paiF button,.paiS button{border:2px solid #2b2b2b;background:var(--accent,#f0455a);color:#fff;font:700 15px 'Source Sans 3',Arial,sans-serif;padding:0 16px;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.25)}
+.paiS button{height:36px;margin-right:6px}.paiF button:disabled{opacity:.5;cursor:default}
+</style>
+
+<script>
+/* ===== Polis.AI ===== */
+(()=>{try{
+const KK='pn_ai_key',MODEL='claude-sonnet-5-5',FREE=['https://text.pollinations.ai/openai','https://gen.pollinations.ai/v1/chat/completions'];
+const SYS="You are Polis.AI, the friendly assistant inside Poli-Notes, a shared notes app with rooms, friends, stickers and Polis coins. Keep answers short and practical, and reply in the language the user writes in.";
+let hist=[],busy=false;
+const g=k=>{try{return localStorage.getItem(k)||''}catch{return ''}};
+const ov=document.createElement('div');ov.id='paiOv';
+ov.innerHTML=`<div class="paiP" role="dialog" aria-label="Polis.AI">
+<div class="paiH"><i>P</i><b>Polis.AI</b><small>Your notes assistant</small><button id="paiGear" title="API key" aria-label="Settings">⚙️</button><button id="paiX" aria-label="Close">✕</button></div>
+<div class="paiS" id="paiS"><label>Anthropic API key (optional)</label><input id="paiKey" type="password" placeholder="sk-ant-..." autocomplete="off"><button id="paiSave">Save</button><button id="paiDel" style="background:#222">Remove</button>
+<small>Without a key Polis.AI uses a free public AI service (Pollinations): no signup, but it can be slow or busy, and your messages go to that service. With a key, Claude is used instead; the key stays in this browser and is sent only to api.anthropic.com.</small></div>
+<div class="paiM" id="paiM"></div>
+<div class="paiF"><textarea id="paiIn" placeholder="Ask Polis.AI anything…" maxlength="2000"></textarea><button id="paiGo">Send</button></div></div>`;
+document.body.append(ov);
+const $=i=>ov.querySelector(i),M=$('#paiM');
+const say=(c,t)=>{const d=document.createElement('div');d.className='paiB '+c;d.textContent=t;M.append(d);M.scrollTop=M.scrollHeight;return d};
+const open=()=>{ov.classList.add('open');if(!M.children.length)say('a','Hi! I\'m Polis.AI. Ask me to write, rephrase or organize your notes.');setTimeout(()=>{try{$('#paiIn').focus()}catch{}},50)};
+const close=()=>ov.classList.remove('open');
+$('#paiX').onclick=close;ov.onclick=e=>{if(e.target===ov)close()};
+addEventListener('keydown',e=>{if(e.key==='Escape'&&ov.classList.contains('open'))close()});
+$('#paiGear').onclick=()=>{$('#paiKey').value=g(KK);$('#paiS').classList.toggle('open')};
+$('#paiSave').onclick=()=>{try{localStorage.setItem(KK,$('#paiKey').value.trim())}catch{}$('#paiS').classList.remove('open')};
+$('#paiDel').onclick=()=>{try{localStorage.removeItem(KK)}catch{}$('#paiKey').value=''};
+async function send(){
+  const inp=$('#paiIn'),t=inp.value.trim();if(!t||busy)return;
+  const key=g(KK);
+  inp.value='';say('u',t);hist.push({role:'user',content:t});hist=hist.slice(-20);
+  busy=true;$('#paiGo').disabled=true;const w=say('a t','…');
+  try{
+    let a;
+    if(key){
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:MODEL,max_tokens:1000,system:SYS,messages:hist})});
+      const d=await r.json();
+      if(!r.ok)throw new Error((d.error&&d.error.message)||('Error '+r.status));
+      a=(d.content||[]).map(x=>x.text||'').join('').trim()
+    }else{
+      const body=JSON.stringify({model:'openai',messages:[{role:'system',content:SYS},...hist]});
+      let err;
+      for(const u of FREE){
+        try{
+          let to;
+          const r=await Promise.race([fetch(u,{method:'POST',headers:{'content-type':'application/json'},body}),new Promise((_,j)=>{to=setTimeout(()=>j(new Error('timeout')),30000)})]);clearTimeout(to);
+          if(!r.ok)throw new Error('Error '+r.status);
+          const d=await r.json();a=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
+          if(a){a=a.trim();break}
+          throw new Error('empty reply')
+        }catch(e){err=e}
+      }
+      if(!a)throw new Error(err&&/fetch|network/i.test(err.message)?'the connection to the free service was blocked or failed. This usually happens when the page is opened inside a preview that blocks outside requests: open the file from your own hosting or from your computer, or check your internet connection.':'the free service is not responding right now ('+(err&&err.message)+'). Try again in a moment.')
+    }
+    a=a||'(empty reply)';
+    w.className='paiB a';w.textContent=a;hist.push({role:'assistant',content:a});
+  }catch(e){hist.pop();w.className='paiB e';w.textContent='Polis.AI could not answer: '+e.message}
+  busy=false;$('#paiGo').disabled=false;M.scrollTop=M.scrollHeight}
+$('#paiGo').onclick=send;
+$('#paiIn').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};
+window.pnAI={open,close};
+const n=document.getElementById('navAI');if(n)n.onclick=open;
+const rt=document.getElementById('rtabAI');if(rt)rt.onclick=()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('open');document.body.classList.remove('open');open()};
+}catch(e){console.warn('Polis.AI',e)}})();
+</script>
 </body>
 </html>
