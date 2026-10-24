@@ -219,6 +219,14 @@ body.dk .sub{background:rgba(0,0,0,.35)}
 .gate .upd td{padding:7px 0;border-bottom:1px solid rgba(0,0,0,.09);vertical-align:top;line-height:1.3}
 .gate .upd tr:last-child td{border-bottom:0}.gate .upd td:first-child{width:24px}
 @media(max-width:860px){.gate .glogo{margin-top:12px}.gate .gnav a{padding:20px 9px 17px;font-size:15px}.gate .gbar .gbadge{display:none}}
+/* fix header: the top bar must never wrap (long Halloween tagline + big Polis balance) */
+.gate .gbar>div{flex-wrap:nowrap;min-width:0}
+.gate .glogo-s,.gate .gnav,.gate .gnav a{flex:none;white-space:nowrap}
+.gate .gbar .sp{min-width:0}
+.gate .gbar>div>span:not(.glogo-s):not(.sp):not(.gbadge){flex:0 1 auto;min-width:0;max-width:240px}
+.gate .gbar .btn{max-width:100%;white-space:nowrap;overflow:hidden}
+.gate .gbar .gmBal{display:inline-block;max-width:150px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.gate .gbar .gbadge{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .shake{animation:shake .4s}@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 @keyframes barIn{from{transform:translateY(-100%)}}
 @keyframes logoIn{from{opacity:0;transform:translateX(-50px) rotate(-4deg)}}
