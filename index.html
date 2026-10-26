@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>addEventListener("error",function(e){if(/ResizeObserver loop/.test(e.message||"")){e.stopImmediatePropagation();e.preventDefault()}},true)</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f0455a">
@@ -682,7 +683,7 @@ body.pl-on .composer,body.pl-on #tools,body.pl-on #wrap,body.pl-on #board,body.p
 <div id="pOv"><div class="panel pcard" role="dialog" aria-label="Profile">
   <div id="pBanner"></div>
   <button id="pClose" aria-label="Close">✕</button>
-  <div class="pbody"><span id="pPfp" class="pfp"></span><h2 id="pName"></h2><p id="pBio"></p>
+  <div class="pbody"><span id="pPfp" class="pfp"></span><h2 id="pName"></h2><p id="pBio"></p><button id="pCode" type="button" hidden></button>
     <div id="pActs" class="drow"></div>
     <div id="pEdit" hidden>
       <input id="eName" maxlength="16" placeholder="Name"><textarea id="eBio" maxlength="120" placeholder="Bio (max 120 characters)"></textarea><input id="eSt" maxlength="30" placeholder="Status (e.g. Studying...)">
@@ -822,7 +823,7 @@ const myId=Math.random().toString(36).slice(2,9);let myName='Guest';
 const hue=id=>[...String(id)].reduce((a,c)=>a+c.charCodeAt(0)*37,0)%360;
 const bpath=()=>'rooms/'+room+(board==='main'?'':'/boards/'+board);
 const lk=p=>p+room+(board==='main'?'':'_'+board);
-let ANCH=500;const PW=()=>document.documentElement.clientWidth;
+let ANCH=500;const PX=()=>matchMedia('(min-width:900px)').matches?320:0;const PW=()=>document.documentElement.clientWidth-PX();
 /* ANCH = top of the notes area (right under title/composer/toolbar/polls): notes can never go above it */
 const syncAnch=()=>{const w=document.getElementById('wrap');if(w)ANCH=Math.round(w.getBoundingClientRect().top+(window.scrollY||0))+6};
 /* columns of the default grid depend on screen width (1 column on phones) */
@@ -854,7 +855,7 @@ function showOnline(o){
   box.append(el('span','live'),el('span',null,(privRoom?'🔒 ':'')+'Lobby: '+list.length+' online'));
   list.forEach(([id,u])=>{u=u||{};const fr=u.uid&&friends[u.uid],a=av(u.uid,u.name||'Guest','');
     if(id===myId)a.classList.add('me');if(fr)a.classList.add('fr');
-    a.title=(u.name||'Guest')+(id===myId?' (you)':'')+(fr?' - friend':'');box.append(a)});
+    a.title=(u.name||'Guest')+(u.uid?' ['+fmtCode(u.uid)+']':'')+(id===myId?' (you)':'')+(fr?' - friend':'');box.append(a)});
   const ty=list.filter(([id,u])=>id!==myId&&u&&u.typing&&Date.now()-u.typing<5000).map(([,u])=>u.name||'Guest');
   if(ty.length)box.append(el('span','typing','✍️ '+ty.join(', ')+(ty.length>1?' are':' is')+' typing...'));
   if(!SYNC){const st=db&&db.state;box.append(el('span',null,st?(st.connected?'(sync off · live p2p)':(st.err?'(sync off · p2p error: '+st.err+')':'(sync off · waiting for friends)')):'(sync off)'))}
@@ -895,7 +896,7 @@ function renderCursors(o){
     e.lastChild.textContent=c.name||'Guest';e.style.transform='translate('+(PW()/2+c.x)+'px,'+c.y+'px)'})}
 let curT=0;
 addEventListener('pointermove',ev=>{const n=Date.now();if(!curRef||n-curT<70)return;curT=n;
-  curRef.child(myId).set({x:Math.round(ev.pageX-PW()/2),y:Math.round(ev.pageY),name:myName,t:n,u:uid})});
+  curRef.child(myId).set({x:Math.round(ev.pageX-PX()-PW()/2),y:Math.round(ev.pageY),name:myName,t:n,u:uid})});
 document.addEventListener('pointerleave',()=>curRef&&curRef.child(myId).remove());
 
 /* boards */
@@ -1200,7 +1201,7 @@ function setPfp(p,u){const pf=$('#pPfp');pf.classList.toggle('on',u===uid||!!fOn
 async function openProfile(u){
   if(!u)return;pView=u;const me=u===uid;await loadProfiles([u]);const p=profs[u]||{name:'Guest'};
   $('#pEdit').hidden=true;$('#pName').textContent=p.name||'Guest';
-  $('#pBio').textContent=p.bio||(me?'No bio yet - tap Edit profile.':'No bio yet.');
+  $('#pBio').textContent=p.bio||(me?'No bio yet - tap Edit profile.':'No bio yet.');{const pc=$('#pCode');if(pc){pc.hidden=false;pc.textContent=fmtCode(u);pc.title='Friend code - click to copy';pc.onclick=()=>copyText(fmtCode(u)).then(ok=>toast(ok?'Friend code copied':'Copy failed: '+fmtCode(u)))}}
   setPfp(p,u);applyCard(p);setBanner(p.bc,'');if(me)myBanner().then(b=>{if(b&&pView===u)setBanner(p.bc,b)});
   if(!me&&!SYNC){imgGet('ban_'+u).then(b=>{if(b&&pView===u)setBanner(p.bc,b)});sPull(u)}
   if(!me&&db&&SYNC)db.ref('users/'+u+'/banner').once('value').then(s=>{if(pView===u)setBanner(p.bc,s.val())}).catch(()=>{});
@@ -1475,7 +1476,7 @@ function addMsg(m){
   const r=el('div','msg'),w=el('div','mb'),h=el('div','mh'),nm=el('b',null,m.u===uid?'You':(m.n||'Guest'));
   nm.style.color='hsl('+hue(m.u||m.n)+',55%,38%)';
   h.append(nm,el('span','mt',new Date(m.t).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+(m.q?' ⏳':'')));
-  w.append(h,el('div','mx',String(m.x||'')));r.append(av(m.u,m.n,''),w);body.append(r);body.scrollTop=body.scrollHeight}
+  if(m.u&&UID_RE.test(m.u))h.append(el('span','mc',fmtCode(m.u)));w.append(h,el('div','mx',String(m.x||'')));r.append(av(m.u,m.n,''),w);body.append(r);body.scrollTop=body.scrollHeight}
 const CHATICO='<svg class="ci" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2h-8l-5 4v-4H4a2 2 0 01-2-2V6a2 2 0 012-2z" fill="currentColor"/><circle cx="8" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="12" cy="11" r="1.4" fill="#1e2f4d"/><circle cx="16" cy="11" r="1.4" fill="#1e2f4d"/></svg>';
 function friendsList(body){
   const rq=Object.keys(reqIn);
@@ -1486,7 +1487,7 @@ function friendsList(body){
   const fl=Object.keys(friends);body.append(el('h4',null,'Friends ('+fl.length+')'));
   if(!fl.length)body.append(el('p','mut','No friends yet. Click someone in the lobby to add them.'));
   fl.sort((a,b)=>(fOn[b]?1:0)-(fOn[a]?1:0)).forEach(u=>{const p=profs[u]||{},r=el('div','fr-row');
-    r.append(av(u,p.name||'Friend',fOn[u]?'on':'off'),el('span','tt',(p.name||'Friend')+(fOn[u]?'':' (offline)')));
+    r.append(av(u,p.name||'Friend',fOn[u]?'on':'off'),(()=>{const s=el('span','tt',(p.name||'Friend')+(fOn[u]?'':' (offline)'));s.append(el('small','mc',fmtCode(u)));return s})());
     const m=el('button','btn');m.innerHTML=CHATICO;m.onclick=()=>{dmWith=u;renderChat()};r.append(m);body.append(r)})}
 function renderChat(){
   const body=$('#chBody');body.innerHTML='';stopDM();
@@ -1709,7 +1710,7 @@ function renderPlayers(){
     const a=av(u.uid,u.name||'Guest',fr&&fOn[u.uid]?'on':'');
     const nm=el('span','pn',u.name||'Guest');
     if(me)nm.append(el('small',null,'(you)'));else if(fr)nm.append(el('small',null,'friend'));
-    row.append(a,nm);
+    if(u.uid)nm.append(el('small','pcode',fmtCode(u.uid)));row.append(a,nm);
     const v=el('button','rb','View');v.onclick=()=>openProfile(u.uid);if(u.uid)row.append(v);
     const fb_=playerBtn(u.uid);if(fb_)row.append(fb_);
     if(!me&&u.uid&&window.pnFx){const pb=el('button','rb','Play');pb.style.minWidth='64px';pb.onclick=()=>pnFx.challenge(u.uid,u.name||'Guest');row.append(pb)}
@@ -4610,6 +4611,164 @@ window.pnAI={open,close};
 const n=document.getElementById('navAI');if(n)n.onclick=open;
 const rt=document.getElementById('rtabAI');if(rt)rt.onclick=()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('open');document.body.classList.remove('open');open()};
 }catch(e){console.warn('Polis.AI',e)}})();
+</script>
+<style id="pnCss">
+/* ===== POLI-NOTES · LAYOUT v2: sidebar GUI (left) + modes bar (top centre) + board (right) ===== */
+:root{--sbw:320px;--pnb:#2b2b2b;--pns:rgba(0,0,0,.13)}
+@media(max-width:899px){:root{--sbw:0px}}
+html.hw.hw-bg{--pnb:#ff7a18;--pns:rgba(122,31,162,.5)}
+@keyframes pnSlide{from{opacity:0;transform:translateX(-28px)}}
+#pnSide{display:none;position:fixed;left:0;top:0;bottom:0;width:var(--sbw);z-index:9;overflow-x:hidden;overflow-y:auto;padding:16px 14px 44px;text-align:center;background:rgba(255,255,255,.74);backdrop-filter:blur(6px);border-right:3px solid var(--pnb);box-shadow:6px 0 0 var(--pns);scrollbar-width:thin;scrollbar-color:var(--pnb) transparent}
+body.entered #pnSide{display:block;animation:pnSlide .6s var(--ease) backwards}
+html.hw.hw-bg #pnSide{background:linear-gradient(180deg,rgba(26,13,43,.93),rgba(44,18,58,.9) 60%,rgba(58,23,15,.88))}
+#pnSide .pnSec{margin:0 0 18px;position:relative}
+#pnSide .pnH{display:inline-block;margin:0 0 8px;padding:1px 9px 2px;background:var(--accent);color:#fff;font:800 10px 'Rubik',sans-serif;letter-spacing:2px;text-transform:uppercase;transform:rotate(-2deg);box-shadow:2px 2px 0 var(--pns)}
+html.hw.hw-bg #pnSide .pnH{background:#ff7a18;color:#1a0d2b}
+#pnSide .pnNote{text-align:left}
+/* brand */
+#pnSide .mlogo{display:block;max-width:100%;margin:8px 0 6px;text-align:center}
+#pnSide .mlogo .lg{font-size:34px!important;padding:2px 10px 5px!important;border-width:4px!important;outline-width:2px!important;white-space:nowrap}
+#pnSide .mlogo .tag{font-size:15px!important;padding:6px 8px!important;margin-top:14px!important}
+/* polis */
+#pnSide .pnPolis>div{margin:0!important;text-align:center!important}
+#pnSide .pnPolis>div>span{display:block}
+#pnSide .pnPolis .btn{width:100%;justify-content:center;padding:9px 12px;font-size:14px;border:2px solid var(--pnb)!important;border-radius:0!important;box-shadow:3px 3px 0 var(--pns)}
+#pnSide .pnPolis #gmBtn{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;opacity:0;pointer-events:none;z-index:-1}
+#pnSide .pnPolis:has(#gmBtn.gmDot)::after{content:"";position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:#e03a3a;border:2px solid #fff;pointer-events:none}
+/* quick buttons */
+#pnSide .pnQuick{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#pnSide .pnQuick button{position:relative!important;inset:auto!important;width:auto!important;height:40px!important;margin:0!important;padding:0 8px!important;display:flex!important;align-items:center;justify-content:center;gap:7px;border:2px solid var(--pnb)!important;border-radius:0!important;background:#fff!important;color:#222!important;font:700 12px 'Fira Code',monospace!important;box-shadow:3px 3px 0 var(--pns);transform:none;z-index:auto!important;transition:transform .15s,box-shadow .15s}
+#pnSide .pnQuick button::after{content:attr(data-l)}
+#pnSide .pnQuick button:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--pns)}
+#pnSide .pnQuick button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--pns)}
+#pnSide .pnQuick #chatBtn i{position:absolute;top:-8px;right:-8px}
+/* lobby strip */
+#pnSide #online,#pnSide #fBar{width:100%!important;max-width:100%!important;margin:0 0 8px!important;justify-content:flex-start;font-size:11px}
+/* new-note GUI */
+#pnSide .composer{width:100%!important;margin:0 0 22px!important}
+#pnSide #tools{width:100%!important;max-width:100%!important;margin:0!important;justify-content:flex-start}
+body.pl-on #pnNoteGui,body.nb-on #pnNoteGui{display:none}
+/* main = right pane, modes bar sticky at the top centre */
+main>br{display:none}
+main #plModes{position:sticky;top:10px;z-index:30;display:flex;width:max-content;max-width:100%;margin:6px auto 22px}
+@media(min-width:900px){
+  main{margin:0 0 0 var(--sbw)!important;width:auto!important;max-width:none!important;padding:0 20px}
+  #board,#stickers,#cursors{left:var(--sbw)!important;width:calc(100% - var(--sbw))!important}
+  #pnInfo{left:calc(var(--sbw) + 8px)}
+}
+@media(max-width:899px){
+  #pnSide,body.entered #pnSide{position:relative;width:auto;bottom:auto;overflow:visible;padding:12px 12px 20px;border-right:0;border-bottom:3px solid var(--pnb);box-shadow:0 5px 0 var(--pns);margin:-8px -8px 14px}
+  main #plModes{top:6px}
+}
+/* ===== CHAT: full-height drawer docked next to the sidebar ===== */
+#chat{left:0;top:0;bottom:0;height:auto;width:min(100vw,360px)!important;border:0;border-right:3px solid var(--pnb);border-radius:0;background:#fff;color:#222;box-shadow:8px 0 0 var(--pns);backdrop-filter:none;overflow:hidden;transform:translateX(-110%)}
+#chat.open{transform:none}
+#chat header{gap:8px;padding:12px;background:var(--accent);color:#fff;border-bottom:3px solid var(--pnb)}
+html.hw #chat header{color:#1a0d2b}
+#chat header b{font:800 16px 'Rubik',sans-serif;letter-spacing:1px;text-transform:uppercase}
+#chBack,#chClose{color:inherit;font-weight:800;width:28px;height:28px;border:2px solid currentColor;border-radius:0;background:transparent;line-height:1}
+#chat .tab{border:2px solid rgba(0,0,0,.5);border-radius:0;padding:3px 10px;background:rgba(255,255,255,.4);color:#1a0d2b;font:700 12px 'Fira Code',monospace}
+#chat .tab:hover{background:rgba(255,255,255,.65)}
+#chat .tab.sel{background:#1a0d2b;color:#fff;border-color:#1a0d2b}
+html.hw #chat .tab.sel{color:#ffb25b}
+#chBody{padding:12px 0;font:13px/1.4 'Fira Code',monospace;text-shadow:none;background-image:repeating-linear-gradient(to bottom,transparent 0 23px,rgba(0,0,0,.05) 23px 24px)}
+#chBody::-webkit-scrollbar-thumb{background:var(--pnb);border-radius:0}
+#chBody h4{color:inherit;opacity:.65;font:800 11px 'Rubik',sans-serif;letter-spacing:1.5px}
+#chBody .mut{color:inherit;opacity:.7;font-size:12px}
+#chat .msg{display:flex;gap:8px;align-items:flex-start;padding:5px 12px;font-size:13px}
+#chat .msg .av{display:grid;flex:0 0 auto;margin-top:2px}
+#chat .mb{display:block;flex:1;min-width:0;padding:5px 9px 7px;background:rgba(0,0,0,.045);border:2px solid rgba(0,0,0,.15);box-shadow:2px 2px 0 rgba(0,0,0,.08)}
+#chat .mh{display:flex;flex-wrap:wrap;align-items:center;gap:3px 7px}
+#chat .mh b{filter:none}
+#chat .mh b::after{content:none}
+#chat .mt{display:inline;font-size:9px;opacity:.5}
+#chat .mx{display:block;margin-top:2px}
+.mc{display:inline-block;padding:0 5px;border:1px solid currentColor;font:700 9px/14px 'Fira Code',monospace;letter-spacing:1.2px;opacity:.6}
+#chat .fr-row{color:inherit;font-size:13px;padding:7px 12px;border-bottom:1px dashed rgba(0,0,0,.2)}
+#chat .fr-row .tt{flex:1;min-width:0}
+#chat .fr-row .tt .mc{display:block;width:max-content;margin-top:2px}
+#chat .fr-row .btn,#chBody>.btn{background:var(--accent);color:#fff;border-radius:0;text-shadow:none}
+html.hw #chat .fr-row .btn,html.hw #chBody>.btn{color:#1a0d2b}
+#chInput{padding:10px;border-top:3px solid var(--pnb);background:rgba(0,0,0,.04)}
+#chInput input{border:2px solid var(--pnb);border-radius:0;background:#fff;color:#222;font:12px 'Fira Code',monospace;padding:7px 9px}
+#chInput .btn{border-radius:0;background:var(--accent);color:#fff;font-size:12px}
+html.hw #chInput .btn{color:#1a0d2b}
+html.hw.hw-bg #chat{background:#1a0d2b;color:#f4e9ff}
+html.hw.hw-bg #chBody{background-image:repeating-linear-gradient(to bottom,transparent 0 23px,rgba(255,140,40,.08) 23px 24px)}
+html.hw.hw-bg #chat .tab{background:rgba(26,13,43,.3)}
+html.hw.hw-bg #chat .tab.sel{background:#1a0d2b;border-color:#1a0d2b}
+html.hw.hw-bg #chat .mb{background:rgba(255,255,255,.06);border-color:rgba(255,122,24,.5);box-shadow:2px 2px 0 rgba(122,31,162,.5)}
+html.hw.hw-bg #chat .mh b{filter:brightness(2.1) saturate(1.3)}
+html.hw.hw-bg #chat .fr-row{border-bottom-color:rgba(255,122,24,.28)}
+html.hw.hw-bg #chInput{background:rgba(255,255,255,.04)}
+html.hw.hw-bg #chInput input{background:#241238;color:#f4e9ff}
+@media(min-width:900px){
+  #chat{left:var(--sbw);z-index:7!important}
+}
+/* ===== friend codes ===== */
+#pCode{display:inline-flex;align-items:center;gap:7px;margin:0 0 12px;padding:3px 10px;font:700 11px 'Fira Code',monospace;letter-spacing:1.6px;color:inherit;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.4);border-radius:6px;cursor:pointer}
+#pCode:hover{background:rgba(255,255,255,.16)}
+#pCode::after{content:'copy';font-size:9px;opacity:.55;letter-spacing:0;text-transform:uppercase}
+#pCode[hidden]{display:none}
+.pn .pcode{display:block;margin-top:1px;font-size:10px;font-weight:700;letter-spacing:1.3px;opacity:.6}
+
+/* planner / notebook must fit the narrower right pane */
+#planner,#notebook{min-width:0;max-width:1000px;margin-left:auto;margin-right:auto}
+#planner .pl-book{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+#planner .pl-page,#planner .pl-rgrid>*,#planner .pl-days>*{min-width:0}
+#planner .pl-rgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media(min-width:900px) and (max-width:1200px){
+  #planner .pl-book{grid-template-columns:minmax(0,1fr)}
+  #planner .pl-book::after{display:none}
+}
+
+/* ===== Halloween panel: floating window in the right pane, draggable, with a close button ===== */
+#hwPanel{left:calc(var(--sbw) + 16px)!important;top:84px!important;bottom:auto!important;max-height:min(70vh,640px)!important;transform-origin:top left!important;padding-top:12px}
+#hwPanel::before{content:"🎃  HALLOWEEN";position:sticky;top:-12px;z-index:3;display:block;margin:-12px -12px 12px;padding:9px 46px 9px 12px;background:#ff7a18 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 2l10 10M12 2L2 12' stroke='%231a0d2b' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center/14px;color:#1a0d2b;font:800 13px 'Rubik',sans-serif;letter-spacing:1.5px;cursor:grab;touch-action:none;user-select:none}
+#hwPanel.drag::before{cursor:grabbing}
+@media(max-width:899px){#hwPanel{left:12px!important;top:70px!important}}
+</style>
+<script>
+(()=>{try{
+const main=document.querySelector('main');if(!main||document.getElementById('pnSide'))return;
+/* 1) clone every "main .x" CSS rule as "#pnSide .x", so moved elements keep their exact look (fonts, borders, Halloween skin) */
+try{const re=/\bmain(?= [.#\[\w])/g,out=[];
+ const walk=(rules,acc)=>{for(const r of rules){
+  if(r.type===1&&r.selectorText&&/\bmain /.test(r.selectorText)){
+   const sel=r.selectorText.split(',').map(s=>s.trim()).filter(s=>/\bmain /.test(s)).map(s=>s.replace(re,'#pnSide')).join(',');
+   if(sel)acc.push(sel+'{'+r.style.cssText+'}')}
+  else if((r.type===4||r.type===12)&&r.cssRules){const inner=[];walk(r.cssRules,inner);if(inner.length)acc.push('@'+(r.type===4?'media ':'supports ')+(r.conditionText||r.media.mediaText)+'{'+inner.join('')+'}')}}};
+ [...document.styleSheets].forEach(sh=>{try{walk(sh.cssRules,out)}catch{}});
+ const cs=document.createElement('style');cs.id='pnClone';cs.textContent=out.join('\n');
+ const mine=document.getElementById('pnCss');if(mine)mine.before(cs);else document.head.append(cs)}catch(e){console.warn('pn clone',e)}
+/* 2) build the sidebar */
+const SB=document.createElement('aside');SB.id='pnSide';SB.setAttribute('aria-label','Poli-Notes panel');main.before(SB);
+const sec=(cls,h)=>{const d=document.createElement('section');d.className='pnSec '+cls;if(h){const x=document.createElement('span');x.className='pnH';x.textContent=h;d.append(x)}SB.append(d);return d};
+const $i=id=>document.getElementById(id);
+const brand=sec('pnBrand'),ml=main.querySelector('.mlogo');if(ml)brand.append(ml);
+const pol=sec('pnPolis'),bal=main.querySelector('.gmBal'),pw=bal&&bal.closest('main > div');if(pw)pol.append(pw);
+const q=sec('pnQuick'),QB=[['chatBtn','Chat'],['fxBtn','Games'],['invBtn','Inventory'],['hwHub','Halloween']];
+const adopt=()=>{QB.forEach(([id,l])=>{const b=$i(id);if(b&&b.parentElement!==q){b.dataset.l=l;q.append(b)}});const g=$i('gmBtn');if(g&&g.parentElement!==pol)pol.append(g)};
+adopt();let tries=0;const iv=setInterval(()=>{adopt();if(++tries>24)clearInterval(iv)},500);
+const lob=sec('pnLobby');['online','fBar'].forEach(id=>{const e=$i(id);if(e)lob.append(e)});
+const gui=sec('pnNote','New note');gui.id='pnNoteGui';
+const c=main.querySelector('.composer');if(c)gui.append(c);
+const t=$i('tools');if(t)gui.append(t);
+/* 3) re-place the notes now that the board area changed */
+const redo=()=>{try{if(typeof render==='function')render();if(typeof renderStickers==='function')renderStickers()}catch{}};
+setTimeout(redo,150);
+try{matchMedia('(min-width:900px)').addEventListener('change',()=>setTimeout(redo,60))}catch{}
+}catch(e){console.warn('pn layout',e)}})();
+/* Halloween panel: drag by its header, close with the X (or Esc) */
+(()=>{const HEAD=36,find=()=>document.getElementById('hwPanel');
+const hook=()=>{const p=find();if(!p||p._pn)return;p._pn=1;let d=null;
+ const zone=e=>{const r=p.getBoundingClientRect();return e.target===p&&e.clientY-r.top<=HEAD?(r.right-e.clientX<=46?'x':'h'):null};
+ p.addEventListener('click',e=>{if(zone(e)==='x')p.classList.remove('open')});
+ p.addEventListener('pointerdown',e=>{if(zone(e)!=='h')return;const r=p.getBoundingClientRect();d={x:e.clientX-r.left,y:e.clientY-r.top};p.setPointerCapture(e.pointerId);p.classList.add('drag');e.preventDefault()});
+ p.addEventListener('pointermove',e=>{if(!d)return;const w=p.offsetWidth;p.style.setProperty('left',Math.max(0,Math.min(innerWidth-w,e.clientX-d.x))+'px','important');p.style.setProperty('top',Math.max(0,Math.min(innerHeight-60,e.clientY-d.y))+'px','important')});
+ const end=()=>{d=null;p.classList.remove('drag')};p.addEventListener('pointerup',end);p.addEventListener('pointercancel',end)};
+hook();let n=0;const iv=setInterval(()=>{hook();if(++n>24)clearInterval(iv)},500);
+addEventListener('keydown',e=>{if(e.key==='Escape'){const p=find();if(p&&p.classList.contains('open'))p.classList.remove('open')}})})();
 </script>
 </body>
 </html>
