@@ -727,6 +727,7 @@ body.pl-on .composer,body.pl-on #tools,body.pl-on #wrap,body.pl-on #board,body.p
     <label class="pref"><input type="checkbox" id="aHc"> High contrast notes</label>
     <label class="pref"><input type="checkbox" id="aRm"> Reduce animations</label>
     <label class="pref"><input type="checkbox" id="aRx" checked> Show reactions on notes</label>
+    <label class="pref"><input type="checkbox" id="aCm" checked> Show comments on notes</label>
     <label class="pref"><input type="checkbox" id="aRxS" checked> Shop reactions (🔥 🎉 😍 …)</label>
     <h3>History <button class="btn" id="clrTr" style="padding:2px 8px;margin-left:8px;background:#222;font-size:10px">Clear</button></h3>
     <div id="trashList"></div>
@@ -1844,6 +1845,69 @@ const fired=new Set(JSON.parse(sessionStorage.getItem('pn_fired')||'[]'));
 function fitPage(){let m=0;document.querySelectorAll('#board .note,#stickers .sk').forEach(e=>m=Math.max(m,e.offsetTop+e.offsetHeight));
   document.body.style.minHeight=m+140>innerHeight?m+140+'px':''}
 const mineN=n=>!n.uid||n.uid===uid;
+/* ---- comments under notes: replies, @mentions, reactions, unread dots, Polis ---- */
+let cmOpen=null,cmReply=null,cmInit=false;const cmPrev={};
+const cmN=n=>Object.keys(n.cm||{}).length;
+const cmSeenAll=()=>LS.get('pn_cmseen',{})||{};
+const cmSeen=id=>cmSeenAll()[id]||0;
+function cmMark(n){const a=cmSeenAll(),m=Math.max(0,...Object.values(n.cm||{}).map(c=>c.ts||0));a[n.id]=Math.max(a[n.id]||0,m);LS.set('pn_cmseen',a)}
+const cmNorm=x=>String(x||'').toLowerCase().replace(/\s+/g,'');
+function cmMentions(n,t){const out=new Set(),who=[[n.uid,n.author]].concat(Object.values(n.cm||{}).map(c=>[c.u,c.a]));
+  (t.match(/@[^\s@]+/g)||[]).forEach(m=>{const k=cmNorm(m.slice(1));who.forEach(([u,a])=>{if(u&&u!==uid&&a&&(cmNorm(a)===k||cmNorm(String(a).split(' ')[0])===k))out.add(u)})});return [...out]}
+function cmUnread(n){const sn=cmSeen(n.id),cm=n.cm||{};let k=0;
+  Object.values(cm).forEach(c=>{if(!c||c.u===uid||(c.ts||0)<=sn)return;
+    const par=c.p&&cm[c.p];if(mineN(n)||(c.m||[]).includes(uid)||(par&&par.u===uid))k++});return k}
+function cmOff(){return document.body.classList.contains('no-cm')}
+function cmWrite(n,k,v){n.cm=n.cm||{};if(v)n.cm[k]=v;else delete n.cm[k];
+  if(ref){const r=ref.child(n.id+'/cm/'+k);v?r.set(v):r.remove()}else persist()}
+function cmReact(n,k,e){const c=n.cm&&n.cm[k];if(!c)return;const E=encodeURIComponent(e);c.r=c.r||{};c.r[E]=c.r[E]||{};
+  const on=!!c.r[E][uid];if(on)delete c.r[E][uid];else c.r[E][uid]=1;
+  if(ref){const r=ref.child(n.id+'/cm/'+k+'/r/'+E+'/'+uid);on?r.remove():r.set(1)}else persist()}
+function cmTxt(t){const d=el('div','cmTx');String(t).split(/(@[^\s@]+)/).forEach(x=>{if(x[0]==='@'&&x.length>1)d.append(el('span','cmM',x));else if(x)d.append(document.createTextNode(x))});return d}
+function cmPay(n){if(mineN(n))return 0;const d=new Date().toDateString(),a=LS.get('pn_cmday',{})||{};
+  if(a.d!==d){a.d=d;a.n=0}if(a.n>=5)return 0;a.n++;LS.set('pn_cmday',a);
+  if(window.pnPolis&&pnPolis.earn){pnPolis.earn(2);return 2}return 0}
+function openCm(id){if(cmOff())return;cmOpen=id;cmReply=null;const n=notes[id];if(n)cmMark(n);drawCm(true);render()}
+function closeCm(){cmOpen=null;cmReply=null;drawCm()}
+function drawCm(focus){
+  let o=document.getElementById('cmOv');const n=cmOpen&&notes[cmOpen];
+  if(!n||cmOff()){if(o)o.remove();cmOpen=null;return}
+  const old=o&&o.querySelector('.cmIn'),keep=old?old.value:'',had=old&&document.activeElement===old;
+  if(!o){o=el('div');o.id='cmOv';o.onclick=e=>{if(e.target===o)closeCm()};document.body.append(o)}
+  o.innerHTML='';
+  const cm=n.cm||{},P=el('div','cmP'),H=el('div','cmH');
+  const cl=el('button','cmX','✕');cl.onclick=closeCm;
+  H.append(el('b',null,'💬 Comments'),cl);
+  const pv=((n.type==='list'?(n.items||[]).map(i=>i.t).join(', '):n.text)||'').slice(0,90);
+  const L=el('div','cmL'),all=Object.entries(cm).map(([k,v])=>({k,...v})).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const top=all.filter(c=>!c.p||!cm[c.p]),kids=c=>all.filter(x=>x.p===c.k),ordered=[];
+  top.forEach(c=>{ordered.push([c,0]);kids(c).forEach(x=>ordered.push([x,1]))});
+  if(!ordered.length)L.append(el('div','cmE','No comments yet. Be the first!'));
+  ordered.forEach(([c,lv])=>{const r=el('div','cmR'+(lv?' cmSub':'')),b=el('div','cmB'),tp=el('div','cmT');
+    tp.append(el('b',null,c.a||'?'),el('span',null,new Date(c.ts||0).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})));
+    if(c.u===uid||mineN(n)){const d=el('button','cmD','🗑️');d.title='Delete comment';d.onclick=()=>{cmWrite(n,c.k,null);drawCm();render()};tp.append(d)}
+    b.append(tp,cmTxt(c.t));
+    const ar=el('div','cmA');
+    ['❤️','😂','👍'].forEach(e=>{const E=encodeURIComponent(e),m=Object.keys((c.r&&c.r[E])||{}).length,x=el('button','cmRx'+((c.r&&c.r[E]&&c.r[E][uid])?' on':''),e+(m?' '+m:''));x.onclick=()=>{cmReact(n,c.k,e);drawCm();render()};ar.append(x)});
+    const rp=el('button','cmRp','↩ Reply');rp.onclick=()=>{cmReply=c.p&&cm[c.p]?c.p:c.k;cmReply={k:cmReply,a:c.a};drawCm(true);const i=document.querySelector('.cmIn');if(i&&!i.value.startsWith('@'))i.value='@'+String(c.a||'').split(' ')[0]+' '+i.value};
+    ar.append(rp);b.append(ar);r.append(av(c.u,c.a||'?','xs'),b);L.append(r)});
+  const F=el('div','cmF'),inp=el('input','cmIn');inp.maxLength=200;inp.placeholder=cmReply?'Reply to '+cmReply.a+'…':'Write a comment…';inp.value=keep;
+  const go=el('button','btn','Send');
+  const send=()=>{const t=inp.value.trim();if(!t)return;
+    if(cmN(n)>=60){toast('This note has too many comments');return}
+    const k=Date.now().toString(36)+Math.random().toString(36).slice(2,5),c={u:uid,a:myName,t,ts:Date.now()};
+    if(cmReply&&cm[cmReply.k])c.p=cmReply.k;const m=cmMentions(n,t);if(m.length)c.m=m;
+    cmWrite(n,k,c);cmMark(n);inp.value='';cmReply=null;const g=cmPay(n);if(g)toast('+'+g+' Polis for commenting 💬');drawCm(true);render()};
+  go.onclick=send;inp.onkeydown=e=>{if(e.key==='Enter')send();if(e.key==='Escape')closeCm()};
+  F.append(inp,go);
+  if(cmReply){const rb=el('div','cmRb','↩ Replying to '+cmReply.a+' · ');const x=el('button',null,'cancel');x.onclick=()=>{cmReply=null;drawCm(true)};rb.append(x);P.append(H,el('div','cmPv',pv||'(note)'),L,rb,F)}
+  else P.append(H,el('div','cmPv',pv||'(note)'),L,F);
+  o.append(P);L.scrollTop=L.scrollHeight;
+  if(focus||had)inp.focus()}
+function cmAfter(){/* toast when new unread comments arrive while the app is open */
+  let add=0;Object.values(notes).forEach(n=>{if(!n)return;const u=cmUnread(n);if(cmInit&&u>(cmPrev[n.id]||0)&&cmOpen!==n.id)add+=u-(cmPrev[n.id]||0);cmPrev[n.id]=u});
+  if(add&&!cmOff())toast('💬 '+add+' new comment'+(add>1?'s':'')+' for you');
+  if(cmOpen){const n=notes[cmOpen];if(n)cmMark(n)}cmInit=true}
 function render(){
   syncAnch();const b=$('#board');b.innerHTML='';
   Object.values(notes).forEach(n=>{if(n&&n.exp&&n.exp<Date.now()){delete notes[n.id];ref?ref.child(n.id).remove():persist()}});
@@ -1879,6 +1943,7 @@ function render(){
     if(n.exp)c.append(el('div','due-b','⏳ until '+new Date(n.exp).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})));
     const rc=el('div','reacts');
     ['❤️','😂','👍'].concat(typeof pnReacts==='function'?pnReacts():[]).forEach(e=>{const r=el('button',null,e+(n.reacts[e]?' '+n.reacts[e]:''));r.onclick=()=>{n.reacts[e]=(n.reacts[e]||0)+1;put(n)};rc.append(r)});
+    {const un=cmUnread(n),cb=el('button','cmBtn'+(un?' cmNew':''),'💬'+(cmN(n)?' '+cmN(n):''));cb.title=un?un+' new comment(s)':'Comments';cb.onclick=()=>openCm(n.id);rc.append(cb)}
     c.append(rc);
     /* drag: anywhere on the screen */
     g.onpointerdown=ev=>{ev.preventDefault();g.setPointerCapture(ev.pointerId);c.classList.add('drag');
@@ -1890,7 +1955,7 @@ function render(){
         n.cx=Math.round(c.offsetLeft-PW()/2);n.ty=Math.round(c.offsetTop-ANCH);delete n.x;delete n.y;put(n)}};
     b.append(c);
   });
-  fitPage();
+  fitPage();if(cmOpen)drawCm();cmAfter();
 }
 /* if something above the notes area changes height (online bar, polls, friends bar, rotation...) re-anchor the notes */
 {let lastA=-1,tA;const chkA=()=>{const w=document.getElementById('wrap');if(!w)return;
@@ -2503,6 +2568,7 @@ const $=s=>document.querySelector(s);
  const ap=()=>{document.body.classList.toggle('no-rx',!a.checked);b.disabled=!a.checked;b.parentElement.style.opacity=a.checked?'':'.45'};
  a.checked=LS.get('pn_aRx',true)!==false;b.checked=LS.get('pn_aRxS',true)!==false;ap();
  a.onchange=()=>{LS.set('pn_aRx',a.checked);ap()};
+ {const c=$('#aCm');if(c){const ac=()=>{document.body.classList.toggle('no-cm',!c.checked);if(!c.checked&&typeof closeCm==='function')closeCm()};c.checked=LS.get('pn_aCm',true)!==false;ac();c.onchange=()=>{LS.set('pn_aCm',c.checked);ac()}}}
  b.onchange=()=>{LS.set('pn_aRxS',b.checked);try{render()}catch{}}}
 /* templates */
 const sel=document.createElement('select');sel.className='chip';sel.id='tpl';sel.style.cssText='max-width:130px;font-size:10px';
@@ -4806,6 +4872,30 @@ addEventListener('keydown',e=>{if(e.key==='Escape'){const p=find();if(p&&p.class
 .gmP .chip{border-radius:999px;padding:6px 14px;border:1px solid #d6d6d6;background:#fff;transition:all .2s}
 .gmP .chip:hover{border-color:var(--accent);color:var(--accent)}
 .gmP .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
+<style id="pnComments">
+.reacts .cmBtn{background:rgba(0,0,0,.08)!important;font-weight:700}
+#cmOv{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.4);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:16px}
+.cmP{width:min(100%,420px);max-height:min(80vh,560px);display:flex;flex-direction:column;background:#fff;color:#222;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.3);overflow:hidden;font:14px 'Source Sans 3','Segoe UI',Arial,sans-serif;animation:pop .3s ease}
+.cmH{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #eee;font-size:16px}
+.cmX{border:0;background:none;font-size:16px;cursor:pointer;color:#555}
+.cmPv{padding:8px 14px;background:#fafafa;border-bottom:1px solid #eee;font-size:13px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmL{flex:1;overflow:auto;padding:10px 14px;display:flex;flex-direction:column;gap:10px;min-height:90px}
+.cmE{text-align:center;opacity:.55;padding:20px 0}
+.cmR{display:flex;gap:8px;align-items:flex-start}
+.cmB{flex:1;min-width:0;background:#f3f3f3;border-radius:10px;padding:6px 10px}
+.cmT{display:flex;gap:8px;align-items:center;font-size:12px}.cmT span{opacity:.5;flex:1}
+.cmTx{word-break:break-word;margin-top:2px}
+.cmD{border:0;background:none;cursor:pointer;font-size:12px;padding:0}
+.cmF{display:flex;gap:8px;padding:10px 14px;border-top:1px solid #eee}
+.cmIn{flex:1;min-width:0;border:1px solid #ccc;border-radius:8px;padding:8px 10px;font:inherit}
+.no-cm .cmBtn,.no-cm #cmOv{display:none!important}
+.reacts .cmBtn{position:relative}.reacts .cmNew::after{content:"";position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:#e03a3a;box-shadow:0 0 0 2px #fff}
+.cmSub{margin-left:28px}.cmM{color:#1a6fd1;font-weight:700}
+.cmA{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.cmA button{border:0;background:rgba(0,0,0,.06);border-radius:10px;font-size:11px;padding:1px 7px;cursor:pointer}
+.cmA .cmRx.on{background:#ffe9a8;font-weight:700}.cmA .cmRp{margin-left:auto;background:none;opacity:.7}
+.cmRb{padding:6px 14px;font-size:12px;background:#f3f6ff;border-top:1px solid #e3e8f5}.cmRb button{border:0;background:none;color:#1a6fd1;cursor:pointer;font:inherit;padding:0}
 </style>
 </body>
 </html>
